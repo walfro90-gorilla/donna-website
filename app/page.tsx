@@ -1,6 +1,7 @@
 "use client";
 // app/page.tsx
 import { useState } from 'react';
+import Image from 'next/image';
 
 // Componente para renderizar las estrellas de calificación
 const StarRating = ({ rating }: { rating: number }) => {
@@ -152,9 +153,16 @@ export default function HomePage() {
                 {testimonials.map((testimonial, index) => (
                   <div key={index} className="w-full flex-shrink-0 px-4">
                     <div className="bg-white p-8 rounded-lg shadow-md">
-                      <img src={testimonial.avatar} alt={`Avatar de ${testimonial.name}`} className="w-20 h-20 rounded-full mx-auto mb-4" />
+                      <div className="relative w-20 h-20 mx-auto mb-4">
+                        <Image 
+                          src={testimonial.avatar}
+                          alt={`Avatar de ${testimonial.name}`}
+                          fill
+                          className="rounded-full object-cover"
+                        />
+                      </div>
                       <StarRating rating={testimonial.rating} />
-                      <p className="text-gray-600 italic mb-4">"{testimonial.comment}"</p>
+                      <p className="text-gray-600 italic mb-4">&ldquo;{testimonial.comment}&rdquo;</p>
                       <h4 className="font-bold text-lg text-gray-800">{testimonial.name}</h4>
                       <p className="text-[#e4007c] font-semibold">{testimonial.role}</p>
                     </div>
@@ -200,7 +208,14 @@ export default function HomePage() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center">
-              <img src="https://placehold.co/300x600/FFFFFF/333333?text=App+Screenshot" alt="Captura de pantalla de la app Doña Repartos" className="rounded-2xl shadow-xl" />
+              <div className="relative w-[300px] h-[600px]">
+                <Image
+                  src="https://placehold.co/300x600/FFFFFF/333333?text=App+Screenshot"
+                  alt="Captura de pantalla de la app Doña Repartos"
+                  fill
+                  className="rounded-2xl shadow-xl object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>

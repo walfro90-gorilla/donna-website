@@ -53,7 +53,7 @@ export default function SociosPage() {
       // Paso 2: Si todo está libre, proceder con el registro
       const tempPassword = Math.random().toString(36).slice(-8);
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email: formState.email,
         password: tempPassword,
         options: {
@@ -70,8 +70,9 @@ export default function SociosPage() {
 
       setIsSubmitted(true);
 
-    } catch (error: any) {
-      setError(error.message || 'Hubo un error al enviar tu solicitud. Por favor, intenta de nuevo.');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Hubo un error al enviar tu solicitud. Por favor, intenta de nuevo.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

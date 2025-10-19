@@ -131,6 +131,16 @@ npm run start
 npm run lint
 ```
 
+## Deployment
+
+This project is configured for deployment on Vercel (the creators of Next.js). The project is set up but currently doesn't have a production deployment.
+
+To deploy to production:
+1. Push your code to the main branch, or
+2. Run `vercel --prod` using the Vercel command-line interface
+
+The project's domain is properly configured, but a production deployment needs to be triggered to make it live.
+
 ## Development Conventions
 
 - TypeScript is used throughout the project

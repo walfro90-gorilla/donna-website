@@ -45,7 +45,7 @@ export default function RepartidoresPage() {
     let cancelled = false;
     // token para identificar la petición actual y evitar que respuestas antiguas
     const requestToken = Symbol();
-    let currentToken = requestToken;
+    const currentToken = requestToken;
 
     const debounceTimer = setTimeout(() => {
       (async () => {
@@ -177,8 +177,9 @@ export default function RepartidoresPage() {
 
       setIsSubmitted(true);
 
-    } catch (error: any) {
-      setError(error.message || 'Hubo un error al enviar tu solicitud. Por favor, intenta de nuevo.');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Hubo un error al enviar tu solicitud. Por favor, intenta de nuevo.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
