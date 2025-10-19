@@ -70,7 +70,7 @@ export default function RepartidoresPage() {
           }
 
         } catch (e) {
-          if (cancelled || currentToken !== requestToken) return;
+          if (cancelled) return;
           // En caso de error en la llamada, lo dejamos como 'invalid' para bloquear el envío
           setEmailValidation('invalid');
           console.error("Error al validar email:", e);

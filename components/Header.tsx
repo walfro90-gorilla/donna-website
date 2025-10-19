@@ -2,6 +2,8 @@
 // components/Header.tsx
 
 import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,9 +12,9 @@ export default function Header() {
     <header className="bg-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-6 py-3 flex justify-between items-center">
         {/* Logo */}
-        <a href="/" className="flex items-center space-x-2">
-          <img
-            src="/app_icon.png" // Asegúrate que tu logo esté en la carpeta /public
+        <Link href="/" className="flex items-center space-x-2">
+          <Image
+            src="/app_icon.png"
             alt="Logo de Doña Repartos"
             width={40}
             height={40}
@@ -21,19 +23,19 @@ export default function Header() {
           <span className="text-xl font-bold text-gray-800 hidden md:block">
             Doña Repartos
           </span>
-        </a>
+        </Link>
 
         {/* Navegación para Escritorio */}
         <nav className="hidden md:flex items-center space-x-8">
-          <a href="/clientes" className="text-gray-600 hover:text-[#e4007c] transition-colors font-medium">
+          <Link href="/clientes" className="text-gray-600 hover:text-[#e4007c] transition-colors font-medium">
             Para Clientes
-          </a>
-          <a href="/socios" className="text-gray-600 hover:text-[#e4007c] transition-colors font-medium">
+          </Link>
+          <Link href="/socios" className="text-gray-600 hover:text-[#e4007c] transition-colors font-medium">
             Para Restaurantes
-          </a>
-          <a href="/repartidores" className="text-gray-600 hover:text-[#e4007c] transition-colors font-medium">
+          </Link>
+          <Link href="/repartidores" className="text-gray-600 hover:text-[#e4007c] transition-colors font-medium">
             Para Repartidores
-          </a>
+          </Link>
         </nav>
 
         {/* Botón CTA y Menú Hamburguesa */}
