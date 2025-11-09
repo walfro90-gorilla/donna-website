@@ -1,4 +1,4 @@
-// app/socios/page.tsx
+// app/clientes/page.tsx
 "use client";
 
 import { useState } from 'react';
@@ -9,10 +9,10 @@ import FormField from '@/components/FormField';
 import FormButton from '@/components/FormButton';
 import PasswordStrength from '@/components/PasswordStrength';
 import ErrorMessage from '@/components/ErrorMessage';
-import { getPasswordStrength, isValidPassword } from '@/lib/utils/validation';
-import { registerRestaurantClient } from '@/lib/utils/registerRestaurant';
+import { handleError } from '@/lib/utils/errorHandler';
+import { getPasswordStrength } from '@/lib/utils/validation';
 import type { Address } from '@/types/address';
-import type { RestaurantFormData } from '@/types/form';
+import type { ClientFormData } from '@/types/form';
 
 // Icono para la sección de beneficios
 const CheckCircleIcon = () => (
@@ -21,14 +21,12 @@ const CheckCircleIcon = () => (
   </svg>
 );
 
-export default function SociosPage() {
-  const [formState, setFormState] = useState<RestaurantFormData>({
-    owner_name: '',
-    email: '',
+export default function ClientesPage() {
+  const [formState, setFormState] = useState<ClientFormData>({
+    name: '',
     phone: '',
+    email: '',
     password: '',
-    confirm_password: '',
-    restaurant_name: '',
   });
 
   const [addressDetails, setAddressDetails] = useState<Address | null>(null);
@@ -36,13 +34,11 @@ export default function SociosPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
-  const [passwordMatchError, setPasswordMatchError] = useState('');
 
   const supabase = useSupabase();
 
-  const restaurantNameValidation = useFieldValidation('name', formState.restaurant_name, 'restaurant');
-  const emailValidation = useFieldValidation('email', formState.email, 'restaurant');
-  const phoneValidation = useFieldValidation('phone', formState.phone, 'restaurant');
+  const emailValidation = useFieldValidation('email', formState.email, 'cliente');
+  const phoneValidation = useFieldValidation('phone', formState.phone, 'cliente');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -52,37 +48,20 @@ export default function SociosPage() {
     if (id === 'password') {
       setPasswordStrength(value.length > 0 ? getPasswordStrength(value) : null);
     }
-
-    // Validar coincidencia de contraseñas
-    if (id === 'password' || id === 'confirm_password') {
-      if (id === 'confirm_password' && formState.password && value !== formState.password) {
-        setPasswordMatchError('Las contraseñas no coinciden');
-      } else if (id === 'password' && formState.confirm_password && value !== formState.confirm_password) {
-        setPasswordMatchError('Las contraseñas no coinciden');
-      } else {
-        setPasswordMatchError('');
-      }
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setPasswordMatchError('');
 
-    // Validaciones locales
-    if (restaurantNameValidation !== 'valid' || emailValidation !== 'valid' || phoneValidation !== 'valid') {
+    // Validaciones
+    if (emailValidation !== 'valid' || phoneValidation !== 'valid') {
       setError('Por favor, corrige los campos marcados antes de continuar.');
       return;
     }
 
-    if (!addressDetails || !addressDetails.location_lat || !addressDetails.location_lon) {
+    if (!addressDetails) {
       setError('Por favor, selecciona una dirección válida de la lista.');
-      return;
-    }
-
-    if (!isValidPassword(formState.password)) {
-      setError('La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números.');
       return;
     }
 
@@ -91,36 +70,63 @@ export default function SociosPage() {
       return;
     }
 
-    if (formState.password !== formState.confirm_password) {
-      setPasswordMatchError('Las contraseñas no coinciden');
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const result = await registerRestaurantClient(supabase, {
-        owner_name: formState.owner_name,
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email: formState.email,
-        phone: formState.phone,
         password: formState.password,
-        restaurant_name: formState.restaurant_name,
-        address: addressDetails.address,
-        location_lat: addressDetails.location_lat!,
-        location_lon: addressDetails.location_lon!,
-        location_place_id: addressDetails.location_place_id,
-        address_structured: addressDetails.address_structured,
+        options: {
+          data: {
+            role: 'cliente',
+            name: formState.name,
+            phone: formState.phone,
+          }
+        }
       });
 
-      if (!result.ok) {
-        throw new Error(result.error || 'Error al registrar el restaurante');
+      if (signUpError) {
+        if (signUpError.message.includes('User already registered')) {
+          throw new Error('Este correo electrónico ya está registrado.');
+        }
+        throw signUpError;
+      }
+
+      if (!user) {
+        throw new Error('No se pudo crear el usuario.');
+      }
+
+      // Registrar perfil de cliente en la base de datos
+      const { error: rpcError } = await supabase.rpc('register_client_v2', {
+        p_user_id: user.id,
+        p_email: formState.email,
+        p_name: formState.name,
+        p_phone: formState.phone,
+        p_address: addressDetails.address,
+        p_address_structured: addressDetails.address_structured,
+        p_location_lat: addressDetails.location_lat,
+        p_location_lon: addressDetails.location_lon,
+        p_location_place_id: addressDetails.location_place_id
+      });
+
+      if (rpcError) {
+        console.error('Error en la RPC post-registro:', rpcError);
+        throw new Error('Se creó tu cuenta, pero hubo un problema al registrar tu perfil.');
+      }
+
+      const { error: updateUserError } = await supabase.auth.updateUser({
+        data: { name: formState.name }
+      });
+
+      if (updateUserError) {
+        console.warn('Post-registration: Could not update user name.', updateUserError);
       }
 
       setIsSubmitted(true);
 
-    } catch (error: any) {
-      setError(error?.message || 'Error desconocido al registrar el restaurante');
+    } catch (error) {
+      const errorResult = handleError(error, 'registration');
+      setError(errorResult.message);
     } finally {
       setIsLoading(false);
     }
@@ -129,14 +135,14 @@ export default function SociosPage() {
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section */}
-      <section className="bg-[#fef2f9] py-16 md:py-24 lg:py-32">
+      <section className="bg-[#fef2f9] py-16 md:py-24">
         <div className="container mx-auto px-6 text-center">
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-800 mb-4">
-            Haz crecer tu negocio. <br className="hidden md:block" />
-            Únete a la familia Doña Repartos.
+            Disfruta de tu comida favorita <br className="hidden md:block" />
+            en la comodidad de tu hogar.
           </h1>
           <p className="text-base md:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto">
-            Llega a miles de clientes hambrientos en tu comunidad y aumenta tus ventas.
+            Pide de los mejores restaurantes locales y recibe tu comida caliente y deliciosa.
           </p>
         </div>
       </section>
@@ -148,17 +154,17 @@ export default function SociosPage() {
             {/* Columna de Beneficios */}
             <div className="order-2 lg:order-1">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">
-                ¿Por qué asociarte con nosotros?
+                ¿Por qué elegir Doña Repartos?
               </h2>
               <ul className="space-y-5 md:space-y-6">
                 <li className="flex items-start">
                   <CheckCircleIcon />
                   <div>
                     <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
-                      Más Ventas
+                      Restaurantes Locales
                     </h3>
                     <p className="text-gray-600 text-sm md:text-base">
-                      Concéntrate en cocinar, nosotros llevamos tus platillos a más personas.
+                      Apoya a los negocios de tu comunidad y disfruta de sabores auténticos.
                     </p>
                   </div>
                 </li>
@@ -166,10 +172,10 @@ export default function SociosPage() {
                   <CheckCircleIcon />
                   <div>
                     <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
-                      Comisiones Justas
+                      Entrega Rápida
                     </h3>
                     <p className="text-gray-600 text-sm md:text-base">
-                      Nuestras comisiones son las más competitivas del mercado.
+                      Tu comida llega caliente y a tiempo, directo a tu puerta.
                     </p>
                   </div>
                 </li>
@@ -177,10 +183,10 @@ export default function SociosPage() {
                   <CheckCircleIcon />
                   <div>
                     <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
-                      Soporte Local
+                      Fácil de Usar
                     </h3>
                     <p className="text-gray-600 text-sm md:text-base">
-                      Recibe soporte personalizado de un equipo que conoce tu ciudad.
+                      Pedir es simple, rápido y seguro. Todo desde tu teléfono o computadora.
                     </p>
                   </div>
                 </li>
@@ -206,7 +212,7 @@ export default function SociosPage() {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">¡Gracias por unirte!</h3>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-4">¡Bienvenido a Doña Repartos!</h3>
                   <p className="text-gray-600 mb-2">
                     Hemos enviado un correo a <strong className="text-gray-800">{formState.email}</strong>.
                   </p>
@@ -217,14 +223,14 @@ export default function SociosPage() {
               ) : (
                 <>
                   <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                    ¡Empieza hoy!
+                    ¡Crea tu cuenta!
                   </h3>
                   <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6" noValidate>
                     <FormField
-                      label="Nombre del Propietario"
-                      id="owner_name"
+                      label="Nombre Completo"
+                      id="name"
                       type="text"
-                      value={formState.owner_name}
+                      value={formState.name}
                       onChange={handleInputChange}
                       required
                       placeholder="Juan Pérez"
@@ -238,7 +244,7 @@ export default function SociosPage() {
                       value={formState.email}
                       onChange={handleInputChange}
                       required
-                      placeholder="contacto@restaurante.com"
+                      placeholder="tu@email.com"
                       validationStatus={emailValidation}
                       validationMessage={
                         emailValidation === 'valid'
@@ -256,33 +262,13 @@ export default function SociosPage() {
                       value={formState.phone}
                       onChange={handleInputChange}
                       required
-                      placeholder="+521234567890 o 1234567890"
+                      placeholder="123-456-7890"
                       validationStatus={phoneValidation}
                       validationMessage={
                         phoneValidation === 'valid'
                           ? 'Teléfono disponible'
                           : phoneValidation === 'invalid'
                           ? 'Este teléfono ya está en uso.'
-                          : undefined
-                      }
-                      helpText="Se formateará automáticamente con código de país (+52)"
-                    />
-
-                    <FormField
-                      label="Nombre del Restaurante"
-                      id="restaurant_name"
-                      type="text"
-                      value={formState.restaurant_name}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Mi Restaurante"
-                      minLength={3}
-                      validationStatus={restaurantNameValidation}
-                      validationMessage={
-                        restaurantNameValidation === 'valid'
-                          ? 'Nombre disponible'
-                          : restaurantNameValidation === 'invalid'
-                          ? 'Este nombre ya está en uso.'
                           : undefined
                       }
                     />
@@ -292,7 +278,6 @@ export default function SociosPage() {
                       <AddressAutocomplete
                         apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
                         onAddressSelect={setAddressDetails}
-                        required
                       />
                       {!addressDetails && (
                         <p className="text-xs text-gray-500 mt-1">
@@ -321,22 +306,6 @@ export default function SociosPage() {
                       <PasswordStrength password={formState.password} />
                     </div>
 
-                    <FormField
-                      label="Confirmar Contraseña"
-                      id="confirm_password"
-                      type="password"
-                      value={formState.confirm_password}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Repite tu contraseña"
-                      minLength={8}
-                    />
-                    {passwordMatchError && (
-                      <p className="text-red-500 text-xs mt-1" role="alert">
-                        {passwordMatchError}
-                      </p>
-                    )}
-
                     {error && <ErrorMessage message={error} />}
 
                     <FormButton
@@ -345,19 +314,14 @@ export default function SociosPage() {
                       disabled={
                         isLoading ||
                         !addressDetails ||
-                        !addressDetails.location_lat ||
-                        !addressDetails.location_lon ||
-                        restaurantNameValidation !== 'valid' ||
                         emailValidation !== 'valid' ||
                         phoneValidation !== 'valid' ||
                         !passwordStrength ||
-                        passwordStrength === 'weak' ||
-                        formState.password !== formState.confirm_password ||
-                        !isValidPassword(formState.password)
+                        passwordStrength === 'weak'
                       }
                       fullWidth
                     >
-                      {isLoading ? 'Enviando solicitud...' : 'Enviar Solicitud'}
+                      {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
                     </FormButton>
                   </form>
                 </>
@@ -369,3 +333,4 @@ export default function SociosPage() {
     </div>
   );
 }
+

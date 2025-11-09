@@ -1,7 +1,16 @@
 // app/repartidores/page.tsx
 "use client";
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { useSupabase } from '@/lib/hooks/useSupabase';
+import { useFieldValidation } from '@/lib/hooks/useFieldValidation';
+import FormField from '@/components/FormField';
+import FormButton from '@/components/FormButton';
+import PasswordStrength from '@/components/PasswordStrength';
+import ErrorMessage from '@/components/ErrorMessage';
+import { handleError } from '@/lib/utils/errorHandler';
+import { getPasswordStrength } from '@/lib/utils/validation';
+import type { DeliveryDriverFormData } from '@/types/form';
 
 // Icono para la sección de beneficios
 const CheckCircleIcon = () => (
@@ -10,160 +19,54 @@ const CheckCircleIcon = () => (
   </svg>
 );
 
-// Tipos para el estado de validación
-type ValidationStatus = 'idle' | 'checking' | 'valid' | 'invalid';
-
 export default function RepartidoresPage() {
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<DeliveryDriverFormData>({
     name: '',
     phone: '',
     email: '',
+    password: '',
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-  
-  // Nuevo estado para la validación del email
-  const [emailValidation, setEmailValidation] = useState<ValidationStatus>('idle');
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
 
-  // Memoizar el cliente Supabase para que no cambie la referencia en cada render
   const supabase = useSupabase();
-  
-  // useEffect para validar el email con "debouncing"
-  useEffect(() => {
-    // Si el email está vacío o no es un email válido, reseteamos el estado
-    if (!formState.email || !/^\S+@\S+\.\S+$/.test(formState.email)) {
-      setEmailValidation('idle');
-      return;
-    }
 
-    // Empezamos a verificar (estado intermedio)
-    setEmailValidation('checking');
-
-    // "Debounce": esperamos 500ms después de que el usuario deja de teclear
-    let cancelled = false;
-    // token para identificar la petición actual y evitar que respuestas antiguas
-    const requestToken = Symbol();
-    const currentToken = requestToken;
-
-    const debounceTimer = setTimeout(() => {
-      (async () => {
-        try {
-          const { data, error } = await supabase.rpc('pre_signup_check_repartidor', {
-            p_email: formState.email
-          });
-
-          if (cancelled || currentToken !== requestToken) return; // si se limpió el efecto o token cambió, ignorar
-
-          if (error) {
-            console.error('Error al validar email:', error);
-            setEmailValidation('invalid');
-            return;
-          }
-
-          // Actualizamos el estado de validación según la respuesta
-          if (data?.email_taken) {
-            setEmailValidation('invalid');
-          } else {
-            setEmailValidation('valid');
-          }
-
-        } catch (e) {
-          if (cancelled) return;
-          // En caso de error en la llamada, lo dejamos como 'invalid' para bloquear el envío
-          setEmailValidation('invalid');
-          console.error("Error al validar email:", e);
-        }
-      })();
-    }, 500);
-
-    // Limpiamos el timer si el usuario sigue tecleando
-    return () => { cancelled = true; clearTimeout(debounceTimer); };
-
-  }, [formState.email, supabase]);
-
-
-  // Nuevo estado y useEffect para validar el teléfono con la misma lógica
-  const [phoneValidation, setPhoneValidation] = useState<ValidationStatus>('idle');
-
-  useEffect(() => {
-    // Si el teléfono está vacío o no tiene un formato razonable, reseteamos
-    if (!formState.phone || !/^[0-9()+\-\s]{7,20}$/.test(formState.phone)) {
-      setPhoneValidation('idle');
-      return;
-    }
-
-    setPhoneValidation('checking');
-
-    let cancelled = false;
-    const debounceTimer = setTimeout(() => {
-      (async () => {
-        try {
-          // Intentamos validar el teléfono contra la tabla client_profiles
-          const { data, error } = await supabase
-            .from('client_profiles')
-            .select('user_id') // Usamos user_id en lugar de id
-            .eq('phone', formState.phone)
-            .limit(1);
-
-          if (cancelled) return;
-
-          // Si hay un error porque la tabla/columna no existe, dejamos pasar la validación
-          if (error) {
-            if (error.code === 'PGRST205' || error.code === '42703') {
-              console.warn('Validación de teléfono no disponible:', error);
-              setPhoneValidation('valid'); // permitimos continuar si no podemos validar
-              return;
-            }
-            // Otro tipo de error: marcamos como válido pero logueamos
-            console.error('Error al validar teléfono:', error);
-            setPhoneValidation('valid');
-            return;
-          }
-
-          // Si encontramos el teléfono, está en uso
-          if (data && data.length > 0) {
-            setPhoneValidation('invalid');
-          } else {
-            setPhoneValidation('valid');
-          }
-
-        } catch (e) {
-          if (cancelled) return;
-          setPhoneValidation('invalid');
-          console.error('Error al validar teléfono:', e);
-        }
-      })();
-    }, 500);
-
-    return () => { cancelled = true; clearTimeout(debounceTimer); };
-  }, [formState.phone, supabase]);
-
+  const emailValidation = useFieldValidation('email', formState.email, 'repartidor');
+  const phoneValidation = useFieldValidation('phone', formState.phone, 'repartidor');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormState(prevState => ({ ...prevState, [id]: value }));
+
+    // Calcular fuerza de contraseña en tiempo real
+    if (id === 'password') {
+      setPasswordStrength(value.length > 0 ? getPasswordStrength(value) : null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // No permitir enviar si el email es inválido
-    if (emailValidation !== 'valid') {
-        setError('Por favor, usa un correo electrónico válido y disponible.');
-        return;
+    setError('');
+
+    if (emailValidation !== 'valid' || phoneValidation !== 'valid') {
+      setError('Por favor, corrige los campos marcados antes de continuar.');
+      return;
+    }
+
+    if (!passwordStrength || passwordStrength === 'weak') {
+      setError('Por favor, usa una contraseña más segura.');
+      return;
     }
 
     setIsLoading(true);
-    setError('');
 
     try {
-      // Ya no necesitamos la validación aquí porque se hizo en tiempo real
-      const tempPassword = Math.random().toString(36).slice(-8);
-
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email: formState.email,
-        password: tempPassword,
+        password: formState.password,
         options: {
           data: {
             role: 'repartidor',
@@ -173,104 +76,206 @@ export default function RepartidoresPage() {
         }
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        if (signUpError.message.includes('User already registered')) {
+          throw new Error('Este correo electrónico ya está registrado.');
+        }
+        throw signUpError;
+      }
+
+      if (!user) {
+        throw new Error('No se pudo crear el usuario.');
+      }
 
       setIsSubmitted(true);
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Hubo un error al enviar tu solicitud. Por favor, intenta de nuevo.';
-      setError(errorMessage);
+      const errorResult = handleError(error, 'registration');
+      setError(errorResult.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Función para obtener las clases del borde del input de email
-  const getEmailInputClasses = () => {
-    const baseClasses = "mt-1 block w-full px-4 py-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors text-gray-800";
-    switch (emailValidation) {
-        case 'valid':
-            return `${baseClasses} border-green-500 ring-green-500`;
-        case 'invalid':
-            return `${baseClasses} border-red-500 ring-red-500`;
-        default:
-            return `${baseClasses} border-gray-300 focus:ring-[#e4007c] focus:border-[#e4007c]`;
-    }
-  }
-
   return (
-    <div className="bg-white">
+    <div className="bg-white min-h-screen">
       {/* Hero Section */}
-      <section className="bg-[#fef2f9] py-20 md:py-32">
+      <section className="bg-[#fef2f9] py-16 md:py-24 lg:py-32">
         <div className="container mx-auto px-6 text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-gray-800 mb-4">
-            Gana a tu ritmo. <br />
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-800 mb-4">
+            Gana a tu ritmo. <br className="hidden md:block" />
             Sé el héroe de tu comunidad.
           </h1>
-          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-base md:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto">
             Únete a nuestra flota de repartidores y disfruta de la libertad de elegir tus horarios, con ganancias justas y el respaldo de un equipo local.
           </p>
         </div>
       </section>
 
       {/* Sección de Beneficios y Formulario */}
-      <section className="py-20">
-        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          {/* Columna de Beneficios */}
-          <div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">¿Por qué repartir con Doña Repartos?</h2>
-            <ul className="space-y-6">
-              <li className="flex items-start"><CheckCircleIcon /><div><h3 className="font-semibold text-lg text-gray-800">Ganancias Claras y Justas</h3><p className="text-gray-600">Te quedas con un alto porcentaje de la tarifa de envío y el 100% de tus propinas. Siempre.</p></div></li>
-              <li className="flex items-start"><CheckCircleIcon /><div><h3 className="font-semibold text-lg text-gray-800">Flexibilidad Total</h3><p className="text-gray-600">Sin jefes ni horarios fijos. Conéctate cuando quieras, el tiempo que quieras. Tú tienes el control.</p></div></li>
-              <li className="flex items-start"><CheckCircleIcon /><div><h3 className="font-semibold text-lg text-gray-800">Soporte que te Respalda</h3><p className="text-gray-600">Somos un equipo. Tienes acceso a soporte local y humano para ayudarte en cada paso del camino.</p></div></li>
-            </ul>
-          </div>
+      <section className="py-12 md:py-20">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+            {/* Columna de Beneficios */}
+            <div className="order-2 lg:order-1">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">
+                ¿Por qué repartir con Doña Repartos?
+              </h2>
+              <ul className="space-y-5 md:space-y-6">
+                <li className="flex items-start">
+                  <CheckCircleIcon />
+                  <div>
+                    <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
+                      Ganancias Claras y Justas
+                    </h3>
+                    <p className="text-gray-600 text-sm md:text-base">
+                      Te quedas con un alto porcentaje de la tarifa de envío y el 100% de tus propinas. Siempre.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircleIcon />
+                  <div>
+                    <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
+                      Flexibilidad Total
+                    </h3>
+                    <p className="text-gray-600 text-sm md:text-base">
+                      Sin jefes ni horarios fijos. Conéctate cuando quieras, el tiempo que quieras. Tú tienes el control.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircleIcon />
+                  <div>
+                    <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
+                      Soporte que te Respalda
+                    </h3>
+                    <p className="text-gray-600 text-sm md:text-base">
+                      Somos un equipo. Tienes acceso a soporte local y humano para ayudarte en cada paso del camino.
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </div>
 
-          {/* Columna de Formulario */}
-          <div className="bg-white p-8 rounded-lg shadow-2xl">
-            {isSubmitted ? (
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">¡Excelente! Estás un paso más cerca.</h3>
-                <p className="text-gray-600">Hemos enviado un correo a <strong>{formState.email}</strong>. Por favor, revísalo para continuar con tu proceso de registro.</p>
-              </div>
-            ) : (
-              <>
-                <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">¡Únete hoy!</h3>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre Completo</label>
-                    <input type="text" id="name" value={formState.name} onChange={handleInputChange} required className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#e4007c] focus:border-[#e4007c] text-gray-800" />
+            {/* Columna de Formulario */}
+            <div className="order-1 lg:order-2 bg-white p-6 md:p-8 rounded-lg shadow-xl">
+              {isSubmitted ? (
+                <div className="text-center py-8">
+                  <div className="mb-4">
+                    <svg
+                      className="w-16 h-16 text-green-500 mx-auto"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
                   </div>
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-                    <input aria-describedby="email-help" type="email" id="email" value={formState.email} onChange={handleInputChange} required className={getEmailInputClasses()} />
-                    {/* Mensaje de validación - usamos un solo elemento para evitar swapping/parpadeo */}
-                    <p id="email-help" className={`text-xs mt-1 min-h-[1rem] ${emailValidation === 'checking' ? 'text-gray-500' : emailValidation === 'valid' ? 'text-green-600' : emailValidation === 'invalid' ? 'text-red-600' : 'text-transparent'}`}>
-                      {emailValidation === 'checking' && 'Verificando...'}
-                      {emailValidation === 'valid' && '¡Correo disponible!'}
-                      {emailValidation === 'invalid' && formState.email && 'Este correo ya está en uso.'}
-                    </p>
-                  </div>
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono</label>
-                    <input aria-describedby="phone-help" type="tel" id="phone" value={formState.phone} onChange={handleInputChange} required className={`mt-1 block w-full px-4 py-3 border ${phoneValidation === 'valid' ? 'border-green-500' : phoneValidation === 'invalid' ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-[#e4007c] focus:border-[#e4007c] bg-white text-gray-900 placeholder-gray-400`} />
-                    <p id="phone-help" className={`text-xs mt-1 min-h-[1rem] ${phoneValidation === 'checking' ? 'text-gray-500' : phoneValidation === 'valid' ? 'text-green-600' : phoneValidation === 'invalid' ? 'text-red-600' : 'text-transparent'}`}>
-                      {phoneValidation === 'checking' && 'Verificando...'}
-                      {phoneValidation === 'valid' && 'Teléfono disponible'}
-                      {phoneValidation === 'invalid' && formState.phone && 'Este teléfono ya está en uso.'}
-                    </p>
-                  </div>
-                  <button type="submit" disabled={isLoading || emailValidation !== 'valid'} className="w-full bg-[#e4007c] text-white font-bold py-3 px-4 rounded-md hover:bg-[#c6006b] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    {isLoading ? 'Enviando...' : 'Iniciar Registro'}
-                  </button>
-                  {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-                </form>
-              </>
-            )}
+                  <h3 className="text-2xl font-bold text-gray-800 mb-4">¡Excelente! Estás un paso más cerca.</h3>
+                  <p className="text-gray-600 mb-2">
+                    Hemos enviado un correo a <strong className="text-gray-800">{formState.email}</strong>.
+                  </p>
+                  <p className="text-gray-600 text-sm">
+                    Por favor, revísalo para continuar con tu proceso de registro.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+                    ¡Únete hoy!
+                  </h3>
+                  <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6" noValidate>
+                    <FormField
+                      label="Nombre Completo"
+                      id="name"
+                      type="text"
+                      value={formState.name}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Juan Pérez"
+                      minLength={2}
+                    />
+
+                    <FormField
+                      label="Correo Electrónico"
+                      id="email"
+                      type="email"
+                      value={formState.email}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="tu@email.com"
+                      validationStatus={emailValidation}
+                      validationMessage={
+                        emailValidation === 'valid'
+                          ? '¡Correo disponible!'
+                          : emailValidation === 'invalid'
+                          ? 'Este correo ya está en uso.'
+                          : undefined
+                      }
+                    />
+
+                    <FormField
+                      label="Teléfono"
+                      id="phone"
+                      type="tel"
+                      value={formState.phone}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="123-456-7890"
+                      validationStatus={phoneValidation}
+                      validationMessage={
+                        phoneValidation === 'valid'
+                          ? 'Teléfono disponible'
+                          : phoneValidation === 'invalid'
+                          ? 'Este teléfono ya está en uso.'
+                          : undefined
+                      }
+                    />
+
+                    <div>
+                      <FormField
+                        label="Contraseña"
+                        id="password"
+                        type="password"
+                        value={formState.password}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Mínimo 8 caracteres"
+                        minLength={8}
+                        helpText="Debe contener mayúsculas, minúsculas y números"
+                      />
+                      <PasswordStrength password={formState.password} />
+                    </div>
+
+                    {error && <ErrorMessage message={error} />}
+
+                    <FormButton
+                      type="submit"
+                      isLoading={isLoading}
+                      disabled={
+                        isLoading ||
+                        emailValidation !== 'valid' ||
+                        phoneValidation !== 'valid' ||
+                        !passwordStrength ||
+                        passwordStrength === 'weak'
+                      }
+                      fullWidth
+                    >
+                      {isLoading ? 'Enviando solicitud...' : 'Iniciar Registro'}
+                    </FormButton>
+                  </form>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>
     </div>
   );
 }
-

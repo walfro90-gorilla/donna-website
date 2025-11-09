@@ -2,6 +2,7 @@
 // app/page.tsx
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 // Componente para renderizar las estrellas de calificación
 const StarRating = ({ rating }: { rating: number }) => {
@@ -68,37 +69,42 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section 
-        className="relative h-[70vh] flex items-center justify-center text-center text-white bg-cover bg-center"
+        className="relative h-[60vh] md:h-[70vh] flex items-center justify-center text-center text-white bg-cover bg-center"
         style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${heroImage})` }}
         aria-label="Una mesa con platos de comida variada y colorida"
       >
-        <div className="relative z-10 p-4 max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-4 drop-shadow-lg">
+        <div className="relative z-10 p-4 sm:p-6 max-w-4xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 drop-shadow-lg">
             El sabor de tu barrio, entregado con corazón.
           </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 drop-shadow-md">
+          <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-6 md:mb-8 drop-shadow-md">
             Apoya a los restaurantes locales y recibe tu comida favorita más rápido que nunca.
           </p>
           <div className="mt-4 flex flex-col md:flex-row gap-2 justify-center max-w-xl mx-auto">
             <input
               type="text"
               placeholder="Ingresa tu dirección"
-              className="w-full md:w-2/3 px-4 py-3 rounded-full text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]"
+              className="w-full md:w-2/3 px-4 py-3 rounded-full text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2"
+              aria-label="Ingresa tu dirección para buscar restaurantes"
             />
-            <button className="bg-[#e4007c] text-white font-semibold py-3 px-8 rounded-full hover:bg-[#c6006b] transition-transform transform hover:scale-105">
+            <Link
+              href="/clientes"
+              className="bg-[#e4007c] text-white font-semibold py-3 px-6 md:px-8 rounded-full hover:bg-[#c6006b] transition-transform transform hover:scale-105 text-center focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2"
+              aria-label="Ver restaurantes disponibles"
+            >
               Ver Restaurantes
-            </button>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Sección "Cómo Funciona" */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 md:py-20 bg-gray-50">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-8 md:mb-12">
             Tu comida favorita en 3 simples pasos
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             <div className="flex flex-col items-center">
               <div className="bg-[#fce4f3] p-6 rounded-full mb-4">
                 <svg className="w-10 h-10 text-[#e4007c]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -125,28 +131,40 @@ export default function HomePage() {
       </section>
 
       {/* Sección CTA para Socios y Repartidores */}
-      <section className="py-20 bg-white">
+      <section className="py-12 md:py-20 bg-white">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-            <div className="bg-gray-100 p-8 rounded-lg text-center">
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Haz crecer tu negocio</h3>
-              <p className="text-gray-600 mb-6">Llega a miles de nuevos clientes en tu comunidad y aumenta tus ventas. Únete a la familia Doña Repartos.</p>
-              <button className="bg-gray-800 text-white font-semibold py-3 px-8 rounded-full hover:bg-black transition-colors">Registra tu Restaurante</button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center">
+            <div className="bg-gray-100 p-6 md:p-8 rounded-lg text-center">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">Haz crecer tu negocio</h3>
+              <p className="text-gray-600 mb-6 text-sm md:text-base">Llega a miles de nuevos clientes en tu comunidad y aumenta tus ventas. Únete a la familia Doña Repartos.</p>
+              <Link
+                href="/socios"
+                className="bg-gray-800 text-white font-semibold py-3 px-8 rounded-full hover:bg-black transition-colors inline-block focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2"
+                aria-label="Registra tu restaurante"
+              >
+                Registra tu Restaurante
+              </Link>
             </div>
-            <div className="bg-[#e4007c] p-8 rounded-lg text-center text-white">
-              <h3 className="text-2xl font-bold mb-4">Gana a tu ritmo</h3>
-              <p className="mb-6">Sé tu propio jefe. Conduce con Doña Repartos y obtén ganancias con horarios flexibles.</p>
-              <button className="bg-white text-[#e4007c] font-semibold py-3 px-8 rounded-full hover:bg-pink-100 transition-colors">Conviértete en Repartidor</button>
+            <div className="bg-[#e4007c] p-6 md:p-8 rounded-lg text-center text-white">
+              <h3 className="text-xl md:text-2xl font-bold mb-4">Gana a tu ritmo</h3>
+              <p className="mb-6 text-sm md:text-base">Sé tu propio jefe. Conduce con Doña Repartos y obtén ganancias con horarios flexibles.</p>
+              <Link
+                href="/repartidores"
+                className="bg-white text-[#e4007c] font-semibold py-3 px-8 rounded-full hover:bg-pink-100 transition-colors inline-block focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
+                aria-label="Conviértete en repartidor"
+              >
+                Conviértete en Repartidor
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* Sección de Testimonios */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 md:py-20 bg-gray-50">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Lo que dicen de nosotros</h2>
-          <p className="text-gray-600 mb-12 max-w-2xl mx-auto">Nuestra mayor satisfacción es ver felices a nuestros clientes, socios y repartidores.</p>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-4">Lo que dicen de nosotros</h2>
+          <p className="text-gray-600 mb-8 md:mb-12 max-w-2xl mx-auto text-sm md:text-base">Nuestra mayor satisfacción es ver felices a nuestros clientes, socios y repartidores.</p>
           <div className="relative max-w-3xl mx-auto">
             <div className="overflow-hidden">
               <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
@@ -171,11 +189,19 @@ export default function HomePage() {
               </div>
             </div>
             {/* Controles del carrusel */}
-            <button onClick={prevSlide} className="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-12 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
-              <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            <button
+              onClick={prevSlide}
+              className="absolute top-1/2 left-0 md:-left-12 transform -translate-y-1/2 -translate-x-4 md:-translate-x-12 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 z-10"
+              aria-label="Testimonio anterior"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <button onClick={nextSlide} className="absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-12 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
-              <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            <button
+              onClick={nextSlide}
+              className="absolute top-1/2 right-0 md:-right-12 transform -translate-y-1/2 translate-x-4 md:translate-x-12 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 z-10"
+              aria-label="Siguiente testimonio"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
         </div>
