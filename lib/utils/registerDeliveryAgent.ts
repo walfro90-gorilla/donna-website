@@ -1,14 +1,11 @@
 // lib/utils/registerDeliveryAgent.ts
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { normalizePhoneToCanonical } from './validation';
 
 export interface RegisterDeliveryAgentPayload {
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   password: string;
   phone: string;
-  city: string;
 }
 
 export interface RegisterDeliveryAgentResult {
@@ -18,239 +15,108 @@ export interface RegisterDeliveryAgentResult {
 }
 
 /**
- * Registra un delivery agent siguiendo el flujo de la aplicación
- * 1. Validaciones de disponibilidad
- * 2. SignUp en Supabase Auth
- * 3. ensure_user_profile_v2 con reintentos
- * 4. register_delivery_agent_v2 con fallback
+ * Registra un delivery agent siguiendo el flujo de la app Flutter:
+ * 1. Crear usuario en auth.users con supabase.auth.signUp()
+ * 2. Ejecutar función RPC atómica register_delivery_agent_atomic()
  */
 export async function registerDeliveryAgentClient(
   supabase: SupabaseClient,
   payload: RegisterDeliveryAgentPayload
 ): Promise<RegisterDeliveryAgentResult> {
   try {
-    const canonicalPhone = normalizePhoneToCanonical(payload.phone);
-
-    // 1) Validaciones de disponibilidad usando funciones existentes de Flutter
-    try {
-      // Intentar con diferentes nombres de funciones que podrías tener
-      let emailAvailable = true;
-      
-      // Opción 1: check_email_availability (nueva)
-      try {
-        const { data, error } = await supabase.rpc('check_email_availability', { 
-          p_email: payload.email 
-        });
-        if (!error) emailAvailable = data;
-      } catch {
-        // Opción 2: validate_email (posible nombre en Flutter)
-        try {
-          const { data, error } = await supabase.rpc('validate_email', { 
-            email: payload.email 
-          });
-          if (!error) emailAvailable = !data; // Invertir si retorna true cuando está tomado
-        } catch {
-          // Opción 3: is_email_available
-          try {
-            const { data, error } = await supabase.rpc('is_email_available', { 
-              email: payload.email 
-            });
-            if (!error) emailAvailable = data;
-          } catch {
-            console.warn('No email validation function found, skipping validation');
-          }
-        }
-      }
-      
-      if (!emailAvailable) {
-        return { ok: false, error: 'Este correo electrónico ya está registrado.' };
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : '';
-      console.warn('Email availability check failed:', errorMessage);
-    }
-
-    // Nota: Phone no tiene constraint UNIQUE en la tabla users, 
-    // por lo que no validamos disponibilidad de teléfono
-
-    // 2) Crear usuario en Supabase Auth
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: payload.email,
-      password: payload.password,
+    // PASO 1: Crear usuario en auth.users
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: payload.email.trim(),
+      password: payload.password.trim(),
       options: {
         data: {
-          first_name: payload.firstName,
-          last_name: payload.lastName,
-          phone: canonicalPhone,
-          city: payload.city,
-          user_type: 'delivery_agent'
-        }
+          name: payload.name.trim(),
+          phone: payload.phone.trim(),
+          role: 'repartidor', // Se normaliza a 'delivery_agent' en backend
+        },
+        emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/verify-email`
       }
     });
 
-    if (signUpError) {
-      if (signUpError.message.includes('User already registered')) {
+    if (authError) {
+      console.error('Auth signup error:', authError);
+      
+      if (authError.message.includes('User already registered')) {
         return { ok: false, error: 'Este correo electrónico ya está registrado.' };
       }
-      throw signUpError;
+      
+      if (authError.message.includes('Invalid email')) {
+        return { ok: false, error: 'El formato del correo electrónico no es válido.' };
+      }
+      
+      if (authError.message.includes('Password should be at least')) {
+        return { ok: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
+      }
+      
+      return { ok: false, error: authError.message };
     }
 
-    const user = signUpData.user;
-    if (!user) {
+    if (!authData.user) {
       return { ok: false, error: 'No se pudo crear la cuenta de usuario.' };
     }
 
-    // 3) Asegurar perfil de usuario usando funciones existentes de Flutter
-    const ensureParams = {
-      p_user_id: user.id,
-      p_email: payload.email,
-      p_phone: canonicalPhone,
-      p_first_name: payload.firstName,
-      p_last_name: payload.lastName,
-      p_user_type: 'delivery_agent'
-    };
+    const userId = authData.user.id;
 
-    let ensured = false;
-    const functionNames = [
-      'ensure_user_profile_v2',    // Función nueva
-      'ensure_user_profile',       // Posible nombre en Flutter
-      'create_user_profile',       // Alternativa
-      'ensure_user_profile_public' // Fallback público
-    ];
+    // PASO 2: Ejecutar función RPC atómica
+    const { data: rpcData, error: rpcError } = await supabase.rpc('register_delivery_agent_atomic', {
+      p_user_id: userId,
+      p_email: payload.email.trim(),
+      p_name: payload.name.trim(),
+      p_phone: payload.phone.trim(),
+      p_address: null,
+      p_lat: null,
+      p_lon: null,
+      p_address_structured: null,
+      p_vehicle_type: 'motocicleta',
+      p_vehicle_plate: null,
+      p_vehicle_model: null,
+      p_vehicle_color: null,
+      p_emergency_contact_name: null,
+      p_emergency_contact_phone: null,
+      p_place_id: null,
+      p_profile_image_url: null,
+      p_id_document_front_url: null,
+      p_id_document_back_url: null,
+      p_vehicle_photo_url: null,
+      p_vehicle_registration_url: null,
+      p_vehicle_insurance_url: null,
+    });
 
-    for (const funcName of functionNames) {
-      if (ensured) break;
-      
-      try {
-        const { error } = await supabase.rpc(funcName, ensureParams);
-        if (!error) {
-          ensured = true;
-          console.log(`User profile ensured with function: ${funcName}`);
-          break;
-        }
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : '';
-        if (!errorMessage.includes('could not find the function')) {
-          console.warn(`Function ${funcName} failed:`, errorMessage);
-        }
-      }
+    if (rpcError) {
+      console.error('RPC error:', rpcError);
+      return { 
+        ok: false, 
+        error: 'Error al crear el perfil de repartidor. Por favor, contacta a soporte.' 
+      };
     }
 
-    if (!ensured) {
-      console.warn('Could not ensure user profile with any available function');
+    // Verificar respuesta de la RPC
+    if (!rpcData || !rpcData.success) {
+      console.error('RPC returned error:', rpcData?.error);
+      return { 
+        ok: false, 
+        error: rpcData?.error || 'Error al crear el perfil de repartidor.' 
+      };
     }
 
-    // 4) Registrar como delivery agent usando funciones existentes de Flutter
-    const deliveryAgentParams = {
-      p_user_id: user.id,
-      p_email: payload.email,
-      p_phone: canonicalPhone,
-      p_first_name: payload.firstName,
-      p_last_name: payload.lastName,
-      p_city: payload.city
-    };
-
-    // Intentar con diferentes nombres de funciones que podrías tener en Flutter
-    const deliveryFunctionNames = [
-      'register_delivery_agent_v2',  // Función nueva
-      'register_delivery_agent',     // Posible nombre en Flutter
-      'create_delivery_agent',       // Alternativa
-      'register_repartidor',         // Si usas español en Flutter
-      'create_repartidor_profile'    // Otra alternativa
-    ];
-
-    let reg = { error: null };
-    let functionUsed = null;
-
-    for (const funcName of deliveryFunctionNames) {
-      try {
-        reg = await supabase.rpc(funcName, deliveryAgentParams);
-        if (!reg.error) {
-          functionUsed = funcName;
-          console.log(`Delivery agent registered with function: ${funcName}`);
-          break;
-        }
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : '';
-        if (!errorMessage.includes('could not find the function')) {
-          console.warn(`Function ${funcName} failed:`, errorMessage);
-        }
-      }
-    }
-
-    if (reg.error) {
-      const code = reg.error.code;
-      const msg = reg.error.message || '';
-      
-      if (code === 'PGRST202' || code === '42883' || msg.includes('could not find the function')) {
-        // Usar funciones alternativas o inserción directa
-        try {
-          // Primero crear el registro en users si no existe
-          const { error: userInsertError } = await supabase
-            .from('users')
-            .upsert({
-              id: user.id,
-              email: payload.email,
-              name: `${payload.firstName} ${payload.lastName}`,
-              phone: canonicalPhone,
-              role: 'delivery_agent',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-
-          if (userInsertError) {
-            console.warn('User insert failed:', userInsertError);
-          }
-
-          // Luego crear el perfil de delivery agent
-          const { error: insertError } = await supabase
-            .from('delivery_agent_profiles')
-            .insert({
-              user_id: user.id,
-              status: 'pending',
-              account_state: 'pending',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-
-          if (insertError) {
-            console.warn('Direct insert failed:', insertError);
-            return { 
-              ok: true, 
-              userId: user.id,
-              error: 'Cuenta creada, pero hubo un problema al registrar tu perfil de repartidor. Nuestro equipo lo revisará manualmente.'
-            };
-          }
-        } catch (insertErr) {
-          console.warn('Fallback insert failed:', insertErr);
-          return { 
-            ok: true, 
-            userId: user.id,
-            error: 'Cuenta creada, pero hubo un problema al registrar tu perfil de repartidor. Nuestro equipo lo revisará manualmente.'
-          };
-        }
-      } else {
-        throw reg.error;
-      }
-    }
-
-    return { ok: true, userId: user.id };
+    return { ok: true, userId };
 
   } catch (error: unknown) {
     console.error('Delivery agent registration error:', error);
     
-    const errorMessage = error instanceof Error ? error.message : '';
+    const errorMessage = error instanceof Error ? error.message : String(error);
     
     if (errorMessage.includes('User already registered')) {
       return { ok: false, error: 'Este correo electrónico ya está registrado.' };
     }
     
-    if (errorMessage.includes('Invalid email')) {
-      return { ok: false, error: 'El formato del correo electrónico no es válido.' };
-    }
-    
-    if (errorMessage.includes('Password should be at least')) {
-      return { ok: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
+    if (errorMessage.includes('duplicate key')) {
+      return { ok: false, error: 'Este correo o teléfono ya está registrado.' };
     }
 
     return { 

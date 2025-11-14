@@ -27,10 +27,8 @@ import Image from 'next/image';
 
 export default function RegistroRepartidorPage() {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
-    city: '',
     phone: '',
     password: ''
   });
@@ -47,18 +45,8 @@ export default function RegistroRepartidorPage() {
   const emailValidation = useFieldValidation('email', formData.email, 'repartidor');
   // Nota: No validamos teléfono porque no hay constraint UNIQUE en la BD
 
-  const cities = [
-    'Ciudad de México',
-    'Guadalajara',
-    'Monterrey',
-    'Puebla',
-    'Tijuana',
-    'León',
-    'Juárez',
-    'Torreón',
-    'Querétaro',
-    'Mérida'
-  ];
+  // Validación de contraseña
+  const passwordValid = formData.password.length >= 6;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -68,11 +56,15 @@ export default function RegistroRepartidorPage() {
   };
 
   const isFormValid = () => {
-    const allFieldsFilled = Object.values(formData).every(value => value.trim() !== '');
+    const allFieldsFilled = formData.name.trim() !== '' && 
+                           formData.email.trim() !== '' && 
+                           formData.phone.trim() !== '' && 
+                           formData.password.trim() !== '';
     const termsAccepted = acceptedTerms;
-    const emailValid = emailValidation !== 'invalid';
+    const emailValid = emailValidation === 'valid';
+    const passwordsValid = passwordValid;
     
-    return allFieldsFilled && termsAccepted && emailValid;
+    return allFieldsFilled && termsAccepted && emailValid && passwordsValid;
   };
 
   const handleSubmit = async () => {
@@ -83,12 +75,10 @@ export default function RegistroRepartidorPage() {
 
     try {
       const result = await registerDeliveryAgentClient(supabase, {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        name: formData.name,
         email: formData.email,
         password: formData.password,
-        phone: formData.phone,
-        city: formData.city
+        phone: formData.phone
       });
 
       if (result.ok) {
@@ -230,12 +220,11 @@ export default function RegistroRepartidorPage() {
                   onClick={() => {
                     setIsSuccess(false);
                     setFormData({
-                      firstName: '',
-                      lastName: '',
+                      name: '',
                       email: '',
-                      city: '',
                       phone: '',
-                      password: ''
+                      password: '',
+                      confirmPassword: ''
                     });
                     setAcceptedTerms(false);
                   }}
@@ -276,30 +265,16 @@ export default function RegistroRepartidorPage() {
                 )}
 
             <form className="space-y-6">
-              {/* Name Fields */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Nombre</label>
-                    <input
-                      type="text"
-                      placeholder="Tu nombre"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all duration-200 bg-gray-50 focus:bg-white shadow-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Apellido</label>
-                    <input
-                      type="text"
-                      placeholder="Tu apellido"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all duration-200 bg-gray-50 focus:bg-white shadow-sm"
-                    />
-                  </div>
-                </div>
+              {/* Name Field */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Nombre completo</label>
+                <input
+                  type="text"
+                  placeholder="Tu nombre completo"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all duration-200 bg-gray-50 focus:bg-white shadow-sm"
+                />
               </div>
 
               {/* Email */}
@@ -357,53 +332,16 @@ export default function RegistroRepartidorPage() {
                 )}
               </div>
 
-              {/* City Dropdown */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Ciudad donde trabajarás</label>
-                <div className="relative">
-                  <select
-                    value={formData.city}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all duration-200 appearance-none bg-gray-50 focus:bg-white shadow-sm text-gray-900"
-                  >
-                    <option value="" className="text-gray-500">Selecciona tu ciudad</option>
-                    {cities.map((city) => (
-                      <option key={city} value={city} className="text-gray-900">{city}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-                    <ChevronDownIcon />
-                  </div>
-                </div>
-              </div>
-
               {/* Phone */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Teléfono de WhatsApp</label>
-                <div className="flex">
-                  <div className="flex items-center px-4 py-3 border border-r-0 border-gray-300 rounded-l-xl bg-gray-100 shadow-sm">
-                    <Image
-                      src="/flags/mx.svg"
-                      alt="México"
-                      width={20}
-                      height={15}
-                      className="mr-2"
-                      onError={(e) => {
-                        // Fallback if flag image doesn't exist
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <span className="text-sm font-medium text-gray-700">+52</span>
-                  </div>
-                  <input
-                    type="tel"
-                    placeholder="55 1234 5678"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-r-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all duration-200 bg-gray-50 focus:bg-white shadow-sm"
-                  />
-                </div>
-                <p className="text-xs text-gray-500">Usaremos WhatsApp para comunicarnos contigo</p>
+                <label className="text-sm font-medium text-gray-700">Teléfono</label>
+                <input
+                  type="tel"
+                  placeholder="Número de teléfono"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all duration-200 bg-gray-50 focus:bg-white shadow-sm"
+                />
               </div>
 
               {/* Password */}
