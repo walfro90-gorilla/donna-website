@@ -3,7 +3,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, Badge, Alert } from '@/components/ui';
-import { BRAND_COLORS } from '@/lib/constants';
+import ImageUploader from './ImageUploader';
 
 export interface MenuItem {
   id: string;
@@ -98,11 +98,9 @@ export default function MenuItemEditor({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [imageUploading, setImageUploading] = useState(false);
   const [newIngredient, setNewIngredient] = useState('');
   const [priceInput, setPriceInput] = useState(item?.price?.toString() || '');
   const [descriptionWordCount, setDescriptionWordCount] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
   // Enhanced price validation with currency formatting
@@ -231,35 +229,7 @@ export default function MenuItemEditor({
     setDescriptionWordCount(wordCount);
   }, [handleInputChange]);
 
-  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !onImageUpload) return;
 
-    // Validate image file
-    if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({ ...prev, image: 'Solo se permiten archivos de imagen' }));
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setErrors(prev => ({ ...prev, image: 'La imagen no puede exceder 5MB' }));
-      return;
-    }
-
-    setImageUploading(true);
-    try {
-      const imageUrl = await onImageUpload(file);
-      handleInputChange('image', imageUrl);
-      setErrors(prev => ({ ...prev, image: '' }));
-    } catch (error) {
-      setErrors(prev => ({ 
-        ...prev, 
-        image: error instanceof Error ? error.message : 'Error al subir la imagen' 
-      }));
-    } finally {
-      setImageUploading(false);
-    }
-  }, [onImageUpload, handleInputChange]);
 
   const handleAddIngredient = useCallback(() => {
     if (!newIngredient.trim()) return;
@@ -564,73 +534,50 @@ export default function MenuItemEditor({
               </div>
             </div>
 
-            {/* Right Column - Image Upload */}
+            {/* Right Column - Enhanced Image Upload */}
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Imagen del Platillo
                 </h3>
                 
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  {formData.image ? (
-                    <div className="space-y-4">
-                      <img
-                        src={formData.image}
-                        alt="Preview"
-                        className="mx-auto h-48 w-48 object-cover rounded-lg"
-                      />
-                      <div className="flex justify-center space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={imageUploading}
-                          className="px-3 py-1 text-sm text-[#e4007c] border border-[#e4007c] rounded hover:bg-[#fef2f9] disabled:opacity-50"
-                        >
-                          Cambiar Imagen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('image', '')}
-                          disabled={imageUploading}
-                          className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div>
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={imageUploading || !onImageUpload}
-                          className="text-[#e4007c] hover:text-[#c6006b] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {imageUploading ? 'Subiendo...' : 'Subir imagen'}
-                        </button>
-                        <p className="text-xs text-gray-500 mt-1">
-                          PNG, JPG hasta 5MB
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  
-                  {errors.image && (
-                    <p className="mt-2 text-sm text-red-600">{errors.image}</p>
-                  )}
-                </div>
+                <ImageUploader
+                  onUpload={async (file) => {
+                    if (!onImageUpload) {
+                      throw new Error('Función de subida no disponible');
+                    }
+                    const imageUrl = await onImageUpload(file);
+                    handleInputChange('image', imageUrl);
+                    return imageUrl;
+                  }}
+                  onRemove={() => handleInputChange('image', '')}
+                  requirements={{
+                    minWidth: 400,
+                    minHeight: 300,
+                    maxWidth: 2000,
+                    maxHeight: 2000,
+                    maxSize: 5 * 1024 * 1024, // 5MB
+                    formats: ['image/jpeg', 'image/png', 'image/webp'],
+                    allowedFormats: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+                    quality: 0.9,
+                    autoOptimize: true,
+                    generateThumbnail: true,
+                    thumbnailSize: 150
+                  }}
+                  preview={formData.image}
+                  aspectRatio={4/3} // Good ratio for food images
+                  cropEnabled={true}
+                  label="Subir imagen del platillo"
+                  description="Imagen principal que verán los clientes. Se recomienda una foto atractiva y bien iluminada del platillo."
+                  showPreview={true}
+                  showMetadata={true}
+                />
+                
+                {errors.image && (
+                  <Alert variant="error" className="mt-2">
+                    {errors.image}
+                  </Alert>
+                )}
               </div>
             </div>
           </div>

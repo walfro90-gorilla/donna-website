@@ -1,0 +1,84 @@
+// lib/hooks/useRestaurantValidation.ts
+import { useSupabase } from '@/lib/hooks/useSupabase';
+import { useState, useEffect } from 'react';
+
+export type ValidationStatus = 'idle' | 'checking' | 'valid' | 'invalid';
+
+export function useRestaurantValidation(
+  field: 'email' | 'restaurantName',
+  value: string
+) {
+  const [status, setStatus] = useState<ValidationStatus>('idle');
+  const supabase = useSupabase();
+
+  useEffect(() => {
+    // Si el campo está vacío, resetear estado
+    if (!value) {
+      setStatus('idle');
+      return;
+    }
+
+    // Validaciones de formato según el tipo de campo
+    if (field === 'email' && !/^\S+@\S+\.\S+$/.test(value)) {
+      setStatus('idle');
+      return;
+    }
+
+    // Si es un nombre de restaurante, solo validar si tiene al menos 3 caracteres
+    if (field === 'restaurantName' && value.length < 3) {
+      setStatus('idle');
+      return;
+    }
+
+    setStatus('checking');
+
+    let cancelled = false;
+    const debounceTimer = setTimeout(async () => {
+      try {
+        let rpcName: string;
+        let params: any;
+
+        if (field === 'email') {
+          rpcName = 'check_email_availability';
+          params = { p_email: value };
+        } else if (field === 'restaurantName') {
+          rpcName = 'check_restaurant_name_availability';
+          params = { p_name: value };
+        } else {
+          return;
+        }
+
+        const { data: isAvailable, error } = await supabase.rpc(rpcName, params);
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error(`Error validating ${field}:`, error);
+          // If function doesn't exist, don't show as invalid
+          if (error.message?.includes('could not find the function')) {
+            setStatus('idle');
+          } else {
+            setStatus('invalid');
+          }
+          return;
+        }
+
+        // isAvailable = true means available, false means taken
+        setStatus(isAvailable ? 'valid' : 'invalid');
+
+      } catch (e) {
+        if (!cancelled) {
+          console.error(`Error in ${field} validation:`, e);
+          setStatus('idle'); // Don't show as invalid on network errors
+        }
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(debounceTimer);
+    };
+  }, [value, field, supabase]);
+
+  return status;
+}

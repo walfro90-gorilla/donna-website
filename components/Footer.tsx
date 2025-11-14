@@ -3,6 +3,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { CookieSettingsButton } from '@/components/CookieSettings';
 
 const Footer = () => {
   return (
@@ -35,15 +36,41 @@ const Footer = () => {
               Restaurantes
             </Link>
             <Link
-              href="/repartidores"
+              href="/registro-repartidor"
               className="text-gray-400 hover:text-[#e4007c] transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 focus:ring-offset-gray-800 rounded px-2 py-1"
             >
               Repartidores
             </Link>
+            <Link
+              href="/legal"
+              className="text-gray-400 hover:text-[#e4007c] transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 focus:ring-offset-gray-800 rounded px-2 py-1"
+            >
+              Legal
+            </Link>
           </nav>
         </div>
-        <div className="mt-8 border-t border-gray-700 pt-4 text-center text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} Doña Repartos. Todos los derechos reservados.</p>
+        <div className="mt-8 border-t border-gray-700 pt-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-sm text-center md:text-left">
+              &copy; {new Date().getFullYear()} Doña Repartos. Todos los derechos reservados.
+            </p>
+            
+            <div className="flex flex-wrap justify-center gap-4 text-sm">
+              <Link
+                href="/legal/privacidad"
+                className="text-gray-400 hover:text-[#e4007c] transition-colors"
+              >
+                Privacidad
+              </Link>
+              <Link
+                href="/legal/terminos"
+                className="text-gray-400 hover:text-[#e4007c] transition-colors"
+              >
+                Términos
+              </Link>
+              <CookieSettingsButton />
+            </div>
+          </div>
         </div>
       </div>
     </footer>

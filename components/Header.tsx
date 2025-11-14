@@ -45,7 +45,7 @@ export default function Header() {
             Para Restaurantes
           </Link>
           <Link
-            href="/repartidores"
+            href="/registro-repartidor"
             className="text-gray-600 hover:text-[#e4007c] transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 rounded px-2 py-1"
             aria-label="Registro para repartidores"
           >
@@ -53,15 +53,17 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* Botón CTA y Menú Hamburguesa */}
+        {/* Right side with auth buttons */}
         <div className="flex items-center space-x-3 sm:space-x-4">
-          <Link
-            href="/clientes"
-            className="bg-[#e4007c] text-white font-semibold py-2 px-4 sm:px-6 rounded-full hover:bg-[#c6006b] transition-colors focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 hidden md:block"
-            aria-label="Pide ahora"
-          >
-            Pide Ahora
-          </Link>
+          {/* Auth buttons */}
+          <button className="hidden md:block text-[#e4007c] hover:text-[#c6006b] px-4 py-2 text-sm font-medium border border-[#e4007c] rounded-lg transition-colors">
+            Entrar
+          </button>
+          <button className="hidden md:block bg-[#e4007c] hover:bg-[#c6006b] text-white px-4 py-2 text-sm font-medium rounded-lg transition-colors">
+            Registrar
+          </button>
+          
+          {/* Mobile menu button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 rounded p-1"
@@ -100,19 +102,27 @@ export default function Header() {
               Para Restaurantes
             </Link>
             <Link
-              href="/repartidores"
+              href="/registro-repartidor"
               className="text-gray-600 hover:text-[#e4007c] hover:bg-[#fef2f9] transition-colors font-medium py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2"
               onClick={closeMenu}
             >
               Para Repartidores
             </Link>
-            <Link
-              href="/clientes"
-              className="bg-[#e4007c] text-white font-semibold py-3 px-6 rounded-full hover:bg-[#c6006b] transition-colors mt-4 text-center focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2"
-              onClick={closeMenu}
-            >
-              Pide Ahora
-            </Link>
+            {/* Auth buttons for mobile */}
+            <div className="flex flex-col space-y-2 px-4 pb-2 border-t border-gray-200 mt-2 pt-4">
+              <button 
+                className="text-[#e4007c] hover:text-[#c6006b] px-4 py-2 text-sm font-medium border border-[#e4007c] rounded-lg transition-colors text-center"
+                onClick={closeMenu}
+              >
+                Entrar
+              </button>
+              <button 
+                className="bg-[#e4007c] hover:bg-[#c6006b] text-white px-4 py-2 text-sm font-medium rounded-lg transition-colors text-center"
+                onClick={closeMenu}
+              >
+                Registrar
+              </button>
+            </div>
           </nav>
         </div>
       )}

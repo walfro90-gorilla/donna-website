@@ -1,18 +1,24 @@
 // app/socios/page.tsx
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSupabase } from '@/lib/hooks/useSupabase';
-import { useFieldValidation } from '@/lib/hooks/useFieldValidation';
-import AddressAutocomplete from '@/components/AddressAutocomplete';
-import FormField from '@/components/FormField';
-import FormButton from '@/components/FormButton';
-import PasswordStrength from '@/components/PasswordStrength';
-import ErrorMessage from '@/components/ErrorMessage';
-import { getPasswordStrength, isValidPassword } from '@/lib/utils/validation';
+import { useRestaurantValidation } from '@/lib/hooks/useRestaurantValidation';
+import { type RegistrationStep } from '@/components/forms/StepperForm';
+import { LazyRegistrationComponents, preloadUserTypeComponents } from '@/components/registration/lazy';
+import { TimeoutHandler } from '@/components/ui';
+import { retryWithBackoff, handleError } from '@/lib/utils/errorHandler';
 import { registerRestaurantClient } from '@/lib/utils/registerRestaurant';
-import type { Address } from '@/types/address';
-import type { RestaurantFormData } from '@/types/form';
+import { 
+  createEmptyRegistration, 
+  convertToLegacyFormat,
+  type CompleteRestaurantRegistration 
+} from '@/types/registration';
+import { Alert } from '@/components/ui';
+import AddressAutocompleteFixed from '@/components/AddressAutocompleteFixed';
+import LocationConfirmationMapSmart from '@/components/LocationConfirmationMapSmart';
+import { registerRestaurantAtomic } from '@/lib/utils/registerRestaurantAtomic';
+
 
 // Icono para la sección de beneficios
 const CheckCircleIcon = () => (
@@ -22,350 +28,823 @@ const CheckCircleIcon = () => (
 );
 
 export default function SociosPage() {
-  const [formState, setFormState] = useState<RestaurantFormData>({
-    owner_name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirm_password: '',
-    restaurant_name: '',
-  });
-
-  const [addressDetails, setAddressDetails] = useState<Address | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const [error, setError] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
-  const [passwordMatchError, setPasswordMatchError] = useState('');
+  const [showMultiStep, setShowMultiStep] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    restaurantName: '',
+    phone: '',
+    address: '',
+    addressPlaceData: null as any,
+    lat: null as number | null,
+    lon: null as number | null,
+    ownerName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  
+  const [showLocationMap, setShowLocationMap] = useState(false);
+  
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const supabase = useSupabase();
 
-  const restaurantNameValidation = useFieldValidation('name', formState.restaurant_name, 'restaurant');
-  const emailValidation = useFieldValidation('email', formState.email, 'restaurant');
-  const phoneValidation = useFieldValidation('phone', formState.phone, 'restaurant');
+  // Field validations
+  const emailValidation = useRestaurantValidation('email', formData.email);
+  const restaurantNameValidation = useRestaurantValidation('restaurantName', formData.restaurantName);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormState(prevState => ({ ...prevState, [id]: value }));
+  // Preload restaurant components when component mounts
+  useEffect(() => {
+    preloadUserTypeComponents('restaurant');
+  }, []);
 
-    // Calcular fuerza de contraseña en tiempo real
-    if (id === 'password') {
-      setPasswordStrength(value.length > 0 ? getPasswordStrength(value) : null);
+  // Define the registration steps
+  const registrationSteps: RegistrationStep[] = [
+    {
+      id: 'business-information',
+      title: 'Información del Negocio',
+      description: 'Cuéntanos sobre tu restaurante y detalles básicos',
+      component: LazyRegistrationComponents.BusinessInformationStep,
+      validation: async (data: CompleteRestaurantRegistration) => {
+        const businessInfo = data.businessInfo || {};
+        const errors: Record<string, string> = {};
+        
+        if (!businessInfo.businessName?.trim()) {
+          errors.businessName = 'El nombre del negocio es requerido';
+        }
+        if (!businessInfo.businessType) {
+          errors.businessType = 'El tipo de negocio es requerido';
+        }
+        if (!businessInfo.phone?.trim()) {
+          errors.phone = 'El teléfono es requerido';
+        }
+        if (!businessInfo.email?.trim()) {
+          errors.email = 'El email es requerido';
+        }
+        if (!businessInfo.ownerName?.trim()) {
+          errors.ownerName = 'El nombre del propietario es requerido';
+        }
+        if (!businessInfo.password?.trim()) {
+          errors.password = 'La contraseña es requerida';
+        }
+        
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors: Object.keys(errors).length > 0 ? errors : undefined,
+        };
+      },
+    },
+    {
+      id: 'location-address',
+      title: 'Ubicación y Dirección',
+      description: 'Proporciona la ubicación de tu restaurante',
+      component: LazyRegistrationComponents.LocationAddressStep,
+      validation: async (data: CompleteRestaurantRegistration) => {
+        const locationAddress = data.locationAddress || {};
+        const errors: Record<string, string> = {};
+        
+        if (!locationAddress.formattedAddress?.trim()) {
+          errors.fullAddress = 'La dirección es requerida';
+        }
+        if (!locationAddress.coordinates?.lat || !locationAddress.coordinates?.lng) {
+          errors.coordinates = 'Las coordenadas son requeridas';
+        }
+        
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors: Object.keys(errors).length > 0 ? errors : undefined,
+        };
+      },
+    },
+    {
+      id: 'legal-documentation',
+      title: 'Documentación Legal',
+      description: 'Sube los documentos requeridos para operar',
+      component: LazyRegistrationComponents.LegalDocumentationStep,
+      validation: async (data: CompleteRestaurantRegistration) => {
+        const legalDocs = data.legalDocumentation || {};
+        const errors: Record<string, string> = {};
+        
+        const requiredDocs = ['rfc', 'identificacion', 'certificado_bancario'];
+        const uploadedDocs = (legalDocs.documents || []).map((doc) => doc.type);
+        
+        for (const docType of requiredDocs) {
+          if (!uploadedDocs.includes(docType as never)) {
+            errors[docType] = `El documento ${docType} es requerido`;
+          }
+        }
+        
+        if (!legalDocs.businessLegalName?.trim()) {
+          errors.businessLegalName = 'La razón social es requerida';
+        }
+        
+        if (!legalDocs.taxId?.trim()) {
+          errors.taxId = 'El RFC es requerido';
+        }
+        
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors: Object.keys(errors).length > 0 ? errors : undefined,
+        };
+      },
+    },
+    {
+      id: 'branding-media',
+      title: 'Imagen de Marca',
+      description: 'Personaliza la apariencia de tu restaurante',
+      component: LazyRegistrationComponents.BrandingMediaStep,
+      validation: async (data: CompleteRestaurantRegistration) => {
+        const branding = data.brandingMedia || {};
+        const errors: Record<string, string> = {};
+        
+        if (!branding.logo) {
+          errors.logo = 'El logo es requerido';
+        }
+        if (!branding.coverImage) {
+          errors.coverImage = 'La imagen de portada es requerida';
+        }
+        
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors: Object.keys(errors).length > 0 ? errors : undefined,
+        };
+      },
+    },
+    {
+      id: 'menu-creation',
+      title: 'Creación del Menú',
+      description: 'Crea tu menú con al menos 15 platillos',
+      component: LazyRegistrationComponents.MenuCreationStep,
+      validation: async (data: CompleteRestaurantRegistration) => {
+        const menu = data.menuCreation || {};
+        const errors: Record<string, string> = {};
+        
+        const totalItems = (menu.menuItems || []).length;
+        if (totalItems < 15) {
+          errors.minItems = `Necesitas al menos 15 platillos. Tienes ${totalItems}`;
+        }
+        
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors: Object.keys(errors).length > 0 ? errors : undefined,
+        };
+      },
+    },
+    {
+      id: 'review-submit',
+      title: 'Revisión y Envío',
+      description: 'Revisa toda la información antes de enviar',
+      component: ({ data, onDataChange, onNext, onPrevious, isLoading, errors }) => {
+        const reviewSubmitData = data.reviewSubmit || {
+          termsAccepted: false,
+          privacyAccepted: false,
+          marketingOptIn: false,
+          submissionNotes: '',
+        };
+
+        const reviewData = {
+          businessInfo: data.businessInfo || {},
+          location: data.locationAddress || {},
+          legal: data.legalDocumentation || {},
+          branding: data.brandingMedia || {},
+          menu: data.menuCreation || {},
+          termsAccepted: reviewSubmitData.termsAccepted,
+          privacyAccepted: reviewSubmitData.privacyAccepted,
+          marketingOptIn: reviewSubmitData.marketingOptIn,
+          submissionNotes: reviewSubmitData.submissionNotes,
+        };
+
+        const handleReviewDataChange = (updates: Partial<typeof reviewData>) => {
+          onDataChange({
+            ...data,
+            reviewSubmit: {
+              ...data.reviewSubmit,
+              ...updates,
+            },
+          });
+        };
+
+        return (
+          <LazyRegistrationComponents.ReviewSubmitStep
+            data={reviewData}
+            onDataChange={handleReviewDataChange}
+            onSubmit={onNext}
+            onPrevious={onPrevious}
+            isLoading={isLoading}
+            errors={errors}
+          />
+        );
+      },
+      validation: async (data: CompleteRestaurantRegistration) => {
+        const reviewData = data.reviewSubmit || {
+          termsAccepted: false,
+          privacyAccepted: false,
+          marketingOptIn: false,
+          submissionNotes: '',
+        };
+        const errors: Record<string, string> = {};
+        
+        if (!reviewData.termsAccepted) {
+          errors.termsAccepted = 'Debes aceptar los términos y condiciones';
+        }
+        if (!reviewData.privacyAccepted) {
+          errors.privacyAccepted = 'Debes aceptar la política de privacidad';
+        }
+        
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors: Object.keys(errors).length > 0 ? errors : undefined,
+        };
+      },
+    },
+  ];
+
+  const handleRegistrationComplete = useCallback(async (registrationData: CompleteRestaurantRegistration) => {
+    setError('');
+    setIsLoading(true);
+    
+    try {
+      // Use retry mechanism for registration
+      await retryWithBackoff(async () => {
+        // Convert the multi-step data to the legacy format for the existing registration function
+        const legacyData = convertToLegacyFormat(registrationData);
+        
+        const result = await registerRestaurantClient(supabase, {
+          owner_name: legacyData.owner_name,
+          email: legacyData.email,
+          phone: legacyData.phone,
+          password: legacyData.password,
+          restaurant_name: legacyData.restaurant_name,
+          address: legacyData.address.address,
+          location_lat: legacyData.address.location_lat || 0,
+          location_lon: legacyData.address.location_lon || 0,
+          location_place_id: legacyData.address.location_place_id,
+          address_structured: legacyData.address.address_structured,
+        });
+
+        if (!result.ok) {
+          throw new Error(result.error || 'Error al registrar el restaurante');
+        }
+
+        setSubmittedEmail(legacyData.email);
+        setIsSubmitted(true);
+      }, {
+        maxRetries: 3,
+        baseDelay: 1000
+      });
+
+    } catch (error: unknown) {
+      const errorResult = handleError(error as Error, 'restaurant-registration');
+      setError(errorResult.message);
+    } finally {
+      setIsLoading(false);
     }
+  }, [supabase]);
 
-    // Validar coincidencia de contraseñas
-    if (id === 'password' || id === 'confirm_password') {
-      if (id === 'confirm_password' && formState.password && value !== formState.password) {
-        setPasswordMatchError('Las contraseñas no coinciden');
-      } else if (id === 'password' && formState.confirm_password && value !== formState.confirm_password) {
-        setPasswordMatchError('Las contraseñas no coinciden');
-      } else {
-        setPasswordMatchError('');
-      }
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddressChange = (address: string, placeData?: any) => {
+    console.log('📍 Address changed:', { address, placeData });
+    console.log('📍 Coordinates in placeData:', placeData?.coordinates);
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      address,
+      addressPlaceData: placeData 
+    }));
+    
+    // If we have coordinates from place details, set them and show map for confirmation
+    if (placeData?.coordinates) {
+      const newLat = placeData.coordinates.lat;
+      const newLng = placeData.coordinates.lng;
+      
+      console.log('✅ Setting coordinates:', { lat: newLat, lng: newLng });
+      
+      setFormData(prev => ({
+        ...prev,
+        lat: newLat,
+        lon: newLng
+      }));
+      
+      // Always show map for confirmation (like mobile app)
+      console.log('🗺️ Opening map with coordinates:', { lat: newLat, lng: newLng });
+      setShowLocationMap(true);
+    } 
+    // If we have place data but no coordinates, show map for confirmation (like mobile app)
+    else if (placeData && placeData.placeId) {
+      console.log('🗺️ Showing map for location confirmation (no coordinates yet)');
+      setShowLocationMap(true);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setPasswordMatchError('');
+  const handleLocationConfirm = (lat: number, lng: number, confirmedAddress: string) => {
+    setFormData(prev => ({
+      ...prev,
+      lat,
+      lon: lng,
+      address: confirmedAddress
+    }));
+    setShowLocationMap(false);
+  };
 
-    // Validaciones locales
-    if (restaurantNameValidation !== 'valid' || emailValidation !== 'valid' || phoneValidation !== 'valid') {
-      setError('Por favor, corrige los campos marcados antes de continuar.');
-      return;
-    }
+  const handleLocationCancel = () => {
+    setShowLocationMap(false);
+  };
 
-    if (!addressDetails || !addressDetails.location_lat || !addressDetails.location_lon) {
-      setError('Por favor, selecciona una dirección válida de la lista.');
-      return;
-    }
+  const isFormValid = () => {
+    const basicFieldsValid = formData.restaurantName.trim() && 
+                            formData.phone.trim() && 
+                            formData.address.trim() && 
+                            formData.ownerName?.trim() && 
+                            formData.email.trim() && 
+                            formData.password.trim() &&
+                            formData.confirmPassword?.trim() &&
+                            formData.password === formData.confirmPassword &&
+                            formData.password.length >= 6 &&
+                            formData.lat !== null &&
+                            formData.lon !== null; // Coordinates required like mobile app
+    
+    const validationsValid = emailValidation !== 'invalid' && 
+                           restaurantNameValidation !== 'invalid';
+    
+    return basicFieldsValid && validationsValid && termsAccepted;
+  };
 
-    if (!isValidPassword(formState.password)) {
-      setError('La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números.');
-      return;
-    }
-
-    if (!passwordStrength || passwordStrength === 'weak') {
-      setError('Por favor, usa una contraseña más segura.');
-      return;
-    }
-
-    if (formState.password !== formState.confirm_password) {
-      setPasswordMatchError('Las contraseñas no coinciden');
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-
+  const handleStartRegistration = async () => {
+    if (!isFormValid()) return;
+    
     setIsLoading(true);
+    setError('');
 
     try {
-      const result = await registerRestaurantClient(supabase, {
-        owner_name: formState.owner_name,
-        email: formState.email,
-        phone: formState.phone,
-        password: formState.password,
-        restaurant_name: formState.restaurant_name,
-        address: addressDetails.address,
-        location_lat: addressDetails.location_lat!,
-        location_lon: addressDetails.location_lon!,
-        location_place_id: addressDetails.location_place_id,
-        address_structured: addressDetails.address_structured,
+      // Follow exact mobile app flow: PASO 1 + PASO 2
+      const result = await registerRestaurantAtomic(supabase, {
+        restaurantName: formData.restaurantName,
+        ownerName: formData.ownerName!,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        address: formData.address,
+        lat: formData.lat!,
+        lon: formData.lon!,
+        placeId: formData.addressPlaceData?.placeId,
+        addressStructured: formData.addressPlaceData
       });
 
-      if (!result.ok) {
-        throw new Error(result.error || 'Error al registrar el restaurante');
+      if (result.success) {
+        setSubmittedEmail(formData.email);
+        setIsSubmitted(true);
+        console.log('✅ Registro exitoso:', {
+          userId: result.userId,
+          restaurantId: result.restaurantId,
+          accountId: result.accountId
+        });
+      } else {
+        setError(result.error || 'Error al registrar el restaurante');
       }
 
-      setIsSubmitted(true);
-
-    } catch (error: any) {
-      setError(error?.message || 'Error desconocido al registrar el restaurante');
+    } catch (error: unknown) {
+      console.error('💥 Error en registro:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-white min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-[#fef2f9] py-16 md:py-24 lg:py-32">
-        <div className="container mx-auto px-6 text-center">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-800 mb-4">
-            Haz crecer tu negocio. <br className="hidden md:block" />
-            Únete a la familia Doña Repartos.
-          </h1>
-          <p className="text-base md:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto">
-            Llega a miles de clientes hambrientos en tu comunidad y aumenta tus ventas.
-          </p>
-        </div>
-      </section>
+    <div className="min-h-screen bg-gray-50">
+      {/* Main Content */}
+      <div className="flex min-h-screen">
+        {/* Left side - Hero content */}
+        <div className="flex-1 relative overflow-hidden">
+          {/* Background image */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZmY2YjM1O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjk1MDA7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgLz4KPC9zdmc+')"
+            }}
+          >
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          </div>
 
-      {/* Sección de Beneficios y Formulario */}
-      <section className="py-12 md:py-20">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-            {/* Columna de Beneficios */}
-            <div className="order-2 lg:order-1">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">
-                ¿Por qué asociarte con nosotros?
-              </h2>
-              <ul className="space-y-5 md:space-y-6">
-                <li className="flex items-start">
-                  <CheckCircleIcon />
-                  <div>
-                    <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
-                      Más Ventas
-                    </h3>
-                    <p className="text-gray-600 text-sm md:text-base">
-                      Concéntrate en cocinar, nosotros llevamos tus platillos a más personas.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircleIcon />
-                  <div>
-                    <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
-                      Comisiones Justas
-                    </h3>
-                    <p className="text-gray-600 text-sm md:text-base">
-                      Nuestras comisiones son las más competitivas del mercado.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircleIcon />
-                  <div>
-                    <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
-                      Soporte Local
-                    </h3>
-                    <p className="text-gray-600 text-sm md:text-base">
-                      Recibe soporte personalizado de un equipo que conoce tu ciudad.
-                    </p>
-                  </div>
-                </li>
-              </ul>
+          {/* Content */}
+          <div className="relative z-10 p-8 lg:p-12 text-white h-full flex flex-col justify-center">
+            {/* Breadcrumb */}
+            <div className="mb-8">
+              <nav className="flex items-center space-x-2 text-sm">
+                <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full">Partners Rappi</span>
+                <span className="text-white text-opacity-70">&gt;</span>
+                <span className="text-white text-opacity-70">Restaurants</span>
+              </nav>
             </div>
 
-            {/* Columna de Formulario */}
-            <div className="order-1 lg:order-2 bg-white p-6 md:p-8 rounded-lg shadow-xl">
-              {isSubmitted ? (
-                <div className="text-center py-8">
-                  <div className="mb-4">
-                    <svg
-                      className="w-16 h-16 text-green-500 mx-auto"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">¡Gracias por unirte!</h3>
-                  <p className="text-gray-600 mb-2">
-                    Hemos enviado un correo a <strong className="text-gray-800">{formState.email}</strong>.
-                  </p>
-                  <p className="text-gray-600 text-sm">
-                    Por favor, revisa tu bandeja de entrada para confirmar tu cuenta y completar el registro.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                    ¡Empieza hoy!
-                  </h3>
-                  <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6" noValidate>
-                    <FormField
-                      label="Nombre del Propietario"
-                      id="owner_name"
-                      type="text"
-                      value={formState.owner_name}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Juan Pérez"
-                      minLength={2}
-                    />
+            {/* Main content */}
+            <div className="max-w-lg">
+              <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+                0% TARIFAS POR 30 DÍAS
+              </h1>
+              
+              <p className="text-lg mb-6 text-white text-opacity-90">
+                Aplica un 30% de descuento en tu menú y <strong>no pagues por el uso de la plataforma</strong> en tus primeros 30 días.
+              </p>
 
-                    <FormField
-                      label="Correo Electrónico"
-                      id="email"
-                      type="email"
-                      value={formState.email}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="contacto@restaurante.com"
-                      validationStatus={emailValidation}
-                      validationMessage={
-                        emailValidation === 'valid'
-                          ? '¡Correo disponible!'
-                          : emailValidation === 'invalid'
-                          ? 'Este correo ya está en uso.'
-                          : undefined
-                      }
-                    />
+              <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+                Únete a Rappi y accede a miles de usuarios cerca de ti
+              </h2>
 
-                    <FormField
-                      label="Teléfono"
-                      id="phone"
-                      type="tel"
-                      value={formState.phone}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="+521234567890 o 1234567890"
-                      validationStatus={phoneValidation}
-                      validationMessage={
-                        phoneValidation === 'valid'
-                          ? 'Teléfono disponible'
-                          : phoneValidation === 'invalid'
-                          ? 'Este teléfono ya está en uso.'
-                          : undefined
-                      }
-                      helpText="Se formateará automáticamente con código de país (+52)"
-                    />
+              <p className="text-sm mb-6 text-white text-opacity-80">
+                ¡Es por tiempo limitado!
+              </p>
 
-                    <FormField
-                      label="Nombre del Restaurante"
-                      id="restaurant_name"
-                      type="text"
-                      value={formState.restaurant_name}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Mi Restaurante"
-                      minLength={3}
-                      validationStatus={restaurantNameValidation}
-                      validationMessage={
-                        restaurantNameValidation === 'valid'
-                          ? 'Nombre disponible'
-                          : restaurantNameValidation === 'invalid'
-                          ? 'Este nombre ya está en uso.'
-                          : undefined
-                      }
-                    />
-
-                    {/* Campo de Dirección */}
-                    <div>
-                      <AddressAutocomplete
-                        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-                        onAddressSelect={setAddressDetails}
-                        required
-                      />
-                      {!addressDetails && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Empieza a escribir tu dirección para ver opciones
-                        </p>
-                      )}
-                      {addressDetails && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ Dirección seleccionada
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <FormField
-                        label="Contraseña"
-                        id="password"
-                        type="password"
-                        value={formState.password}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Mínimo 8 caracteres"
-                        minLength={8}
-                        helpText="Debe contener mayúsculas, minúsculas y números"
-                      />
-                      <PasswordStrength password={formState.password} />
-                    </div>
-
-                    <FormField
-                      label="Confirmar Contraseña"
-                      id="confirm_password"
-                      type="password"
-                      value={formState.confirm_password}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Repite tu contraseña"
-                      minLength={8}
-                    />
-                    {passwordMatchError && (
-                      <p className="text-red-500 text-xs mt-1" role="alert">
-                        {passwordMatchError}
-                      </p>
-                    )}
-
-                    {error && <ErrorMessage message={error} />}
-
-                    <FormButton
-                      type="submit"
-                      isLoading={isLoading}
-                      disabled={
-                        isLoading ||
-                        !addressDetails ||
-                        !addressDetails.location_lat ||
-                        !addressDetails.location_lon ||
-                        restaurantNameValidation !== 'valid' ||
-                        emailValidation !== 'valid' ||
-                        phoneValidation !== 'valid' ||
-                        !passwordStrength ||
-                        passwordStrength === 'weak' ||
-                        formState.password !== formState.confirm_password ||
-                        !isValidPassword(formState.password)
-                      }
-                      fullWidth
-                    >
-                      {isLoading ? 'Enviando solicitud...' : 'Enviar Solicitud'}
-                    </FormButton>
-                  </form>
-                </>
-              )}
+              <div className="border-t border-white border-opacity-30 pt-4">
+                <p className="text-sm text-white text-opacity-80 underline">
+                  ¿Ya eres aliado y quieres registrar otras marcas o sucursales?
+                </p>
+                <p className="text-sm text-white text-opacity-80 underline">
+                  Haz clic aquí &gt;&gt;
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </section>
+
+        {/* Right side - Registration form */}
+        <div className="w-full max-w-md bg-white p-8 shadow-xl">
+          {isSubmitted ? (
+            <div className="text-center py-8">
+              <div className="mb-4">
+                <svg
+                  className="w-16 h-16 text-green-500 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">¡Gracias por unirte!</h3>
+              <p className="text-gray-600 mb-2">
+                Hemos enviado un correo a <strong className="text-gray-800">{submittedEmail}</strong>.
+              </p>
+              <p className="text-gray-600 text-sm">
+                Por favor, revisa tu bandeja de entrada para confirmar tu cuenta y completar el registro.
+              </p>
+            </div>
+          ) : showMultiStep ? (
+            <div className="w-full">
+              <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+                Registro de Restaurante
+              </h3>
+              {error && (
+                <Alert variant="error" className="mb-6">
+                  {error}
+                </Alert>
+              )}
+              <TimeoutHandler
+                isLoading={isLoading}
+                timeout={60000}
+                onTimeout={() => {
+                  setError('La operación tardó demasiado tiempo. Inténtalo de nuevo.');
+                  setIsLoading(false);
+                }}
+              >
+                <LazyRegistrationComponents.StepperForm
+                  steps={registrationSteps}
+                  initialData={createEmptyRegistration()}
+                  onComplete={handleRegistrationComplete}
+                  persistKey="restaurant-registration"
+                />
+              </TimeoutHandler>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Registra tu restaurante
+              </h2>
+              <p className="text-sm text-gray-600 mb-6">
+                ¿Ya comenzaste tu registro? <span className="text-green-600 underline cursor-pointer">continúa aquí.</span>
+              </p>
+
+              <form className="space-y-6">
+                {/* Restaurant Information Section */}
+                <div className="space-y-4">
+                  {/* Restaurant name with validation */}
+                  <div className="relative">
+                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${
+                      restaurantNameValidation === 'invalid' 
+                        ? 'border-red-300 bg-red-50 focus-within:ring-red-200' 
+                        : restaurantNameValidation === 'valid' 
+                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200' 
+                        : 'border-gray-300 focus-within:ring-[#e4007c] focus-within:border-[#e4007c]'
+                    }`}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Nombre del restaurante"
+                        value={formData.restaurantName}
+                        onChange={(e) => handleInputChange('restaurantName', e.target.value)}
+                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                      />
+                      {restaurantNameValidation === 'checking' && (
+                        <div className="w-5 h-5 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin"></div>
+                      )}
+                      {restaurantNameValidation === 'valid' && (
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {restaurantNameValidation === 'invalid' && (
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-1 px-1">
+                      <p className="text-xs text-gray-500">Ingresa el nombre del restaurante</p>
+                      {restaurantNameValidation === 'invalid' && (
+                        <p className="text-xs text-red-600">Este nombre ya está en uso</p>
+                      )}
+                      {restaurantNameValidation === 'valid' && (
+                        <p className="text-xs text-green-600">Nombre disponible</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone number */}
+                  <div className="relative">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <input
+                        type="tel"
+                        placeholder="Teléfono"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 px-1">Ingresa el teléfono</p>
+                  </div>
+
+                  {/* Restaurant address with Google Places */}
+                  <div className="relative">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <AddressAutocompleteFixed
+                        value={formData.address}
+                        onChange={handleAddressChange}
+                        placeholder="Dirección del restaurante"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 px-1">Busca y confirma tu dirección</p>
+                    {formData.lat && formData.lon && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="text-xs text-green-700 font-medium">Ubicación confirmada</span>
+                        </div>
+                        <p className="text-xs text-green-600 mt-1">
+                          Coordenadas: {formData.lat.toFixed(6)}, {formData.lon.toFixed(6)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Responsible Person Information Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-700 border-b border-gray-200 pb-2">
+                    Información del responsable
+                  </h3>
+
+                  {/* Full name */}
+                  <div className="relative">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Nombre completo"
+                        value={formData.ownerName || ''}
+                        onChange={(e) => handleInputChange('ownerName', e.target.value)}
+                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email with validation */}
+                  <div className="relative">
+                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${
+                      emailValidation === 'invalid' 
+                        ? 'border-red-300 bg-red-50 focus-within:ring-red-200' 
+                        : emailValidation === 'valid' 
+                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200' 
+                        : 'border-gray-300 focus-within:ring-[#e4007c] focus-within:border-[#e4007c]'
+                    }`}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <input
+                        type="email"
+                        placeholder="Correo electrónico"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                      />
+                      {emailValidation === 'checking' && (
+                        <div className="w-5 h-5 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin"></div>
+                      )}
+                      {emailValidation === 'valid' && (
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {emailValidation === 'invalid' && (
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-1 px-1">
+                      <p className="text-xs text-gray-500">Ingresa tu correo</p>
+                      {emailValidation === 'invalid' && (
+                        <p className="text-xs text-red-600">Este correo ya está registrado</p>
+                      )}
+                      {emailValidation === 'valid' && (
+                        <p className="text-xs text-green-600">Correo disponible</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div className="relative">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <input
+                        type="password"
+                        placeholder="Contraseña"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                      />
+                      <svg className="w-5 h-5 text-gray-400 cursor-pointer hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="relative">
+                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${
+                      formData.confirmPassword && formData.password !== formData.confirmPassword
+                        ? 'border-red-300 bg-red-50 focus-within:ring-red-200' 
+                        : formData.confirmPassword && formData.password === formData.confirmPassword && formData.password.length >= 6
+                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200' 
+                        : 'border-gray-300 focus-within:ring-[#e4007c] focus-within:border-[#e4007c]'
+                    }`}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <input
+                        type="password"
+                        placeholder="Confirmar contraseña"
+                        value={formData.confirmPassword || ''}
+                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                      />
+                      {formData.confirmPassword && formData.password === formData.confirmPassword && formData.password.length >= 6 && (
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                    </div>
+                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                      <p className="text-xs text-red-600 mt-1 px-1">Las contraseñas no coinciden</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Email confirmation notice */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">Te enviaremos un email de confirmación</p>
+                      <p className="text-xs text-blue-600 mt-1">Nuestro equipo revisará tu solicitud en 24-48 horas</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Terms and Conditions */}
+                <div className="space-y-3">
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className="mt-1 h-4 w-4 text-[#e4007c] focus:ring-[#e4007c] border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700 leading-relaxed">
+                      Acepto los{' '}
+                      <a 
+                        href="/legal/terminos-restaurantes" 
+                        target="_blank"
+                        className="text-[#e4007c] hover:text-[#c6006b] underline font-medium"
+                      >
+                        Términos y Condiciones para Restaurantes
+                      </a>
+                      {' '}y la{' '}
+                      <a 
+                        href="/legal/privacidad-restaurantes" 
+                        target="_blank"
+                        className="text-[#e4007c] hover:text-[#c6006b] underline font-medium"
+                      >
+                        Política de Privacidad
+                      </a>
+                    </span>
+                  </label>
+                </div>
+
+                {/* Submit button */}
+                <button
+                  type="button"
+                  onClick={handleStartRegistration}
+                  disabled={!isFormValid() || isLoading}
+                  className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${
+                    isFormValid() && !isLoading
+                      ? 'bg-gradient-to-r from-[#e4007c] to-pink-500 hover:from-[#c6006b] hover:to-pink-600 text-white hover:shadow-xl transform hover:-translate-y-1 hover:scale-[1.02]'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-sm'
+                  }`}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Registrando restaurante...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center space-x-2">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span>Registrar restaurante</span>
+                    </div>
+                  )}
+                </button>
+
+                {/* Alternative option */}
+                <div className="text-center pt-4">
+                  <p className="text-[#e4007c] text-sm cursor-pointer hover:text-[#c6006b]">
+                    Mi negocio no es un restaurante
+                  </p>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Location Confirmation Map */}
+      <LocationConfirmationMapSmart
+        address={formData.address}
+        initialLat={formData.addressPlaceData?.coordinates?.lat || formData.lat || undefined}
+        initialLng={formData.addressPlaceData?.coordinates?.lng || formData.lon || undefined}
+        onLocationConfirm={handleLocationConfirm}
+        onCancel={handleLocationCancel}
+        isOpen={showLocationMap}
+      />
     </div>
   );
 }

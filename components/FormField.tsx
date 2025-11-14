@@ -3,6 +3,13 @@
 
 import { ValidationStatus } from '@/types/form';
 import ErrorMessage from './ErrorMessage';
+import { 
+  createFieldDescription,
+  generateFocusRingClasses,
+  generateTouchFriendlyClasses,
+  generateResponsiveComponentSizes,
+  ACCESSIBILITY 
+} from '@/lib/utils';
 
 interface FormFieldProps {
   label: string;
@@ -21,7 +28,15 @@ interface FormFieldProps {
   inputClassName?: string;
   minLength?: number;
   maxLength?: number;
+  size?: 'sm' | 'md' | 'lg';
+  // Enhanced accessibility props
   'aria-describedby'?: string;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  autoComplete?: string;
+  autoFocus?: boolean;
+  // Character count for text inputs
+  showCharacterCount?: boolean;
 }
 
 export default function FormField({
@@ -41,23 +56,40 @@ export default function FormField({
   inputClassName = '',
   minLength,
   maxLength,
+  size = 'md',
   'aria-describedby': ariaDescribedBy,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  autoComplete,
+  autoFocus = false,
+  showCharacterCount = false,
 }: FormFieldProps) {
+  // Generate responsive size classes
+  const responsiveSizeClasses = generateResponsiveComponentSizes('input', { base: size });
+  
+  // Generate touch-friendly classes
+  const touchClasses = generateTouchFriendlyClasses('md');
+
   // Determinar clases del borde según el estado de validación
   const getBorderClasses = () => {
-    const baseClasses = 'mt-1 block w-full px-4 py-3 border rounded-md shadow-sm focus:outline-none transition-colors bg-white text-gray-900 placeholder-gray-400';
+    const baseClasses = `
+      mt-1 block w-full border rounded-md shadow-sm transition-all duration-200 
+      bg-white text-gray-900 placeholder-gray-400 disabled:bg-gray-50 
+      disabled:text-gray-500 disabled:cursor-not-allowed
+      ${responsiveSizeClasses} ${touchClasses}
+    `;
 
     if (validationStatus === 'valid') {
-      return `${baseClasses} border-green-500 focus:ring-green-500 focus:border-green-500`;
+      return `${baseClasses} border-green-500 ${generateFocusRingClasses('#10b981')}`;
     }
-    if (validationStatus === 'invalid') {
-      return `${baseClasses} border-red-500 focus:ring-red-500 focus:border-red-500`;
+    if (validationStatus === 'invalid' || error) {
+      return `${baseClasses} border-red-500 ${generateFocusRingClasses('#ef4444')}`;
     }
     if (validationStatus === 'checking') {
-      return `${baseClasses} border-yellow-400 focus:ring-yellow-400 focus:border-yellow-400`;
+      return `${baseClasses} border-yellow-400 ${generateFocusRingClasses('#f59e0b')}`;
     }
 
-    return `${baseClasses} border-gray-300 focus:ring-[#e4007c] focus:border-[#e4007c]`;
+    return `${baseClasses} border-gray-300 ${generateFocusRingClasses('#e4007c')}`;
   };
 
   // Determinar color del mensaje de validación
@@ -68,22 +100,36 @@ export default function FormField({
     return 'text-transparent';
   };
 
-  const validationId = `${id}-validation`;
-  const helpId = `${id}-help`;
-  const errorId = `${id}-error`;
+  // Create field descriptions using accessibility utility
+  const fieldDescription = createFieldDescription({
+    id,
+    required,
+    error: error || (validationStatus === 'invalid' ? validationMessage : undefined),
+    help: helpText,
+    characterCount: showCharacterCount && maxLength ? { current: value.length, max: maxLength } : undefined,
+  });
+
   const describedBy = [
     ariaDescribedBy,
-    validationStatus !== 'idle' && validationId,
-    helpText && helpId,
-    error && errorId,
+    fieldDescription.describedBy,
   ].filter(Boolean).join(' ');
 
   return (
     <div className={className}>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label 
+        htmlFor={id} 
+        className="block text-sm font-medium text-gray-700 mb-1"
+        id={`${id}-label`}
+      >
         {label}
-        {required && <span className="text-red-500 ml-1" aria-label="requerido">*</span>}
+        {required && (
+          <>
+            <span className="text-red-500 ml-1" aria-hidden="true">*</span>
+            <span className="sr-only">{ACCESSIBILITY.ariaLabels.required}</span>
+          </>
+        )}
       </label>
+      
       <input
         type={type}
         id={id}
@@ -94,36 +140,39 @@ export default function FormField({
         disabled={disabled}
         minLength={minLength}
         maxLength={maxLength}
+        autoComplete={autoComplete}
+        autoFocus={autoFocus}
         className={`${getBorderClasses()} ${inputClassName}`}
         aria-describedby={describedBy || undefined}
         aria-invalid={validationStatus === 'invalid' || !!error}
         aria-required={required}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy || `${id}-label`}
       />
       
-      {/* Mensaje de validación */}
-      {validationStatus && validationStatus !== 'idle' && (
+      {/* Render field descriptions */}
+      {fieldDescription.descriptionElements.map((desc) => (
+        <div
+          key={desc.id}
+          id={desc.id}
+          className={desc.className}
+          role={desc.id.includes('error') ? 'alert' : 'status'}
+          aria-live="polite"
+        >
+          {desc.content}
+        </div>
+      ))}
+
+      {/* Validation status message */}
+      {validationStatus && validationStatus !== 'idle' && validationStatus !== 'invalid' && (
         <p
-          id={validationId}
           className={`text-xs mt-1 min-h-[1rem] ${getValidationMessageClasses()}`}
           role="status"
           aria-live="polite"
         >
-          {validationStatus === 'checking' && 'Verificando...'}
+          {validationStatus === 'checking' && ACCESSIBILITY.ariaLabels.loading}
           {validationStatus === 'valid' && validationMessage && validationMessage}
-          {validationStatus === 'invalid' && validationMessage && validationMessage}
         </p>
-      )}
-
-      {/* Mensaje de ayuda */}
-      {helpText && (
-        <p id={helpId} className="text-xs text-gray-500 mt-1">
-          {helpText}
-        </p>
-      )}
-
-      {/* Mensaje de error */}
-      {error && (
-        <ErrorMessage id={errorId} message={error} />
       )}
     </div>
   );

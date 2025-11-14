@@ -3,6 +3,13 @@
 
 import { ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { 
+  createFocusManager, 
+  trapFocus, 
+  generateFocusRingClasses, 
+  generateAriaAttributes,
+  ACCESSIBILITY 
+} from '@/lib/utils';
 
 interface ModalProps {
   isOpen: boolean;
@@ -14,6 +21,11 @@ interface ModalProps {
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
   className?: string;
+  // Accessibility props
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
+  initialFocus?: React.RefObject<HTMLElement>;
 }
 
 export default function Modal({
@@ -26,42 +38,53 @@ export default function Modal({
   closeOnEscape = true,
   showCloseButton = true,
   className = '',
+  ariaLabel,
+  ariaLabelledBy,
+  ariaDescribedBy,
+  initialFocus,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<HTMLElement | null>(null);
+  const focusManager = useRef(createFocusManager());
 
   const sizeClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
+    sm: 'max-w-sm w-full mx-4',
+    md: 'max-w-md w-full mx-4',
+    lg: 'max-w-lg w-full mx-4',
+    xl: 'max-w-xl w-full mx-4',
     full: 'max-w-full mx-4',
   };
 
   useEffect(() => {
     if (isOpen) {
-      // Store the currently focused element
-      previousActiveElement.current = document.activeElement as HTMLElement;
+      // Save current focus
+      focusManager.current.saveFocus();
       
-      // Focus the modal
-      modalRef.current?.focus();
+      // Focus the modal or initial focus element
+      setTimeout(() => {
+        if (initialFocus?.current) {
+          initialFocus.current.focus();
+        } else {
+          modalRef.current?.focus();
+        }
+      }, 0);
       
-      // Prevent body scroll
+      // Prevent body scroll and add modal class
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
     } else {
-      // Restore body scroll
+      // Restore body scroll and remove modal class
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
       
-      // Restore focus to the previously focused element
-      if (previousActiveElement.current) {
-        previousActiveElement.current.focus();
-      }
+      // Restore focus
+      focusManager.current.restoreFocus();
     }
 
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
     };
-  }, [isOpen]);
+  }, [isOpen, initialFocus]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -86,43 +109,35 @@ export default function Modal({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Tab') {
-      // Trap focus within modal
-      const focusableElements = modalRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      
-      if (focusableElements && focusableElements.length > 0) {
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-        
-        if (event.shiftKey && document.activeElement === firstElement) {
-          event.preventDefault();
-          lastElement.focus();
-        } else if (!event.shiftKey && document.activeElement === lastElement) {
-          event.preventDefault();
-          firstElement.focus();
-        }
-      }
+    if (modalRef.current) {
+      trapFocus(modalRef.current, event as any);
     }
   };
 
   if (!isOpen) return null;
 
+  // Generate ARIA attributes
+  const ariaAttributes = generateAriaAttributes({
+    label: ariaLabel,
+    labelledBy: ariaLabelledBy || (title ? 'modal-title' : undefined),
+    describedBy: ariaDescribedBy,
+    role: 'dialog',
+  });
+
   const modalContent = (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
       onClick={handleOverlayClick}
-      role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
+      {...ariaAttributes}
     >
       <div
         ref={modalRef}
         className={`
-          relative w-full ${sizeClasses[size]} max-h-[90vh] overflow-auto
+          relative ${sizeClasses[size]} max-h-[90vh] overflow-auto
           bg-white rounded-lg shadow-xl transform transition-all duration-200
           animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2
+          ${generateFocusRingClasses()}
           ${className}
         `}
         tabIndex={-1}
@@ -139,10 +154,21 @@ export default function Modal({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                aria-label="Cerrar modal"
+                className={`
+                  p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 
+                  rounded-md transition-colors min-h-[44px] min-w-[44px]
+                  ${generateFocusRingClasses()}
+                `}
+                aria-label={ACCESSIBILITY.ariaLabels.close}
+                type="button"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg 
+                  className="w-5 h-5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>

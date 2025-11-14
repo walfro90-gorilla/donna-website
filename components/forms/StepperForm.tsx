@@ -2,7 +2,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui';
+import { Card, CardContent, LoadingSpinner, ProgressIndicator, FormSkeleton } from '@/components/ui';
+import { 
+  generateResponsiveFontClasses,
+  generateResponsiveSpacingClasses,
+  generateAriaAttributes,
+  announceToScreenReader,
+  ACCESSIBILITY 
+} from '@/lib/utils';
 
 export interface RegistrationStep {
   id: string;
@@ -54,6 +61,8 @@ export default function StepperForm({
   const [stepValidation, setStepValidation] = useState<Record<string, ValidationResult>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [loadingStep, setLoadingStep] = useState<string | null>(null);
+  const [validationProgress, setValidationProgress] = useState(0);
 
   // Load persisted data on mount
   useEffect(() => {
@@ -87,10 +96,16 @@ export default function StepperForm({
     }
   }, [formData, currentStepIndex, persistKey]);
 
-  // Notify parent of step changes
+  // Notify parent of step changes and announce to screen readers
   useEffect(() => {
     if (onStepChange && steps[currentStepIndex]) {
       onStepChange(currentStepIndex, steps[currentStepIndex].id);
+    }
+    
+    // Announce step change to screen readers
+    if (steps[currentStepIndex]) {
+      const stepInfo = `Paso ${currentStepIndex + 1} de ${steps.length}: ${steps[currentStepIndex].title}`;
+      announceToScreenReader(stepInfo, 'polite');
     }
   }, [currentStepIndex, onStepChange, steps]);
 
@@ -119,26 +134,39 @@ export default function StepperForm({
   const handleNext = useCallback(async () => {
     const currentStep = steps[currentStepIndex];
     setIsLoading(true);
+    setLoadingStep(currentStep.id);
+    setValidationProgress(0);
 
     try {
+      // Show validation progress
+      setValidationProgress(25);
+      
       // Validate current step
       const validation = await validateStep(currentStepIndex, formData);
+      setValidationProgress(50);
+      
       setStepValidation(prev => ({
         ...prev,
         [currentStep.id]: validation
       }));
 
       if (!validation.isValid) {
+        setValidationProgress(0);
         setIsLoading(false);
+        setLoadingStep(null);
         return;
       }
+
+      setValidationProgress(75);
 
       // Mark step as completed
       setCompletedSteps(prev => new Set([...prev, currentStep.id]));
 
       // Check if this is the last step
       if (currentStepIndex === steps.length - 1) {
+        setValidationProgress(90);
         await onComplete(formData);
+        setValidationProgress(100);
         
         // Clear persisted data on successful completion
         if (persistKey && typeof window !== 'undefined') {
@@ -148,6 +176,7 @@ export default function StepperForm({
       } else {
         // Move to next step
         setCurrentStepIndex(prev => Math.min(prev + 1, steps.length - 1));
+        setValidationProgress(100);
       }
     } catch (error) {
       console.error('Error in handleNext:', error);
@@ -159,7 +188,11 @@ export default function StepperForm({
         }
       }));
     } finally {
-      setIsLoading(false);
+      setTimeout(() => {
+        setIsLoading(false);
+        setLoadingStep(null);
+        setValidationProgress(0);
+      }, 500);
     }
   }, [currentStepIndex, steps, formData, validateStep, onComplete, persistKey]);
 
@@ -215,75 +248,136 @@ export default function StepperForm({
   const StepComponent = currentStep.component;
 
   return (
-    <div className={`max-w-4xl mx-auto ${className}`}>
+    <div className={`max-w-4xl mx-auto ${generateResponsiveSpacingClasses('px', { base: '4', tablet: '6', desktop: '8' })} ${className}`}>
       {/* Progress Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">
+      <div className={generateResponsiveSpacingClasses('mb', { base: '6', tablet: '8' })}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+          <h1 
+            className={`${generateResponsiveFontClasses({ base: 'xl', tablet: '2xl' })} font-bold text-gray-900`}
+            id="stepper-title"
+          >
             {currentStep.title}
-          </h2>
-          <div className="text-sm text-gray-500">
+          </h1>
+          <div 
+            className="text-sm text-gray-500"
+            aria-label={`Paso ${currentStepIndex + 1} de ${steps.length}`}
+          >
             Paso {currentStepIndex + 1} de {steps.length}
           </div>
         </div>
         
         {currentStep.description && (
-          <p className="text-gray-600 mb-4">
+          <p 
+            className="text-gray-600 mb-4 text-sm sm:text-base"
+            id="stepper-description"
+          >
             {currentStep.description}
           </p>
         )}
 
         {/* Progress Bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div
-            className="bg-[#e4007c] h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
-          />
+        <div className="space-y-2">
+          <div 
+            className="w-full bg-gray-200 rounded-full h-2"
+            role="progressbar"
+            aria-valuenow={((currentStepIndex + 1) / steps.length) * 100}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Progreso del formulario: ${getCompletionPercentage()}% completado`}
+          >
+            <div
+              className="bg-[#e4007c] h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+            />
+          </div>
+          
+          {/* Validation Progress */}
+          {isLoading && validationProgress > 0 && (
+            <div className="w-full bg-blue-100 rounded-full h-1">
+              <div
+                className="bg-blue-500 h-1 rounded-full transition-all duration-200"
+                style={{ width: `${validationProgress}%` }}
+              />
+            </div>
+          )}
         </div>
         
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between text-xs text-gray-500 mt-2 gap-1">
           <span>{getCompletionPercentage()}% completado</span>
           <span>{completedSteps.size} de {steps.length} pasos completados</span>
         </div>
       </div>
 
       {/* Step Content */}
-      <Card variant="default" className="mb-6">
-        <CardContent className="p-6">
-          <StepComponent
-            data={formData}
-            onDataChange={handleDataChange}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            isLoading={isLoading}
-            errors={currentValidation?.errors}
-            onValidate={async () => {
-              const validation = await validateStep(currentStepIndex, formData);
-              setStepValidation(prev => ({
-                ...prev,
-                [currentStep.id]: validation
-              }));
-              return validation.isValid;
-            }}
-          />
+      <Card 
+        variant="default" 
+        className={generateResponsiveSpacingClasses('mb', { base: '6', tablet: '8' })}
+        role="main"
+        ariaLabelledBy="stepper-title"
+        ariaDescribedBy={currentStep.description ? "stepper-description" : undefined}
+      >
+        <CardContent className={generateResponsiveSpacingClasses('p', { base: '4', tablet: '6' })}>
+          {loadingStep === currentStep.id ? (
+            <div className="space-y-4">
+              <FormSkeleton />
+              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                <LoadingSpinner size="sm" variant="spinner" />
+                <span>
+                  {validationProgress < 50 ? 'Validando datos...' :
+                   validationProgress < 90 ? 'Procesando...' :
+                   'Finalizando...'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <StepComponent
+              data={formData}
+              onDataChange={handleDataChange}
+              onNext={handleNext}
+              onPrevious={handlePrevious}
+              isLoading={isLoading}
+              errors={currentValidation?.errors}
+              onValidate={async () => {
+                const validation = await validateStep(currentStepIndex, formData);
+                setStepValidation(prev => ({
+                  ...prev,
+                  [currentStep.id]: validation
+                }));
+                return validation.isValid;
+              }}
+            />
+          )}
         </CardContent>
       </Card>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
+      <nav 
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        aria-label="Navegación del formulario"
+      >
         <button
           onClick={handlePrevious}
           disabled={currentStepIndex === 0}
-          className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={`
+            px-4 sm:px-6 py-2 text-gray-600 border border-gray-300 rounded-lg 
+            hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed 
+            transition-colors min-h-[44px] order-2 sm:order-1
+            focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2
+          `}
+          aria-label={ACCESSIBILITY.ariaLabels.previous}
         >
-          Anterior
+          {ACCESSIBILITY.ariaLabels.previous}
         </button>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 order-1 sm:order-2">
           {currentStep.isOptional && allowSkipOptional && (
             <button
               onClick={handleSkipStep}
-              className="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
+              className={`
+                px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors
+                min-h-[44px] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2
+              `}
+              aria-label="Omitir este paso opcional"
             >
               Omitir (opcional)
             </button>
@@ -292,20 +386,37 @@ export default function StepperForm({
           <button
             onClick={handleNext}
             disabled={isLoading}
-            className="px-6 py-2 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+            className={`
+              px-4 sm:px-6 py-2 bg-[#e4007c] text-white rounded-lg 
+              hover:bg-[#c6006b] disabled:opacity-50 disabled:cursor-not-allowed 
+              transition-colors flex items-center justify-center space-x-2 min-h-[44px]
+              focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2
+            `}
+            aria-label={currentStepIndex === steps.length - 1 ? 'Completar formulario' : 'Ir al siguiente paso'}
+            aria-busy={isLoading}
           >
             {isLoading && (
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <svg 
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" 
+                fill="none" 
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             )}
             <span>
-              {currentStepIndex === steps.length - 1 ? 'Completar' : 'Siguiente'}
+              {currentStepIndex === steps.length - 1 ? 'Completar' : ACCESSIBILITY.ariaLabels.next}
             </span>
+            {isLoading && (
+              <span className="sr-only">
+                {ACCESSIBILITY.ariaLabels.loading}
+              </span>
+            )}
           </button>
         </div>
-      </div>
+      </nav>
     </div>
   );
 }

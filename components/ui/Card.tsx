@@ -1,16 +1,23 @@
 // components/ui/Card.tsx
 "use client";
 
-import { ReactNode } from 'react';
+import { ReactNode, KeyboardEvent } from 'react';
+import { generateResponsiveComponentSizes, generateFocusRingClasses, generateAriaAttributes } from '@/lib/utils';
 
 interface CardProps {
   children: ReactNode;
   className?: string;
   variant?: 'default' | 'elevated' | 'outlined' | 'filled';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | { base: 'sm' | 'md' | 'lg'; mobile?: 'sm' | 'md' | 'lg'; tablet?: 'sm' | 'md' | 'lg'; desktop?: 'sm' | 'md' | 'lg' };
   padding?: 'none' | 'sm' | 'md' | 'lg';
   hover?: boolean;
   onClick?: () => void;
+  // Accessibility props
+  role?: string;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
+  tabIndex?: number;
 }
 
 export default function Card({
@@ -21,6 +28,11 @@ export default function Card({
   padding = 'md',
   hover = false,
   onClick,
+  role,
+  ariaLabel,
+  ariaLabelledBy,
+  ariaDescribedBy,
+  tabIndex,
 }: CardProps) {
   const baseClasses = 'rounded-lg transition-all duration-200';
   
@@ -31,45 +43,58 @@ export default function Card({
     filled: 'bg-gray-50 border border-gray-200',
   };
 
-  const sizeClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-  };
+  // Responsive size classes
+  const responsiveSizeClasses = typeof size === 'object' 
+    ? generateResponsiveComponentSizes('card', size)
+    : generateResponsiveComponentSizes('card', { base: size });
 
   const paddingClasses = {
     none: '',
-    sm: 'p-4',
-    md: 'p-6',
-    lg: 'p-8',
+    sm: 'p-3 sm:p-4',
+    md: 'p-4 sm:p-6',
+    lg: 'p-6 sm:p-8',
   };
 
   const hoverClasses = hover 
-    ? 'hover:shadow-md hover:border-gray-300 cursor-pointer transform hover:-translate-y-1' 
+    ? 'hover:shadow-md hover:border-gray-300 cursor-pointer transform hover:-translate-y-1 focus-within:shadow-md' 
     : '';
 
   const clickableClasses = onClick ? 'cursor-pointer' : '';
+  
+  // Focus ring for accessibility
+  const focusClasses = onClick ? generateFocusRingClasses() : '';
+  
+  // Generate ARIA attributes
+  const ariaAttributes = generateAriaAttributes({
+    label: ariaLabel,
+    labelledBy: ariaLabelledBy,
+    describedBy: ariaDescribedBy,
+    role: role as any,
+  });
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      onClick();
+    }
+  };
 
   return (
     <div
       className={`
         ${baseClasses}
         ${variantClasses[variant]}
-        ${sizeClasses[size]}
+        ${responsiveSizeClasses}
         ${paddingClasses[padding]}
         ${hoverClasses}
         ${clickableClasses}
+        ${focusClasses}
         ${className}
       `}
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      } : undefined}
+      tabIndex={onClick ? (tabIndex ?? 0) : tabIndex}
+      onKeyDown={handleKeyDown}
+      {...ariaAttributes}
     >
       {children}
     </div>

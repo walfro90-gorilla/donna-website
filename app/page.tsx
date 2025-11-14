@@ -149,7 +149,7 @@ export default function HomePage() {
               <h3 className="text-xl md:text-2xl font-bold mb-4">Gana a tu ritmo</h3>
               <p className="mb-6 text-sm md:text-base">Sé tu propio jefe. Conduce con Doña Repartos y obtén ganancias con horarios flexibles.</p>
               <Link
-                href="/repartidores"
+                href="/registro-repartidor"
                 className="bg-white text-[#e4007c] font-semibold py-3 px-8 rounded-full hover:bg-pink-100 transition-colors inline-block focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
                 aria-label="Conviértete en repartidor"
               >

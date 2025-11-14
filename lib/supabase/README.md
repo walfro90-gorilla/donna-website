@@ -1,231 +1,116 @@
-# Supabase Document Management Setup
+# Configuración de Base de Datos Supabase
 
-This document provides setup instructions for the Supabase document management system.
+## 🔄 Reutilizar Funciones RPC Existentes (RECOMENDADO)
 
-## Prerequisites
+**Si ya tienes una app Flutter con funciones RPC**, es mejor reutilizar esas funciones para mantener consistencia.
 
-1. A Supabase project with authentication enabled
-2. Environment variables configured in `.env.local`:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
+### 1. Configurar funciones existentes
 
-## Database Setup
-
-### 1. Run the RPC Functions SQL
-
-Execute the SQL commands in `lib/supabase/rpc-functions.sql` in your Supabase SQL editor. This will:
-
-- Create the `documents` table
-- Set up Row Level Security (RLS) policies
-- Create RPC functions for document management
-- Set up storage policies
-
-### 2. Create Storage Buckets
-
-In your Supabase dashboard, go to Storage and create the following buckets:
-
-#### Documents Bucket (Private)
-- **Name**: `documents`
-- **Public**: `false` (private bucket)
-- **File size limit**: 50MB
-- **Allowed MIME types**: `application/pdf,image/jpeg,image/jpg,image/png,image/webp`
-
-#### Restaurant Images Bucket (Public)
-- **Name**: `restaurant-images`
-- **Public**: `true`
-- **File size limit**: 10MB
-- **Allowed MIME types**: `image/jpeg,image/jpg,image/png,image/webp`
-
-#### Menu Images Bucket (Public)
-- **Name**: `menu-images`
-- **Public**: `true`
-- **File size limit**: 5MB
-- **Allowed MIME types**: `image/jpeg,image/jpg,image/png,image/webp`
-
-#### Profile Images Bucket (Public)
-- **Name**: `profile-images`
-- **Public**: `true`
-- **File size limit**: 2MB
-- **Allowed MIME types**: `image/jpeg,image/jpg,image/png,image/webp`
-
-### 3. Configure Storage Policies
-
-The SQL script includes storage policies, but you can also configure them manually in the Supabase dashboard:
-
-#### For Documents Bucket:
-- Users can only access their own documents (organized by user ID folders)
-- Full CRUD operations for authenticated users on their own files
-
-#### For Public Buckets:
-- Anyone can view files
-- Authenticated users can upload files
-- Users can only modify/delete their own files
-
-## Usage
-
-### Basic Document Upload
+Edita el archivo `lib/supabase/rpc-config.ts` y actualiza los nombres de las funciones que ya usas en Flutter:
 
 ```typescript
-import { documentService } from '@/lib/supabase/document-service';
-
-// Upload a document
-const result = await documentService.uploadDocument(
-  file,
-  'rfc', // document type
-  {
-    originalName: file.name,
-    size: file.size,
-    type: file.type,
-    uploadedAt: new Date()
-  }
-);
-
-if (result.success) {
-  console.log('Document uploaded:', result.document);
-} else {
-  console.error('Upload failed:', result.error);
-}
+export const PROJECT_RPC_FUNCTIONS = {
+  emailValidation: 'tu_funcion_validar_email',        // ← Nombre real de tu función
+  phoneValidation: 'tu_funcion_validar_telefono',     // ← O null si no tienes
+  userProfileEnsure: 'tu_funcion_crear_perfil',       // ← Nombre real de tu función
+  deliveryAgentRegister: 'tu_funcion_registrar_repartidor', // ← Nombre real
+};
 ```
 
-### Get User Documents
+### 2. Verificar parámetros
 
-```typescript
-// Get all documents for the current user
-const result = await documentService.getUserDocuments();
+Asegúrate de que los parámetros coincidan con los que espera tu función de Flutter.
 
-// Get documents by type
-const rfcDocs = await documentService.getUserDocuments('rfc');
+## 🆕 Crear Funciones RPC Nuevas (Solo si no tienes Flutter app)
 
-// Get documents by validation status
-const pendingDocs = await documentService.getUserDocuments(undefined, 'pending');
+Si no tienes funciones existentes, ejecuta el contenido del archivo `rpc-functions.sql` en tu dashboard de Supabase → SQL Editor.
+
+### 2. Verificar el Schema
+
+Asegúrate de que tu base de datos tenga las siguientes tablas con la estructura correcta:
+
+#### Tabla `users`
+```sql
+- id (uuid, PK, FK a auth.users)
+- email (text, UNIQUE, NOT NULL) ✅
+- name (text)
+- phone (text) ⚠️ NO es UNIQUE
+- role (text, CHECK constraint con valores: 'client', 'restaurant', 'delivery_agent', 'admin')
 ```
 
-### Document Validation
-
-```typescript
-// Update document validation status
-await documentService.updateDocumentValidation(
-  documentId,
-  'approved' // or 'rejected'
-);
-
-// Validate Mexican business document
-const validationResult = await documentService.validateMexicanBusinessDocument(
-  documentId,
-  validationRules
-);
+#### Tabla `restaurants`
+```sql
+- id (uuid, PK)
+- user_id (uuid, FK a users, UNIQUE)
+- name (text, UNIQUE, NOT NULL) ✅
+- address (text)
+- phone (text)
+- ... otros campos del restaurante
 ```
 
-### Check Document Completeness
-
-```typescript
-// Check if user has all required documents
-const completeness = await documentService.checkDocumentCompleteness('restaurant');
-
-if (completeness.success) {
-  console.log('Is complete:', completeness.isComplete);
-  console.log('Missing documents:', completeness.missingDocuments);
-}
+#### Tabla `delivery_agent_profiles`
+```sql
+- user_id (uuid, PK, FK a users)
+- status (enum: 'pending', 'approved', 'rejected', etc.)
+- account_state (enum: 'pending', 'active', etc.)
+- ... otros campos del perfil
 ```
 
-## File Organization
+### 3. Validaciones Implementadas
 
-Documents are organized in storage with the following structure:
+#### ✅ Email (usuarios)
+- Tiene constraint UNIQUE en la tabla `users`
+- Se valida en tiempo real con `check_email_availability()`
+- Muestra indicadores visuales de disponibilidad
 
-```
-documents/
-├── {user_id}/
-│   ├── rfc_{timestamp}.pdf
-│   ├── certificado_bancario_{timestamp}.pdf
-│   ├── identificacion_{timestamp}.jpg
-│   └── ...
-```
+#### ✅ Nombre de Restaurante
+- Tiene constraint UNIQUE en la tabla `restaurants`
+- Se valida en tiempo real con `check_restaurant_name_availability()`
+- Muestra indicadores visuales de disponibilidad
 
-This ensures:
-- User isolation (users can only access their own files)
-- Unique file names (timestamp prevents conflicts)
-- Easy cleanup and management
+#### ⚠️ Teléfono
+- NO tiene constraint UNIQUE en la tabla `users`
+- No se valida disponibilidad (por diseño del schema actual)
+- Solo validación de formato
 
-## Security Features
+#### ✅ Email
+- Tiene constraint UNIQUE en la tabla `users`
+- Se valida en tiempo real con `check_email_availability()`
+- Muestra indicadores visuales de disponibilidad
 
-1. **Row Level Security (RLS)**: Users can only access their own document records
-2. **Storage Policies**: Users can only access files in their own folders
-3. **Authentication Required**: All operations require authenticated users
-4. **File Validation**: Server-side validation of file types and sizes
-5. **Audit Trail**: All document operations are logged with timestamps
+#### ⚠️ Teléfono
+- NO tiene constraint UNIQUE en la tabla `users`
+- No se valida disponibilidad (por diseño del schema actual)
+- Solo validación de formato
 
-## Error Handling
+### 4. Flujo de Registro
 
-The system includes comprehensive error handling:
+1. **Validación de email** - Verifica disponibilidad en tiempo real
+2. **Signup en Auth** - Crea usuario en Supabase Auth
+3. **Perfil de usuario** - Crea/actualiza registro en tabla `users`
+4. **Perfil de repartidor** - Crea registro en `delivery_agent_profiles`
+5. **Cuenta financiera** - Crea cuenta en tabla `accounts`
+6. **Notificación admin** - Notifica a administradores del nuevo registro
 
-- **Network Errors**: Automatic retry logic for temporary failures
-- **Validation Errors**: Clear messages with actionable suggestions
-- **Storage Errors**: Graceful fallbacks and cleanup procedures
-- **Authentication Errors**: Proper user feedback and redirect handling
+### 5. Roles y Permisos
 
-## Testing
+Asegúrate de que las funciones RPC tengan `SECURITY DEFINER` para que puedan ejecutarse con permisos elevados y acceder a todas las tablas necesarias.
 
-To test the document management system:
+### 6. Troubleshooting
 
-1. Ensure you have a user authenticated in your app
-2. Use the `DocumentManagementDemo` component to test upload/download functionality
-3. Check the Supabase dashboard to verify files are being stored correctly
-4. Test the RPC functions directly in the Supabase SQL editor if needed
+Si encuentras errores:
 
-## Troubleshooting
+1. **Función no encontrada**: Ejecuta las funciones RPC del archivo `rpc-functions.sql`
+2. **Permisos**: Verifica que las funciones tengan `SECURITY DEFINER`
+3. **Constraint violations**: Revisa que el schema coincida con `DATABASE_SCHEMA.sql`
+4. **Auth errors**: Verifica la configuración de Supabase Auth
 
-### Common Issues
+### 7. Testing
 
-1. **"Not authenticated" errors**
-   - Ensure user is logged in
-   - Check that Supabase client is properly configured
-   - Verify environment variables are set
+Para probar el registro:
 
-2. **Storage upload failures**
-   - Check bucket permissions and policies
-   - Verify file size and type restrictions
-   - Ensure bucket exists and is properly configured
-
-3. **RPC function errors**
-   - Verify all SQL functions were created successfully
-   - Check function permissions and security settings
-   - Review Supabase logs for detailed error messages
-
-4. **File access issues**
-   - Verify storage policies are correctly configured
-   - Check that file paths follow the expected structure
-   - Ensure user has proper permissions
-
-### Debug Mode
-
-Enable debug logging by setting:
-
-```typescript
-// In your component or service
-console.log('Document service debug:', {
-  user: await supabase.auth.getUser(),
-  documents: await documentService.getUserDocuments()
-});
-```
-
-## Performance Considerations
-
-1. **File Size Limits**: Keep files under 10MB for optimal performance
-2. **Image Optimization**: Use WebP format when possible
-3. **Batch Operations**: Avoid uploading multiple large files simultaneously
-4. **Caching**: Public images are cached by Supabase CDN
-5. **Cleanup**: Regularly clean up orphaned files using the cleanup functions
-
-## Future Enhancements
-
-Potential improvements to consider:
-
-1. **Image Processing**: Automatic image compression and format conversion
-2. **OCR Integration**: Extract text from documents for validation
-3. **Virus Scanning**: Integrate with antivirus services
-4. **Document Templates**: Provide templates for common document types
-5. **Bulk Operations**: Support for bulk upload/download operations
-6. **Advanced Validation**: ML-based document validation
-7. **Workflow Management**: Advanced approval workflows with multiple reviewers
+1. Ve a `/registro-repartidor`
+2. Completa el formulario
+3. Verifica que se cree el usuario en Auth
+4. Verifica que se creen los registros en `users` y `delivery_agent_profiles`
+5. Verifica que aparezca la notificación en `admin_notifications`

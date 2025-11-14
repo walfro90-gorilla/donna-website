@@ -1,18 +1,13 @@
 // app/clientes/page.tsx
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSupabase } from '@/lib/hooks/useSupabase';
-import { useFieldValidation } from '@/lib/hooks/useFieldValidation';
-import AddressAutocomplete from '@/components/AddressAutocomplete';
-import FormField from '@/components/FormField';
-import FormButton from '@/components/FormButton';
-import PasswordStrength from '@/components/PasswordStrength';
-import ErrorMessage from '@/components/ErrorMessage';
-import { handleError } from '@/lib/utils/errorHandler';
-import { getPasswordStrength } from '@/lib/utils/validation';
+import { RegistrationStep } from '@/components/forms/StepperForm';
+import { LazyRegistrationComponents, preloadUserTypeComponents } from '@/components/registration/lazy';
+import { LoadingSpinner, TimeoutHandler } from '@/components/ui';
+import { handleError, retryWithBackoff } from '@/lib/utils/errorHandler';
 import type { Address } from '@/types/address';
-import type { ClientFormData } from '@/types/form';
 
 // Icono para la sección de beneficios
 const CheckCircleIcon = () => (
@@ -22,65 +17,125 @@ const CheckCircleIcon = () => (
 );
 
 export default function ClientesPage() {
-  const [formState, setFormState] = useState<ClientFormData>({
-    name: '',
-    phone: '',
-    email: '',
-    password: '',
-  });
-
-  const [addressDetails, setAddressDetails] = useState<Address | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [error, setError] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
+  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const supabase = useSupabase();
 
-  const emailValidation = useFieldValidation('email', formState.email, 'cliente');
-  const phoneValidation = useFieldValidation('phone', formState.phone, 'cliente');
+  // Preload customer components when component mounts
+  useEffect(() => {
+    preloadUserTypeComponents('customer');
+  }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormState(prevState => ({ ...prevState, [id]: value }));
+  // Define registration steps
+  const registrationSteps: RegistrationStep[] = [
+    {
+      id: 'personal-info',
+      title: 'Información Personal',
+      description: 'Cuéntanos sobre ti',
+      component: LazyRegistrationComponents.CustomerPersonalInformationStep,
+      validation: async (data) => {
+        const errors: Record<string, string> = {};
+        
+        if (!data.name?.trim()) {
+          errors.name = 'El nombre es requerido';
+        }
+        
+        if (!data.email?.trim()) {
+          errors.email = 'El correo electrónico es requerido';
+        }
+        
+        if (!data.phone?.trim()) {
+          errors.phone = 'El teléfono es requerido';
+        }
 
-    // Calcular fuerza de contraseña en tiempo real
-    if (id === 'password') {
-      setPasswordStrength(value.length > 0 ? getPasswordStrength(value) : null);
+        if (!data.termsAccepted) {
+          errors.termsAccepted = 'Debes aceptar los términos y condiciones';
+        }
+
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors
+        };
+      }
+    },
+    {
+      id: 'address-setup',
+      title: 'Direcciones',
+      description: 'Configura tus direcciones de entrega',
+      component: LazyRegistrationComponents.AddressSetupStep,
+      validation: async (data) => {
+        const errors: Record<string, string> = {};
+        
+        if (!data.primaryAddress && (!data.savedAddresses || data.savedAddresses.length === 0)) {
+          errors.primaryAddress = 'Debes agregar al menos una dirección';
+        }
+
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors
+        };
+      }
+    },
+    {
+      id: 'account-security',
+      title: 'Seguridad',
+      description: 'Configura tu contraseña y preferencias',
+      component: LazyRegistrationComponents.AccountSecurityStep,
+      validation: async (data) => {
+        const errors: Record<string, string> = {};
+        
+        if (!data.password) {
+          errors.password = 'La contraseña es requerida';
+        } else if (data.password.length < 8) {
+          errors.password = 'La contraseña debe tener al menos 8 caracteres';
+        }
+        
+        if (data.password !== data.confirmPassword) {
+          errors.confirmPassword = 'Las contraseñas no coinciden';
+        }
+
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors
+        };
+      }
+    },
+    {
+      id: 'restaurant-discovery',
+      title: 'Descubre Restaurantes',
+      description: 'Encuentra tus restaurantes favoritos',
+      component: LazyRegistrationComponents.RestaurantDiscoveryStep,
+      isOptional: true,
+      validation: async () => ({ isValid: true })
     }
-  };
+  ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Validaciones
-    if (emailValidation !== 'valid' || phoneValidation !== 'valid') {
-      setError('Por favor, corrige los campos marcados antes de continuar.');
-      return;
-    }
-
-    if (!addressDetails) {
-      setError('Por favor, selecciona una dirección válida de la lista.');
-      return;
-    }
-
-    if (!passwordStrength || passwordStrength === 'weak') {
-      setError('Por favor, usa una contraseña más segura.');
-      return;
-    }
-
+  const handleRegistrationComplete = async (formData: any) => {
     setIsLoading(true);
-
     try {
+      await retryWithBackoff(async () => {
+      // Get the primary address (either from savedAddresses or primaryAddress)
+      const primaryAddress = formData.savedAddresses?.find((addr: any) => addr.isDefault) || 
+                           formData.savedAddresses?.[0] || 
+                           formData.primaryAddress;
+
+      if (!primaryAddress) {
+        throw new Error('No se encontró una dirección válida');
+      }
+
+      // Create user account
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-        email: formState.email,
-        password: formState.password,
+        email: formData.email,
+        password: formData.password,
         options: {
           data: {
             role: 'cliente',
-            name: formState.name,
-            phone: formState.phone,
+            name: formData.name,
+            phone: formData.phone,
           }
         }
       });
@@ -96,17 +151,17 @@ export default function ClientesPage() {
         throw new Error('No se pudo crear el usuario.');
       }
 
-      // Registrar perfil de cliente en la base de datos
+      // Register client profile in database
       const { error: rpcError } = await supabase.rpc('register_client_v2', {
         p_user_id: user.id,
-        p_email: formState.email,
-        p_name: formState.name,
-        p_phone: formState.phone,
-        p_address: addressDetails.address,
-        p_address_structured: addressDetails.address_structured,
-        p_location_lat: addressDetails.location_lat,
-        p_location_lon: addressDetails.location_lon,
-        p_location_place_id: addressDetails.location_place_id
+        p_email: formData.email,
+        p_name: formData.name,
+        p_phone: formData.phone,
+        p_address: primaryAddress.address,
+        p_address_structured: primaryAddress.address_structured,
+        p_location_lat: primaryAddress.location_lat,
+        p_location_lon: primaryAddress.location_lon,
+        p_location_place_id: primaryAddress.location_place_id
       });
 
       if (rpcError) {
@@ -114,23 +169,149 @@ export default function ClientesPage() {
         throw new Error('Se creó tu cuenta, pero hubo un problema al registrar tu perfil.');
       }
 
+      // Update user metadata
       const { error: updateUserError } = await supabase.auth.updateUser({
-        data: { name: formState.name }
+        data: { 
+          name: formData.name,
+          preferences: {
+            cuisines: formData.preferredCuisines || [],
+            notifications: {
+              marketing: formData.marketingEmails,
+              orders: formData.orderNotifications,
+              sms: formData.promotionalSms,
+              push: formData.pushNotifications
+            },
+            twoFactor: formData.twoFactorEnabled
+          }
+        }
       });
 
       if (updateUserError) {
-        console.warn('Post-registration: Could not update user name.', updateUserError);
+        console.warn('Post-registration: Could not update user preferences.', updateUserError);
       }
 
-      setIsSubmitted(true);
+      // Store additional addresses if any
+      if (formData.savedAddresses && formData.savedAddresses.length > 1) {
+        // TODO: Store additional addresses in a separate table
+        console.log('Additional addresses to store:', formData.savedAddresses);
+      }
+
+      // Store favorite restaurants if any
+      if (formData.favoriteRestaurants && formData.favoriteRestaurants.length > 0) {
+        // TODO: Store favorite restaurants
+        console.log('Favorite restaurants to store:', formData.favoriteRestaurants);
+      }
+
+        setSubmittedEmail(formData.email);
+        setIsSubmitted(true);
+      }, {
+        maxRetries: 3,
+        baseDelay: 1000
+      });
 
     } catch (error) {
-      const errorResult = handleError(error, 'registration');
-      setError(errorResult.message);
+      const errorResult = handleError(error as Error, 'customer-registration');
+      throw new Error(errorResult.message);
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isSubmitted) {
+    return (
+      <div className="bg-white min-h-screen">
+        {/* Success Page */}
+        <section className="py-16 md:py-24">
+          <div className="container mx-auto px-6 text-center">
+            <div className="max-w-2xl mx-auto">
+              <div className="mb-8">
+                <svg
+                  className="w-20 h-20 text-green-500 mx-auto mb-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                ¡Bienvenido a Doña Repartos!
+              </h1>
+              
+              <p className="text-lg text-gray-600 mb-6">
+                Tu cuenta ha sido creada exitosamente. Hemos enviado un correo de confirmación a{' '}
+                <strong className="text-gray-900">{submittedEmail}</strong>.
+              </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <h3 className="text-lg font-semibold text-blue-900 mb-3">
+                  Próximos pasos:
+                </h3>
+                <ol className="text-left text-blue-800 space-y-2">
+                  <li className="flex items-start">
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">1</span>
+                    Revisa tu bandeja de entrada y confirma tu correo electrónico
+                  </li>
+                  <li className="flex items-start">
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">2</span>
+                    Inicia sesión en tu nueva cuenta
+                  </li>
+                  <li className="flex items-start">
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">3</span>
+                    ¡Comienza a explorar y hacer tu primer pedido!
+                  </li>
+                </ol>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => window.location.href = '/login'}
+                  className="px-8 py-3 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] transition-colors font-medium"
+                >
+                  Iniciar Sesión
+                </button>
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Volver al Inicio
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (showRegistration) {
+    return (
+      <div className="bg-gray-50 min-h-screen py-8">
+        <div className="container mx-auto px-6">
+          <TimeoutHandler
+            isLoading={isLoading}
+            timeout={60000}
+            onTimeout={() => {
+              setIsLoading(false);
+            }}
+          >
+            <LazyRegistrationComponents.StepperForm
+              steps={registrationSteps}
+              onComplete={handleRegistrationComplete}
+              persistKey="customer-registration"
+              allowSkipOptional={true}
+            />
+          </TimeoutHandler>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -147,10 +328,10 @@ export default function ClientesPage() {
         </div>
       </section>
 
-      {/* Sección de Beneficios y Formulario */}
+      {/* Sección de Beneficios y CTA */}
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Columna de Beneficios */}
             <div className="order-2 lg:order-1">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">
@@ -190,142 +371,112 @@ export default function ClientesPage() {
                     </p>
                   </div>
                 </li>
+                <li className="flex items-start">
+                  <CheckCircleIcon />
+                  <div>
+                    <h3 className="font-semibold text-base md:text-lg text-gray-800 mb-1">
+                      Registro Inteligente
+                    </h3>
+                    <p className="text-gray-600 text-sm md:text-base">
+                      Proceso de registro paso a paso con recomendaciones personalizadas.
+                    </p>
+                  </div>
+                </li>
               </ul>
             </div>
 
-            {/* Columna de Formulario */}
-            <div className="order-1 lg:order-2 bg-white p-6 md:p-8 rounded-lg shadow-xl">
-              {isSubmitted ? (
-                <div className="text-center py-8">
-                  <div className="mb-4">
-                    <svg
-                      className="w-16 h-16 text-green-500 mx-auto"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">¡Bienvenido a Doña Repartos!</h3>
-                  <p className="text-gray-600 mb-2">
-                    Hemos enviado un correo a <strong className="text-gray-800">{formState.email}</strong>.
-                  </p>
-                  <p className="text-gray-600 text-sm">
-                    Por favor, revisa tu bandeja de entrada para confirmar tu cuenta y completar el registro.
+            {/* Columna de CTA */}
+            <div className="order-1 lg:order-2">
+              <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    ¡Únete a Doña Repartos!
+                  </h3>
+                  <p className="text-gray-600">
+                    Crea tu cuenta en solo 3 pasos y descubre los mejores restaurantes cerca de ti.
                   </p>
                 </div>
-              ) : (
-                <>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                    ¡Crea tu cuenta!
-                  </h3>
-                  <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6" noValidate>
-                    <FormField
-                      label="Nombre Completo"
-                      id="name"
-                      type="text"
-                      value={formState.name}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Juan Pérez"
-                      minLength={2}
-                    />
 
-                    <FormField
-                      label="Correo Electrónico"
-                      id="email"
-                      type="email"
-                      value={formState.email}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="tu@email.com"
-                      validationStatus={emailValidation}
-                      validationMessage={
-                        emailValidation === 'valid'
-                          ? '¡Correo disponible!'
-                          : emailValidation === 'invalid'
-                          ? 'Este correo ya está en uso.'
-                          : undefined
-                      }
-                    />
-
-                    <FormField
-                      label="Teléfono"
-                      id="phone"
-                      type="tel"
-                      value={formState.phone}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="123-456-7890"
-                      validationStatus={phoneValidation}
-                      validationMessage={
-                        phoneValidation === 'valid'
-                          ? 'Teléfono disponible'
-                          : phoneValidation === 'invalid'
-                          ? 'Este teléfono ya está en uso.'
-                          : undefined
-                      }
-                    />
-
-                    {/* Campo de Dirección */}
-                    <div>
-                      <AddressAutocomplete
-                        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-                        onAddressSelect={setAddressDetails}
-                      />
-                      {!addressDetails && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Empieza a escribir tu dirección para ver opciones
-                        </p>
-                      )}
-                      {addressDetails && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ Dirección seleccionada
-                        </p>
-                      )}
+                {/* Registration Features */}
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-[#e4007c] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      1
                     </div>
-
-                    <div>
-                      <FormField
-                        label="Contraseña"
-                        id="password"
-                        type="password"
-                        value={formState.password}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Mínimo 8 caracteres"
-                        minLength={8}
-                        helpText="Debe contener mayúsculas, minúsculas y números"
-                      />
-                      <PasswordStrength password={formState.password} />
+                    <span className="text-gray-700">Información personal y contacto</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-[#e4007c] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      2
                     </div>
+                    <span className="text-gray-700">Configura tus direcciones de entrega</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-[#e4007c] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      3
+                    </div>
+                    <span className="text-gray-700">Seguridad y preferencias</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-700">Descubre restaurantes (opcional)</span>
+                  </div>
+                </div>
 
-                    {error && <ErrorMessage message={error} />}
+                {/* Terms and Conditions */}
+                <div className="mb-6">
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className="mt-1 h-4 w-4 text-[#e4007c] focus:ring-[#e4007c] border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700 leading-relaxed">
+                      Acepto los{' '}
+                      <a 
+                        href="/legal/terminos" 
+                        target="_blank"
+                        className="text-[#e4007c] hover:text-[#c6006b] underline font-medium"
+                      >
+                        Términos y Condiciones
+                      </a>
+                      {' '}y la{' '}
+                      <a 
+                        href="/legal/privacidad" 
+                        target="_blank"
+                        className="text-[#e4007c] hover:text-[#c6006b] underline font-medium"
+                      >
+                        Política de Privacidad
+                      </a>
+                    </span>
+                  </label>
+                </div>
 
-                    <FormButton
-                      type="submit"
-                      isLoading={isLoading}
-                      disabled={
-                        isLoading ||
-                        !addressDetails ||
-                        emailValidation !== 'valid' ||
-                        phoneValidation !== 'valid' ||
-                        !passwordStrength ||
-                        passwordStrength === 'weak'
-                      }
-                      fullWidth
-                    >
-                      {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
-                    </FormButton>
-                  </form>
-                </>
-              )}
+                {/* CTA Button */}
+                <button
+                  onClick={() => setShowRegistration(true)}
+                  disabled={!termsAccepted}
+                  className={`w-full px-8 py-4 rounded-lg transition-colors font-semibold text-lg shadow-lg hover:shadow-xl ${
+                    termsAccepted 
+                      ? 'bg-[#e4007c] text-white hover:bg-[#c6006b] cursor-pointer' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Comenzar Registro
+                </button>
+
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  ¿Ya tienes cuenta?{' '}
+                  <a href="/login" className="text-[#e4007c] hover:text-[#c6006b] font-medium">
+                    Inicia sesión aquí
+                  </a>
+                </p>
+              </div>
             </div>
           </div>
         </div>
