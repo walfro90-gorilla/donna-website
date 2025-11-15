@@ -13,12 +13,12 @@ export default function ErrorMessage({ message, className = '', id }: ErrorMessa
   return (
     <div
       id={id}
-      className={`flex items-start gap-2 text-red-600 text-sm mt-2 ${className}`}
+      className={`field-message field-message-error ${className}`}
       role="alert"
       aria-live="polite"
     >
       <svg
-        className="w-5 h-5 flex-shrink-0 mt-0.5"
+        className="field-message-icon"
         fill="currentColor"
         viewBox="0 0 20 20"
         aria-hidden="true"

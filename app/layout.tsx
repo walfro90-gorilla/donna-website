@@ -21,12 +21,14 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.className} bg-gray-50`}>
-        <a href="#main-content" className="skip-link">
+        {/* Skip to main content link - Requirement 14.3 */}
+        <a href="#main-content" className="skip-to-main">
           Saltar al contenido principal
         </a>
         <div className="flex flex-col min-h-screen">
           <Header />
-          <main id="main-content" className="flex-grow" tabIndex={-1}>
+          {/* Main content with proper ARIA landmark and keyboard focus support - Requirements 14.2, 14.3 */}
+          <main id="main-content" className="flex-grow" tabIndex={-1} role="main" aria-label="Contenido principal">
             {children}
           </main>
           <Footer />

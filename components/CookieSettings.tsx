@@ -217,26 +217,29 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
             </div>
           </div>
 
-          {/* Footer */}
+          {/* Footer - Requirements: 2.1, 2.2, 14.5 */}
           <div className="p-6 border-t border-gray-200 bg-gray-50">
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleRevokeAll}
-                className="flex-1 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                className="flex-1 px-4 py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                style={{ minHeight: '48px' }}
               >
                 Revocar Todo
               </button>
               
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                style={{ minHeight: '48px' }}
               >
                 Cancelar
               </button>
               
               <button
                 onClick={handleSave}
-                className="flex-1 px-4 py-2 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] transition-colors font-medium"
+                className="flex-1 px-4 py-3 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] transition-colors font-medium"
+                style={{ minHeight: '48px' }}
               >
                 Guardar Cambios
               </button>

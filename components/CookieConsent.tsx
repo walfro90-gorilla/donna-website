@@ -287,12 +287,13 @@ export default function CookieConsent() {
             )}
           </div>
 
-          {/* Footer */}
+          {/* Footer - Requirements: 2.1, 2.2, 14.5 */}
           <div className="p-6 border-t border-gray-200 bg-gray-50">
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleRejectAll}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                style={{ minHeight: '48px' }}
               >
                 Rechazar Opcionales
               </button>
@@ -300,7 +301,8 @@ export default function CookieConsent() {
               {showDetails && (
                 <button
                   onClick={handleAcceptSelected}
-                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                  className="flex-1 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                  style={{ minHeight: '48px' }}
                 >
                   Guardar Selección
                 </button>
@@ -308,7 +310,8 @@ export default function CookieConsent() {
               
               <button
                 onClick={handleAcceptAll}
-                className="flex-1 px-4 py-2 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] transition-colors font-medium"
+                className="flex-1 px-4 py-3 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] transition-colors font-medium"
+                style={{ minHeight: '48px' }}
               >
                 Aceptar Todas
               </button>
