@@ -13,6 +13,8 @@ This document defines the requirements for implementing a login system using Sup
 - **Google Provider**: The OAuth authentication method that uses Google accounts
 - **Session**: The authenticated state of a user maintained by Supabase after successful login
 - **Redirect**: The action of navigating the user to a different page after successful authentication
+- **User Role**: The type of user account that determines access permissions and available features (restaurant, admin, or client)
+- **Role-Based Redirect**: The action of navigating users to different pages based on their assigned role after authentication
 
 ## Requirements
 
@@ -61,6 +63,18 @@ This document defines the requirements for implementing a login system using Sup
 3. WHEN authentication completes, THE Login Page SHALL remove the loading indicator
 
 ### Requirement 5
+
+**User Story:** As a system administrator, I want users to be redirected to different pages based on their role after login, so that each user type has access to their appropriate interface
+
+#### Acceptance Criteria
+
+1. WHEN a user with the restaurant role completes authentication, THE Auth System SHALL redirect the user to the restaurant dashboard
+2. WHEN a user with the admin role completes authentication, THE Auth System SHALL redirect the user to the admin panel
+3. WHEN a user with the client role completes authentication, THE Auth System SHALL redirect the user to the client home page
+4. WHEN the Auth System creates a session, THE Auth System SHALL store the user role information in the session
+5. IF a user does not have an assigned role, THEN THE Auth System SHALL redirect the user to a default page and display a role assignment message
+
+### Requirement 6
 
 **User Story:** As a user, I want the login page to be responsive and accessible, so that I can log in from any device
 

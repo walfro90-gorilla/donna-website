@@ -60,13 +60,14 @@ export default function Header() {
         {/* Right side with auth buttons */}
         <div className="flex items-center space-x-3 sm:space-x-4">
           {/* Auth buttons - Requirements: 2.1, 14.2, 14.5 */}
-          <button 
+          <Link 
+            href="/login"
             className="hidden lg:block text-[#e4007c] hover:text-[#c6006b] px-4 py-2 text-sm font-medium border border-[#e4007c] rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2"
             style={{ minHeight: '44px' }}
             aria-label="Iniciar sesión"
           >
             Entrar
-          </button>
+          </Link>
           <button 
             className="hidden lg:block bg-[#e4007c] hover:bg-[#c6006b] text-white px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
             style={{ minHeight: '44px' }}
@@ -124,14 +125,15 @@ export default function Header() {
             </Link>
             {/* Auth buttons for mobile - Requirements: 2.1, 2.2, 14.2, 14.5 */}
             <div className="flex flex-col px-4 pb-2 border-t border-gray-200 mt-2 pt-4" style={{ gap: 'var(--spacing-2)' }}>
-              <button 
+              <Link 
+                href="/login"
                 className="text-[#e4007c] hover:text-[#c6006b] px-4 py-3 text-sm font-medium border border-[#e4007c] rounded-lg transition-all duration-200 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2"
                 style={{ minHeight: '48px' }}
                 onClick={closeMenu}
                 aria-label="Iniciar sesión"
               >
                 Entrar
-              </button>
+              </Link>
               <button 
                 className="bg-[#e4007c] hover:bg-[#c6006b] text-white px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
                 style={{ minHeight: '48px' }}
