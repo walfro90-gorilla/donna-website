@@ -1,6 +1,6 @@
 // app/login/page.tsx
 import type { Metadata } from 'next';
-import LoginForm from '@/components/LoginForm';
+import LoginForm from '@/components/auth/LoginForm';
 
 export const metadata: Metadata = {
   title: 'Iniciar Sesión - Doña Repartos',
@@ -8,11 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <LoginForm />
-      </div>
-    </div>
-  );
+  return <LoginForm />;
 }

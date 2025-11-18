@@ -169,7 +169,7 @@ export default function HomePage() {
               {/* Tipografía mejorada con espaciado vertical ajustado */}
               <h3 className="text-xl font-semibold text-gray-800 mb-3">2. Haz tu pedido</h3>
               <p className="text-gray-600" style={{ lineHeight: 'var(--leading-relaxed)' }}>
-                Añade tus platillos al carrito y paga de forma segura con tarjeta o en efectivo.
+                Añade tus platillos al carrito y paga en efectivo al recibir tu pedido.
               </p>
             </div>
             <div className="flex flex-col items-center">

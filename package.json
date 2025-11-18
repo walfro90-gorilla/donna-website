@@ -13,9 +13,11 @@
     "test:all": "node scripts/run-all-tests.js",
     "test:responsive": "node scripts/test-responsive.js",
     "test:performance": "node scripts/test-performance.js",
-    "test:accessibility": "node scripts/test-accessibility.js"
+    "test:accessibility": "node scripts/test-accessibility.js",
+    "verify:env": "node scripts/verify-env.js"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.75.1",
     "next": "15.5.6",
     "react": "19.1.0",

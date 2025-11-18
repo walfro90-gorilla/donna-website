@@ -23,7 +23,7 @@ CREATE TABLE public._debug_events (
 CREATE TABLE public.account_transactions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   account_id uuid,
-  type text NOT NULL CHECK (type = ANY (ARRAY['ORDER_REVENUE'::text, 'PLATFORM_COMMISSION'::text, 'DELIVERY_EARNING'::text, 'CASH_COLLECTED'::text, 'SETTLEMENT_PAYMENT'::text, 'SETTLEMENT_RECEPTION'::text, 'RESTAURANT_PAYABLE'::text, 'DELIVERY_PAYABLE'::text, 'PLATFORM_DELIVERY_MARGIN'::text])),
+  type text NOT NULL CHECK (type = ANY (ARRAY['ORDER_REVENUE'::text, 'PLATFORM_COMMISSION'::text, 'DELIVERY_EARNING'::text, 'CASH_COLLECTED'::text, 'SETTLEMENT_PAYMENT'::text, 'SETTLEMENT_RECEPTION'::text, 'RESTAURANT_PAYABLE'::text, 'DELIVERY_PAYABLE'::text, 'PLATFORM_DELIVERY_MARGIN'::text, 'PLATFORM_NOT_DELIVERED_REFUND'::text, 'CLIENT_DEBT'::text])),
   amount numeric NOT NULL,
   order_id uuid,
   settlement_id uuid,
@@ -57,6 +57,60 @@ CREATE TABLE public.admin_notifications (
   is_read boolean NOT NULL DEFAULT false,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT admin_notifications_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.client_account_suspensions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  client_id uuid NOT NULL,
+  failed_attempts integer NOT NULL DEFAULT 0,
+  is_suspended boolean DEFAULT false,
+  suspended_at timestamp with time zone,
+  suspension_expires_at timestamp with time zone,
+  last_failed_order_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT client_account_suspensions_pkey PRIMARY KEY (id),
+  CONSTRAINT client_account_suspensions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.users(id),
+  CONSTRAINT client_account_suspensions_last_failed_order_id_fkey FOREIGN KEY (last_failed_order_id) REFERENCES public.orders(id)
+);
+CREATE TABLE public.client_debts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  client_id uuid NOT NULL,
+  order_id uuid NOT NULL,
+  amount numeric NOT NULL CHECK (amount > 0::numeric),
+  reason text NOT NULL DEFAULT 'not_delivered'::text CHECK (reason = ANY (ARRAY['not_delivered'::text, 'client_no_show'::text, 'fake_address'::text, 'other'::text])),
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'paid'::text, 'forgiven'::text, 'disputed'::text])),
+  photo_url text,
+  delivery_notes text,
+  dispute_reason text,
+  dispute_photo_url text,
+  dispute_created_at timestamp with time zone,
+  dispute_resolved_at timestamp with time zone,
+  dispute_resolved_by uuid,
+  dispute_resolution_notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  paid_at timestamp with time zone,
+  forgiven_at timestamp with time zone,
+  forgiven_by uuid,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT client_debts_pkey PRIMARY KEY (id),
+  CONSTRAINT client_debts_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.users(id),
+  CONSTRAINT client_debts_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+  CONSTRAINT client_debts_dispute_resolved_by_fkey FOREIGN KEY (dispute_resolved_by) REFERENCES public.users(id),
+  CONSTRAINT client_debts_forgiven_by_fkey FOREIGN KEY (forgiven_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.client_debts_transactions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  debt_id uuid NOT NULL,
+  client_id uuid NOT NULL,
+  amount numeric NOT NULL,
+  transaction_type text NOT NULL CHECK (transaction_type = ANY (ARRAY['debt_created'::text, 'payment'::text, 'forgiven'::text, 'dispute_created'::text, 'dispute_resolved'::text])),
+  description text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT client_debts_transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT client_debts_transactions_debt_id_fkey FOREIGN KEY (debt_id) REFERENCES public.client_debts(id),
+  CONSTRAINT client_debts_transactions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.client_profiles (
   user_id uuid NOT NULL UNIQUE,
@@ -206,7 +260,7 @@ CREATE TABLE public.orders (
   user_id uuid NOT NULL,
   restaurant_id uuid NOT NULL,
   delivery_agent_id uuid,
-  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'preparing'::text, 'in_preparation'::text, 'ready_for_pickup'::text, 'assigned'::text, 'picked_up'::text, 'on_the_way'::text, 'in_transit'::text, 'delivered'::text, 'cancelled'::text, 'canceled'::text])),
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'preparing'::text, 'in_preparation'::text, 'ready_for_pickup'::text, 'assigned'::text, 'picked_up'::text, 'on_the_way'::text, 'in_transit'::text, 'delivered'::text, 'cancelled'::text, 'canceled'::text, 'not_delivered'::text])),
   total_amount numeric NOT NULL,
   payment_method text CHECK (payment_method = ANY (ARRAY['card'::text, 'cash'::text])),
   delivery_address text NOT NULL,
@@ -227,6 +281,7 @@ CREATE TABLE public.orders (
   delivery_lon double precision CHECK (delivery_lon IS NULL OR delivery_lon >= '-180'::integer::double precision AND delivery_lon <= 180::double precision),
   delivery_place_id text,
   delivery_address_structured jsonb,
+  payment_status text DEFAULT 'pending'::text CHECK (payment_status = ANY (ARRAY['pending'::text, 'paid'::text, 'failed'::text, 'refunded'::text])),
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT orders_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
@@ -235,11 +290,21 @@ CREATE TABLE public.orders (
 );
 CREATE TABLE public.payments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  order_id uuid NOT NULL,
-  stripe_payment_id text,
+  order_id uuid,
+  payment_provider_id text,
   amount numeric NOT NULL,
-  status text CHECK (status = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text])),
+  status text CHECK (status = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text, 'completed'::text])),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  provider text DEFAULT 'mercadopago'::text CHECK (provider = ANY (ARRAY['stripe'::text, 'mercadopago'::text])),
+  mp_payment_id text,
+  mp_preference_id text,
+  client_debt_amount numeric DEFAULT 0.00,
+  payment_details jsonb,
+  paid_at timestamp with time zone,
+  updated_at timestamp with time zone DEFAULT now(),
+  mp_init_point text,
+  payment_method text DEFAULT 'cash'::text CHECK (payment_method = ANY (ARRAY['cash'::text, 'card'::text])),
+  order_data jsonb,
   CONSTRAINT payments_pkey PRIMARY KEY (id),
   CONSTRAINT payments_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );

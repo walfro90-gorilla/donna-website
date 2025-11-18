@@ -14,15 +14,29 @@ export async function signInWithEmail(
   password: string
 ): Promise<AuthResult> {
   try {
+    console.log('🔑 signInWithEmail: Iniciando autenticación...');
+    console.log('🔑 signInWithEmail: Email:', email);
+    
     const supabase = createClient();
     
-    // Authenticate with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    // Authenticate with Supabase - sin timeout para ver si funciona
+    console.log('🔑 signInWithEmail: Llamando a signInWithPassword...');
+    
+    const { data, error } = await supabase.auth.signInWithPassword({ 
+      email, 
+      password 
+    });
+    
+    console.log('🔑 signInWithEmail: Respuesta recibida');
+
+    console.log('🔑 signInWithEmail: Respuesta de Supabase:', { 
+      hasData: !!data, 
+      hasError: !!error,
+      errorMessage: error?.message 
     });
 
     if (error) {
+      console.error('🔑 signInWithEmail: Error de autenticación:', error.message);
       // Map Supabase error codes to user-friendly Spanish messages
       let errorMessage = 'Email o contraseña incorrectos';
       
@@ -52,23 +66,39 @@ export async function signInWithEmail(
     }
 
     // Fetch user role from database
-    const role = await getUserRole(data.user.id);
-
-    if (!role) {
+    console.log('🔑 signInWithEmail: Obteniendo rol del usuario...');
+    console.log('🔑 signInWithEmail: User ID:', data.user.id);
+    
+    try {
+      const role = await getUserRole(data.user.id);
+      console.log('🔑 signInWithEmail: Rol obtenido:', role);
+      
+      if (!role) {
+        console.error('🔑 signInWithEmail: Usuario sin rol en la base de datos');
+        return {
+          success: false,
+          error: 'Usuario no encontrado en la base de datos. Contacta al administrador.',
+        };
+      }
+      
+      const authRole = mapDatabaseRoleToAuthRole(role);
+      console.log('🔑 signInWithEmail: Rol mapeado:', authRole);
+      
+      return {
+        success: true,
+        user: {
+          id: data.user.id,
+          email: data.user.email || email,
+        },
+        role: authRole,
+      };
+    } catch (roleError) {
+      console.error('🔑 signInWithEmail: Error obteniendo rol:', roleError);
       return {
         success: false,
-        error: 'No se pudo obtener el rol del usuario',
+        error: 'Error al obtener información del usuario. Intenta de nuevo.',
       };
     }
-
-    return {
-      success: true,
-      user: {
-        id: data.user.id,
-        email: data.user.email || email,
-      },
-      role: mapDatabaseRoleToAuthRole(role),
-    };
   } catch (error) {
     // Network or unexpected errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -147,22 +177,36 @@ export async function signInWithGoogle(): Promise<AuthResult> {
  */
 export async function getUserRole(userId: string): Promise<string | null> {
   try {
+    console.log('👤 getUserRole: Consultando rol para user ID:', userId);
     const supabase = createClient();
     
+    // Query sin timeout primero para ver el error real
+    console.log('👤 getUserRole: Ejecutando query...');
     const { data, error } = await supabase
       .from('users')
       .select('role')
       .eq('id', userId)
       .single();
 
-    if (error || !data) {
-      console.error('Error fetching user role:', error);
+    console.log('👤 getUserRole: Query completado');
+
+    if (error) {
+      console.error('👤 getUserRole: Database error:', error);
+      console.error('👤 getUserRole: Error code:', error.code);
+      console.error('👤 getUserRole: Error details:', error.details);
+      console.error('👤 getUserRole: Error hint:', error.hint);
       return null;
     }
 
+    if (!data) {
+      console.error('👤 getUserRole: No data returned');
+      return null;
+    }
+
+    console.log('👤 getUserRole: Rol encontrado:', data.role);
     return data.role;
   } catch (error) {
-    console.error('Error in getUserRole:', error);
+    console.error('👤 getUserRole: Error general:', error);
     return null;
   }
 }
@@ -175,13 +219,13 @@ export async function getUserRole(userId: string): Promise<string | null> {
 export function getRedirectPath(role: UserRole): string {
   switch (role) {
     case 'restaurant':
-      return '/socios';
+      return '/socios/dashboard';
     case 'admin':
       return '/admin';
     case 'client':
-      return '/clientes';
+      return '/clientes/dashboard';
     case 'delivery':
-      return '/repartidores';
+      return '/repartidores/dashboard';
     default:
       return '/';
   }

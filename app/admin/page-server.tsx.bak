@@ -1,0 +1,127 @@
+// app/admin/page.tsx
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import StatCard from '@/components/dashboard/StatCard';
+import AdminDashboardContent from '@/components/dashboard/admin/AdminDashboardContent';
+
+export const metadata = {
+  title: 'Panel de Administración - Doña Repartos',
+  description: 'Panel de control para administradores',
+};
+
+async function getAdminData() {
+  const supabase = await createClient();
+
+  // Get session
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    redirect('/login');
+  }
+
+  // Get user data
+  const { data: userData } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', session.user.id)
+    .single();
+
+  if (!userData || userData.role !== 'admin') {
+    redirect('/login');
+  }
+
+  // Get statistics
+  const [
+    { count: totalUsers },
+    { count: totalRestaurants },
+    { count: totalDelivery },
+    { count: totalClients },
+  ] = await Promise.all([
+    supabase.from('users').select('*', { count: 'exact', head: true }),
+    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'restaurant'),
+    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'delivery_agent'),
+    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'client'),
+  ]);
+
+  return {
+    user: userData,
+    stats: {
+      totalUsers: totalUsers || 0,
+      totalRestaurants: totalRestaurants || 0,
+      totalDelivery: totalDelivery || 0,
+      totalClients: totalClients || 0,
+    },
+  };
+}
+
+export default async function AdminDashboard() {
+  const { user, stats } = await getAdminData();
+
+  return (
+    <DashboardLayout
+      userEmail={user.email}
+      userRole="admin"
+      userName={user.full_name}
+    >
+      <div className="space-y-6">
+        {/* Welcome Section */}
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">
+            Panel de Administración
+          </h2>
+          <p className="text-gray-600 mt-1">
+            Bienvenido, {user.full_name || user.email}
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="Total Usuarios"
+            value={stats.totalUsers}
+            color="pink"
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            }
+          />
+          <StatCard
+            title="Restaurantes"
+            value={stats.totalRestaurants}
+            color="blue"
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            }
+          />
+          <StatCard
+            title="Repartidores"
+            value={stats.totalDelivery}
+            color="green"
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            }
+          />
+          <StatCard
+            title="Clientes"
+            value={stats.totalClients}
+            color="purple"
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            }
+          />
+        </div>
+
+        {/* Main Content */}
+        <AdminDashboardContent />
+      </div>
+    </DashboardLayout>
+  );
+}
