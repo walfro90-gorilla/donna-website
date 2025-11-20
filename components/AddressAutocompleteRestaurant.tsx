@@ -1,4 +1,3 @@
-// components/AddressAutocompleteRestaurant.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -8,6 +7,7 @@ import { GoogleMapsProxy } from '@/lib/utils/googleMapsProxy';
 declare global {
   interface Window {
     google: any;
+    initMap?: () => void;
   }
 }
 
@@ -34,22 +34,39 @@ export default function AddressAutocompleteRestaurant({
   const [placesService, setPlacesService] = useState<any>(null);
 
   useEffect(() => {
-    // Load Google Maps API if not already loaded
-    if (typeof window !== 'undefined' && !window.google) {
+    // Check if script is already present in DOM to avoid duplicate tags
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+
+    if (typeof window !== 'undefined' && !window.google && !existingScript) {
       const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-      
+
       if (googleMapsApiKey && !googleMapsApiKey.includes('supabase.co')) {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places&loading=async`;
+        // Add callback to ensure we know when it's loaded
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places&loading=async&callback=initMap`;
         script.async = true;
         script.defer = true;
-        script.onload = () => initializePlaces();
+
+        // Define global callback
+        window.initMap = () => {
+          initializePlaces();
+        };
+
         document.head.appendChild(script);
       } else {
         console.log('⚠️ Google Maps API key not configured, using edge function only');
       }
-    } else if (window.google) {
-      initializePlaces();
+    } else {
+      // If google is already available or script exists, wait for it
+      const checkGoogle = setInterval(() => {
+        if (window.google && window.google.maps && window.google.maps.places) {
+          clearInterval(checkGoogle);
+          initializePlaces();
+        }
+      }, 100);
+
+      // Cleanup interval
+      return () => clearInterval(checkGoogle);
     }
   }, []);
 
@@ -94,7 +111,7 @@ export default function AddressAutocompleteRestaurant({
             },
             (predictions: any[], status: any) => {
               setIsLoading(false);
-              
+
               if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
                 console.log('✅ Got predictions from Google Maps API:', predictions.length);
                 setSuggestions(predictions.slice(0, 5));
@@ -121,7 +138,7 @@ export default function AddressAutocompleteRestaurant({
   const searchWithEdgeFunction = async (query: string) => {
     try {
       console.log('🔍 Searching places with edge function:', query);
-      
+
       const result = await GoogleMapsProxy.getPlaceAutocomplete({
         input: query,
         components: 'country:mx',
@@ -133,7 +150,7 @@ export default function AddressAutocompleteRestaurant({
 
       // Check different possible response formats
       let predictions = null;
-      
+
       if (result.predictions && Array.isArray(result.predictions)) {
         predictions = result.predictions;
       } else if (result.data && result.data.predictions && Array.isArray(result.data.predictions)) {
@@ -177,12 +194,12 @@ export default function AddressAutocompleteRestaurant({
 
   const handleSuggestionClick = async (suggestion: any) => {
     console.log('📍 Selected suggestion:', suggestion);
-    
+
     // Try Google Maps API first if available
     if (window.google && window.google.maps && window.google.maps.places) {
       try {
         const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-        
+
         service.getDetails(
           {
             placeId: suggestion.place_id,
@@ -192,7 +209,7 @@ export default function AddressAutocompleteRestaurant({
             if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
               const lat = place.geometry?.location?.lat();
               const lng = place.geometry?.location?.lng();
-              
+
               onChange(place.formatted_address || suggestion.description, {
                 placeId: suggestion.place_id,
                 description: place.formatted_address || suggestion.description,
@@ -206,7 +223,7 @@ export default function AddressAutocompleteRestaurant({
             }
           }
         );
-        
+
         setSuggestions([]);
         setShowSuggestions(false);
         return;
@@ -240,7 +257,7 @@ export default function AddressAutocompleteRestaurant({
 
     } catch (error) {
       console.error('❌ Error getting place details with edge function:', error);
-      
+
       // Final fallback to basic suggestion data
       onChange(suggestion.description, {
         placeId: suggestion.place_id,
