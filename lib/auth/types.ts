@@ -30,6 +30,7 @@ export interface AuthResult {
 
 export interface AuthContextType extends AuthState {
   signIn: (credentials: LoginCredentials) => Promise<AuthResult>;
+  signInWithGoogle: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }

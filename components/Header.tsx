@@ -1,83 +1,25 @@
 // components/Header.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { signOut, getRedirectPath } from "@/lib/supabase/auth";
-
-interface UserData {
-  id: string;
-  email: string;
-  name?: string;
-  role: string;
-}
+import { useAuth } from "@/lib/auth/context";
+import { AuthService } from "@/lib/auth/service";
 
 export default function Header() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [user, setUser] = useState<UserData | null>(null);
 
   const closeMenu = () => setIsMenuOpen(false);
   const closeUserMenu = () => setIsUserMenuOpen(false);
 
-  // Check for user session
-  useEffect(() => {
-    let mounted = true;
-
-    const checkSession = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user && mounted) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (userData && mounted) {
-            setUser(userData);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-      }
-    };
-
-    checkSession();
-
-    // Subscribe to auth changes
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user && mounted) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        if (userData) {
-          setUser(userData);
-        }
-      } else if (event === 'SIGNED_OUT' && mounted) {
-        setUser(null);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
   const handleLogout = async () => {
     try {
       await signOut();
-      setUser(null);
       closeUserMenu();
       router.push('/');
     } catch (error) {
@@ -87,14 +29,7 @@ export default function Header() {
 
   const handleGoToDashboard = () => {
     if (user?.role) {
-      const roleMap: Record<string, 'admin' | 'restaurant' | 'client' | 'delivery'> = {
-        'admin': 'admin',
-        'restaurant': 'restaurant',
-        'client': 'client',
-        'delivery_agent': 'delivery',
-      };
-      const authRole = roleMap[user.role];
-      const dashboardPath = getRedirectPath(authRole);
+      const dashboardPath = AuthService.getRedirectPath(user.role);
       router.push(dashboardPath);
       closeUserMenu();
     }

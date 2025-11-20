@@ -1,5 +1,4 @@
-// lib/auth/service.ts
-import { supabase } from './client';
+import { supabase } from '@/lib/supabase/client';
 import { User, LoginCredentials, AuthResult, UserRole } from './types';
 
 export class AuthService {
@@ -9,7 +8,7 @@ export class AuthService {
   static async signIn(credentials: LoginCredentials): Promise<AuthResult> {
     try {
       console.log('🔐 AuthService: Iniciando autenticación...');
-      
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
@@ -31,10 +30,10 @@ export class AuthService {
       }
 
       console.log('🔐 AuthService: Autenticación exitosa, obteniendo perfil...');
-      
+
       // Obtener perfil del usuario usando la función de la base de datos
       const user = await this.getUserProfile(data.user.id);
-      
+
       if (!user) {
         return {
           success: false,
@@ -43,7 +42,7 @@ export class AuthService {
       }
 
       console.log('🔐 AuthService: Login completo, rol:', user.role);
-      
+
       return {
         success: true,
         user,
@@ -53,6 +52,43 @@ export class AuthService {
       return {
         success: false,
         error: 'Error de conexión. Intenta de nuevo.',
+      };
+    }
+  }
+
+  /**
+   * Iniciar sesión con Google OAuth
+   */
+  static async signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('🔐 AuthService: Iniciando Google OAuth...');
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error('🔐 AuthService: Error en Google OAuth:', error.message);
+        return {
+          success: false,
+          error: this.mapOAuthError(error.message),
+        };
+      }
+
+      // OAuth flow initiated successfully
+      // The actual authentication will complete after redirect
+      console.log('🔐 AuthService: Google OAuth iniciado correctamente');
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error('🔐 AuthService: Error inesperado en Google OAuth:', error);
+      return {
+        success: false,
+        error: 'Error iniciando Google OAuth. Intenta de nuevo.',
       };
     }
   }
@@ -69,15 +105,89 @@ export class AuthService {
    */
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
+      console.log('🔐 AuthService: Obteniendo usuario actual...');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      console.log('🔐 AuthService: Session check:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userId: session?.user?.id,
+        sessionError: sessionError?.message
+      });
+
+      if (sessionError) {
+        console.error('🔐 AuthService: Error obteniendo sesión:', sessionError);
         return null;
       }
 
-      return await this.getUserProfile(session.user.id);
+      if (!session?.user) {
+        console.log('🔐 AuthService: No hay sesión activa');
+        return null;
+      }
+
+      console.log('🔐 AuthService: Sesión encontrada, obteniendo perfil...');
+      const profile = await this.getUserProfile(session.user.id);
+
+      console.log('🔐 AuthService: Perfil obtenido:', {
+        exists: !!profile,
+        id: profile?.id,
+        email: profile?.email,
+        role: profile?.role
+      });
+
+      return profile;
     } catch (error) {
-      console.error('🔐 AuthService: Error obteniendo usuario actual:', error);
+      console.error('❌ AuthService: Error obteniendo usuario actual:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Crear perfil para usuario de Google
+   */
+  static async createGoogleUserProfile(authUser: any): Promise<User | null> {
+    try {
+      console.log('👤 AuthService: Creando perfil para usuario de Google:', authUser.id);
+
+      const userData = {
+        id: authUser.id,
+        email: authUser.email || '',
+        name: authUser.user_metadata?.full_name ||
+          authUser.user_metadata?.name ||
+          authUser.email?.split('@')[0] ||
+          'Usuario',
+        role: 'client' as UserRole, // Rol por defecto
+        phone: authUser.user_metadata?.phone || null,
+        email_confirm: true, // Google users are pre-verified
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('users')
+        .insert(userData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('👤 AuthService: Error creando perfil:', error);
+        return null;
+      }
+
+      console.log('👤 AuthService: Perfil creado exitosamente para:', data.email);
+
+      return {
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        role: data.role as UserRole,
+        phone: data.phone,
+        email_confirm: data.email_confirm,
+        created_at: data.created_at,
+      };
+    } catch (error) {
+      console.error('👤 AuthService: Error inesperado creando perfil:', error);
       return null;
     }
   }
@@ -88,7 +198,7 @@ export class AuthService {
   private static async getUserProfile(userId: string): Promise<User | null> {
     try {
       console.log('👤 AuthService: Obteniendo perfil para:', userId);
-      
+
       const { data, error } = await supabase.rpc('get_user_profile', {
         user_uuid: userId
       });
@@ -105,7 +215,7 @@ export class AuthService {
 
       const profile = data[0];
       console.log('👤 AuthService: Perfil obtenido:', profile.role);
-      
+
       return {
         id: profile.id,
         email: profile.email,
@@ -125,14 +235,19 @@ export class AuthService {
    * Obtener ruta de redirección según el rol
    */
   static getRedirectPath(role: UserRole): string {
-    const routes = {
+    console.log('🔄 AuthService: Obteniendo ruta de redirección para rol:', role);
+
+    const routes: Record<string, string> = {
       admin: '/admin',
-      restaurant: '/socios/dashboard',
-      client: '/clientes/dashboard',
-      delivery_agent: '/repartidores/dashboard',
+      restaurant: '/restaurant/dashboard',
+      client: '/client/dashboard',
+      delivery_agent: '/delivery_agent/dashboard',
     };
-    
-    return routes[role] || '/';
+
+    const redirectPath = routes[role] || '/';
+    console.log('🔄 AuthService: Ruta de redirección:', redirectPath);
+
+    return redirectPath;
   }
 
   /**
@@ -148,5 +263,19 @@ export class AuthService {
     };
 
     return errorMap[errorMessage] || 'Error de autenticación. Intenta de nuevo.';
+  }
+
+  /**
+   * Mapear errores de OAuth a mensajes en español
+   */
+  private static mapOAuthError(errorMessage: string): string {
+    const errorMap: Record<string, string> = {
+      'popup_closed_by_user': 'Inicio de sesión cancelado',
+      'access_denied': 'Acceso denegado por Google',
+      'popup_blocked': 'Por favor permite las ventanas emergentes',
+      'network_error': 'Error de conexión. Verifica tu internet',
+    };
+
+    return errorMap[errorMessage] || 'Error con Google. Intenta de nuevo.';
   }
 }

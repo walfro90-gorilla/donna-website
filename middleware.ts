@@ -6,18 +6,19 @@ import { createClient } from '@/lib/supabase/middleware';
 // Define protected routes and their required roles
 const protectedRoutes: Record<string, string[]> = {
   '/admin': ['admin'],
-  '/socios/dashboard': ['restaurant'],
-  '/clientes/dashboard': ['client'],
-  '/repartidores/dashboard': ['delivery'],
+  '/restaurant': ['restaurant'],
+  '/restaurant/dashboard': ['restaurant'],
+  '/client/dashboard': ['client'],
+  '/delivery_agent/dashboard': ['delivery'],
 };
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   console.log('🔒 Middleware ejecutado para:', pathname);
-  
+
   // Check if the route is protected
-  const protectedRoute = Object.keys(protectedRoutes).find(route => 
+  const protectedRoute = Object.keys(protectedRoutes).find(route =>
     pathname.startsWith(route)
   );
 
@@ -84,9 +85,9 @@ export async function middleware(request: NextRequest) {
       // Redirect to user's appropriate dashboard
       const redirectMap: Record<string, string> = {
         'admin': '/admin',
-        'restaurant': '/socios/dashboard',
-        'client': '/clientes/dashboard',
-        'delivery': '/repartidores/dashboard',
+        'restaurant': '/restaurant/dashboard',
+        'client': '/client/dashboard',
+        'delivery': '/delivery_agent/dashboard',
       };
 
       const redirectUrl = new URL(redirectMap[userRole] || '/', request.url);
@@ -104,10 +105,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Temporarily disabled to debug
-    // '/admin/:path*',
-    // '/socios/dashboard/:path*',
-    // '/clientes/dashboard/:path*',
-    // '/repartidores/dashboard/:path*',
+    '/admin/:path*',
+    '/restaurant/:path*',
+    '/client/dashboard/:path*',
+    '/delivery_agent/dashboard/:path*',
   ],
 };
