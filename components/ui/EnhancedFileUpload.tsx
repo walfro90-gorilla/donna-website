@@ -152,11 +152,16 @@ export default function EnhancedFileUpload({
   // Handle file selection
   const handleFiles = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
+    let shouldReplace = false;
 
     // Check file limit
     if (files.length + fileArray.length > maxFiles) {
-      alert(`Solo puedes subir máximo ${maxFiles} archivo${maxFiles > 1 ? 's' : ''}`);
-      return;
+      if (maxFiles === 1 && fileArray.length === 1) {
+        shouldReplace = true;
+      } else {
+        alert(`Solo puedes subir máximo ${maxFiles} archivo${maxFiles > 1 ? 's' : ''}`);
+        return;
+      }
     }
 
     const newFiles: FileUploadState[] = [];
@@ -179,7 +184,11 @@ export default function EnhancedFileUpload({
       newFiles.push(fileState);
     }
 
-    setFiles(prev => [...prev, ...newFiles]);
+    if (shouldReplace) {
+      setFiles(newFiles);
+    } else {
+      setFiles(prev => [...prev, ...newFiles]);
+    }
 
     // Auto upload if enabled
     if (autoUpload) {
