@@ -17,7 +17,7 @@ export interface LegalDocument {
   isRequired: boolean;
 }
 
-export type DocumentType = 
+export type DocumentType =
   | 'business_license'
   | 'tax_id'
   | 'health_permit'
@@ -70,79 +70,79 @@ const DOCUMENT_TYPES: Array<{
   acceptedFormats: string[];
   maxSize: number;
 }> = [
-  {
-    id: 'business_license',
-    name: 'Licencia de Funcionamiento',
-    description: 'Licencia municipal para operar el negocio',
-    isRequired: true,
-    acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-    maxSize: 10 * 1024 * 1024 // 10MB
-  },
-  {
-    id: 'tax_id',
-    name: 'RFC (Registro Federal de Contribuyentes)',
-    description: 'Cédula de identificación fiscal',
-    isRequired: true,
-    acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-    maxSize: 5 * 1024 * 1024 // 5MB
-  },
-  {
-    id: 'health_permit',
-    name: 'Permiso Sanitario',
-    description: 'Permiso de la Secretaría de Salud',
-    isRequired: true,
-    acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-    maxSize: 10 * 1024 * 1024 // 10MB
-  },
-  {
-    id: 'fire_permit',
-    name: 'Permiso de Bomberos',
-    description: 'Certificado de seguridad contra incendios',
-    isRequired: true,
-    acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-    maxSize: 10 * 1024 * 1024 // 10MB
-  },
-  {
-    id: 'identity_document',
-    name: 'Identificación Oficial',
-    description: 'INE, pasaporte o cédula profesional del representante legal',
-    isRequired: true,
-    acceptedFormats: ['image/jpeg', 'image/png', 'application/pdf'],
-    maxSize: 5 * 1024 * 1024 // 5MB
-  },
-  {
-    id: 'proof_of_address',
-    name: 'Comprobante de Domicilio',
-    description: 'Recibo de luz, agua o predial (no mayor a 3 meses)',
-    isRequired: true,
-    acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-    maxSize: 5 * 1024 * 1024 // 5MB
-  },
-  {
-    id: 'alcohol_license',
-    name: 'Licencia de Bebidas Alcohólicas',
-    description: 'Solo si vendes bebidas alcohólicas',
-    isRequired: false,
-    acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-    maxSize: 10 * 1024 * 1024 // 10MB
-  },
-  {
-    id: 'bank_statement',
-    name: 'Estado de Cuenta Bancario',
-    description: 'Estado de cuenta del negocio (último mes)',
-    isRequired: false,
-    acceptedFormats: ['application/pdf'],
-    maxSize: 5 * 1024 * 1024 // 5MB
-  },
-  {
-    id: 'insurance_policy',
-    name: 'Póliza de Seguro',
-    description: 'Seguro de responsabilidad civil',
-    isRequired: false,
-    acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-    maxSize: 10 * 1024 * 1024 // 10MB
-  }
-];
+    {
+      id: 'business_license',
+      name: 'Licencia de Funcionamiento',
+      description: 'Licencia municipal para operar el negocio',
+      isRequired: true,
+      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
+      maxSize: 10 * 1024 * 1024 // 10MB
+    },
+    {
+      id: 'tax_id',
+      name: 'RFC (Registro Federal de Contribuyentes)',
+      description: 'Cédula de identificación fiscal',
+      isRequired: true,
+      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
+      maxSize: 5 * 1024 * 1024 // 5MB
+    },
+    {
+      id: 'health_permit',
+      name: 'Permiso Sanitario',
+      description: 'Permiso de la Secretaría de Salud',
+      isRequired: true,
+      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
+      maxSize: 10 * 1024 * 1024 // 10MB
+    },
+    {
+      id: 'fire_permit',
+      name: 'Permiso de Bomberos',
+      description: 'Certificado de seguridad contra incendios',
+      isRequired: true,
+      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
+      maxSize: 10 * 1024 * 1024 // 10MB
+    },
+    {
+      id: 'identity_document',
+      name: 'Identificación Oficial',
+      description: 'INE, pasaporte o cédula profesional del representante legal',
+      isRequired: true,
+      acceptedFormats: ['image/jpeg', 'image/png', 'application/pdf'],
+      maxSize: 5 * 1024 * 1024 // 5MB
+    },
+    {
+      id: 'proof_of_address',
+      name: 'Comprobante de Domicilio',
+      description: 'Recibo de luz, agua o predial (no mayor a 3 meses)',
+      isRequired: true,
+      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
+      maxSize: 5 * 1024 * 1024 // 5MB
+    },
+    {
+      id: 'alcohol_license',
+      name: 'Licencia de Bebidas Alcohólicas',
+      description: 'Solo si vendes bebidas alcohólicas',
+      isRequired: false,
+      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
+      maxSize: 10 * 1024 * 1024 // 10MB
+    },
+    {
+      id: 'bank_statement',
+      name: 'Estado de Cuenta Bancario',
+      description: 'Estado de cuenta del negocio (último mes)',
+      isRequired: false,
+      acceptedFormats: ['application/pdf'],
+      maxSize: 5 * 1024 * 1024 // 5MB
+    },
+    {
+      id: 'insurance_policy',
+      name: 'Póliza de Seguro',
+      description: 'Seguro de responsabilidad civil',
+      isRequired: false,
+      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
+      maxSize: 10 * 1024 * 1024 // 10MB
+    }
+  ];
 
 export default function LegalDocumentationStep({
   data,
@@ -180,7 +180,7 @@ export default function LegalDocumentationStep({
 
   const handleDocumentUploadSuccess = useCallback(async (file: File, type: DocumentType) => {
     setUploadingDocuments(prev => new Set(prev).add(type));
-    
+
     try {
       let documentUrl = '';
       if (onDocumentUpload) {
@@ -225,8 +225,8 @@ export default function LegalDocumentationStep({
   const validateForm = useCallback((): boolean => {
     const requiredFields = ['businessLegalName', 'taxId'];
     const basicInfoValid = requiredFields.every(field => localData[field as keyof LegalDocumentation]);
-    
-    const legalRepValid = !!(localData.legalRepresentative && 
+
+    const legalRepValid = !!(localData.legalRepresentative &&
       localData.legalRepresentative.name &&
       localData.legalRepresentative.position &&
       localData.legalRepresentative.idNumber &&
@@ -234,7 +234,7 @@ export default function LegalDocumentationStep({
       localData.legalRepresentative.email);
 
     const requiredDocuments = DOCUMENT_TYPES.filter(dt => dt.isRequired);
-    const documentsValid = requiredDocuments.every(docType => 
+    const documentsValid = requiredDocuments.every(docType =>
       getDocumentByType(docType.id)?.status === 'uploaded'
     );
 
@@ -276,7 +276,7 @@ export default function LegalDocumentationStep({
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Información Legal del Negocio
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="businessLegalName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -354,7 +354,7 @@ export default function LegalDocumentationStep({
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Representante Legal
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="repName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -439,7 +439,7 @@ export default function LegalDocumentationStep({
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Contacto de Emergencia
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label htmlFor="emergencyName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -490,12 +490,12 @@ export default function LegalDocumentationStep({
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Documentos Requeridos
         </h3>
-        
+
         <div className="space-y-6">
           {DOCUMENT_TYPES.map((docType) => {
             const existingDoc = getDocumentByType(docType.id);
             const isUploading = uploadingDocuments.has(docType.id);
-            
+
             return (
               <div key={docType.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
@@ -511,7 +511,7 @@ export default function LegalDocumentationStep({
                     </div>
                     <p className="text-sm text-gray-600 mt-1">{docType.description}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Formatos: {docType.acceptedFormats.map(f => f.split('/')[1].toUpperCase()).join(', ')} • 
+                      Formatos: {docType.acceptedFormats.map(f => f.split('/')[1].toUpperCase()).join(', ')} •
                       Máximo: {(docType.maxSize / (1024 * 1024)).toFixed(0)}MB
                     </p>
                   </div>
@@ -532,9 +532,9 @@ export default function LegalDocumentationStep({
                         await handleDocumentUploadSuccess(file, docType.id);
                         return { success: true };
                       } catch (error) {
-                        return { 
-                          success: false, 
-                          error: error instanceof Error ? error.message : 'Error al subir documento' 
+                        return {
+                          success: false,
+                          error: error instanceof Error ? error.message : 'Error al subir documento'
                         };
                       }
                     }}
@@ -613,7 +613,7 @@ export default function LegalDocumentationStep({
             Anterior
           </button>
         )}
-        
+
         <button
           type="button"
           onClick={handleNext}

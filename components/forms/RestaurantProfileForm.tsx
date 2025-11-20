@@ -39,13 +39,18 @@ export default function RestaurantProfileForm() {
     });
 
     useEffect(() => {
+        console.log('RestaurantProfileForm: Mounted');
         if (user) {
+            console.log('RestaurantProfileForm: User present, loading data');
             loadRestaurantData();
+        } else {
+            console.log('RestaurantProfileForm: No user found');
         }
     }, [user]);
 
     const loadRestaurantData = async () => {
         try {
+            console.log('RestaurantProfileForm: loadRestaurantData started');
             setIsLoading(true);
             const { data, error } = await supabase
                 .from('restaurants')
@@ -54,10 +59,12 @@ export default function RestaurantProfileForm() {
                 .single();
 
             if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+                console.error('RestaurantProfileForm: Error loading data', error);
                 throw error;
             }
 
             if (data) {
+                console.log('RestaurantProfileForm: Data loaded successfully', data);
                 setFormData({
                     name: data.name || '',
                     description: data.description || '',
@@ -72,6 +79,8 @@ export default function RestaurantProfileForm() {
                     location_place_id: data.location_place_id,
                     address_structured: data.address_structured,
                 });
+            } else {
+                console.log('RestaurantProfileForm: No data returned');
             }
         } catch (error) {
             console.error('Error loading restaurant data:', error);
@@ -162,7 +171,7 @@ export default function RestaurantProfileForm() {
     };
 
     if (isLoading) {
-        return <div className="flex justify-center p-8"><LoadingSpinner /></div>;
+        return <div className="flex justify-center p-8"><LoadingSpinner isLoading={true} /></div>;
     }
 
     return (

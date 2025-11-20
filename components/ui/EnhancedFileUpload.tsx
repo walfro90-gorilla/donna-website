@@ -77,20 +77,20 @@ export default function EnhancedFileUpload({
     return null;
   }, [accept, maxSize]);
 
-  // Upload file with progress tracking
   const uploadFile = useCallback(async (fileState: FileUploadState) => {
     const controller = new AbortController();
     uploadControllerRef.current = controller;
+    let progressInterval: NodeJS.Timeout;
 
     try {
-      setFiles(prev => prev.map(f => 
-        f.id === fileState.id 
+      setFiles(prev => prev.map(f =>
+        f.id === fileState.id
           ? { ...f, status: 'uploading', progress: 0 }
           : f
       ));
 
       // Simulate progress updates (in real implementation, this would come from the upload function)
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setFiles(prev => prev.map(f => {
           if (f.id === fileState.id && f.status === 'uploading') {
             const newProgress = Math.min(f.progress + Math.random() * 20, 90);
@@ -113,8 +113,8 @@ export default function EnhancedFileUpload({
       clearInterval(progressInterval);
 
       if (!controller.signal.aborted) {
-        setFiles(prev => prev.map(f => 
-          f.id === fileState.id 
+        setFiles(prev => prev.map(f =>
+          f.id === fileState.id
             ? { ...f, status: 'success', progress: 100, url }
             : f
         ));
@@ -122,27 +122,27 @@ export default function EnhancedFileUpload({
 
       return url;
     } catch (error) {
-      clearInterval(progressInterval);
-      
+      if (progressInterval!) clearInterval(progressInterval);
+
       if (controller.signal.aborted) {
-        setFiles(prev => prev.map(f => 
-          f.id === fileState.id 
+        setFiles(prev => prev.map(f =>
+          f.id === fileState.id
             ? { ...f, status: 'cancelled', progress: 0 }
             : f
         ));
       } else {
-        setFiles(prev => prev.map(f => 
-          f.id === fileState.id 
-            ? { 
-                ...f, 
-                status: 'error', 
-                progress: 0,
-                error: error instanceof Error ? error.message : 'Error al subir archivo'
-              }
+        setFiles(prev => prev.map(f =>
+          f.id === fileState.id
+            ? {
+              ...f,
+              status: 'error',
+              progress: 0,
+              error: error instanceof Error ? error.message : 'Error al subir archivo'
+            }
             : f
         ));
       }
-      
+
       throw error;
     } finally {
       uploadControllerRef.current = null;
@@ -152,7 +152,7 @@ export default function EnhancedFileUpload({
   // Handle file selection
   const handleFiles = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
-    
+
     // Check file limit
     if (files.length + fileArray.length > maxFiles) {
       alert(`Solo puedes subir máximo ${maxFiles} archivo${maxFiles > 1 ? 's' : ''}`);
@@ -160,10 +160,10 @@ export default function EnhancedFileUpload({
     }
 
     const newFiles: FileUploadState[] = [];
-    
+
     for (const file of fileArray) {
       const validationError = validateFile(file);
-      
+
       if (validationError) {
         alert(validationError);
         continue;
@@ -184,7 +184,7 @@ export default function EnhancedFileUpload({
     // Auto upload if enabled
     if (autoUpload) {
       setIsUploading(true);
-      
+
       try {
         await Promise.all(
           newFiles.map(fileState => uploadFile(fileState))
@@ -223,7 +223,7 @@ export default function EnhancedFileUpload({
   const handleDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     setIsDragOver(false);
-    
+
     if (!disabled) {
       const files = event.dataTransfer.files;
       if (files) {
@@ -255,9 +255,9 @@ export default function EnhancedFileUpload({
     if (uploadControllerRef.current) {
       uploadControllerRef.current.abort();
     }
-    
-    setFiles(prev => prev.map(f => 
-      f.id === fileId 
+
+    setFiles(prev => prev.map(f =>
+      f.id === fileId
         ? { ...f, status: 'cancelled', progress: 0 }
         : f
     ));
@@ -266,11 +266,11 @@ export default function EnhancedFileUpload({
   // Manual upload trigger
   const triggerUpload = useCallback(async () => {
     const pendingFiles = files.filter(f => f.status === 'pending' || f.status === 'error');
-    
+
     if (pendingFiles.length === 0) return;
-    
+
     setIsUploading(true);
-    
+
     try {
       await Promise.all(
         pendingFiles.map(fileState => uploadFile(fileState))
@@ -283,7 +283,7 @@ export default function EnhancedFileUpload({
   }, [files, uploadFile]);
 
   // Calculate overall progress
-  const overallProgress = files.length > 0 
+  const overallProgress = files.length > 0
     ? files.reduce((sum, file) => sum + file.progress, 0) / files.length
     : 0;
 
@@ -297,8 +297,8 @@ export default function EnhancedFileUpload({
       <div
         className={`
           relative border-2 border-dashed rounded-lg p-6 text-center transition-colors
-          ${isDragOver 
-            ? 'border-[#e4007c] bg-pink-50' 
+          ${isDragOver
+            ? 'border-[#e4007c] bg-pink-50'
             : 'border-gray-300 hover:border-gray-400'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -317,7 +317,7 @@ export default function EnhancedFileUpload({
           disabled={disabled}
           className="hidden"
         />
-        
+
         {children || (
           <div className="space-y-2">
             <svg className="w-8 h-8 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +353,7 @@ export default function EnhancedFileUpload({
               {Math.round(overallProgress)}%
             </span>
           </div>
-          
+
           <ProgressIndicator
             progress={overallProgress}
             showLabel={false}
@@ -362,10 +362,10 @@ export default function EnhancedFileUpload({
             color={failedUploads > 0 ? 'error' : 'primary'}
             animated={uploadingFiles > 0}
           />
-          
+
           {uploadingFiles > 0 && (
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-              <LoadingSpinner size="sm" variant="dots" />
+              <LoadingSpinner size="sm" variant="dots" isLoading={true} />
               <span>Subiendo {uploadingFiles} archivo{uploadingFiles > 1 ? 's' : ''}...</span>
             </div>
           )}
@@ -396,7 +396,7 @@ export default function EnhancedFileUpload({
             disabled={isUploading}
             className="px-4 py-2 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
           >
-            {isUploading && <LoadingSpinner size="sm" variant="spinner" />}
+            {isUploading && <LoadingSpinner size="sm" variant="spinner" isLoading={true} />}
             <span>
               {isUploading ? 'Subiendo...' : 'Subir archivos'}
             </span>

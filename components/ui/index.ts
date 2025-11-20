@@ -41,3 +41,4 @@ export type { OptimizedImageProps } from './OptimizedImage';
 // Specialized upload components
 export { default as ImageUpload } from './ImageUpload';
 export { default as DocumentUpload } from './DocumentUpload';
+export { default as ImageCropper } from './ImageCropper';

@@ -3,35 +3,107 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
+import { supabase } from '@/lib/supabase/client';
 import RestaurantProfileForm from '@/components/forms/RestaurantProfileForm';
 import RestaurantDocumentsForm from '@/components/forms/RestaurantDocumentsForm';
 import RestaurantSettingsForm from '@/components/forms/RestaurantSettingsForm';
+import ProductList from '@/components/menu/ProductList';
+import { LoadingSpinner } from '@/components/ui';
 
-type Tab = 'profile' | 'documents' | 'settings';
+type Tab = 'profile' | 'documents' | 'settings' | 'menu';
 
 export default function RestaurantDashboard() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('profile');
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('RestaurantDashboard: Mounted');
     setMounted(true);
+    debugConnection();
   }, []);
+
+  const debugConnection = async () => {
+    console.log('DEBUG: Starting connection test...');
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
+
+    try {
+      // Test 1: Simple Count (Head)
+      const countPromise = supabase.from('restaurants').select('*', { count: 'exact', head: true });
+      const result = await Promise.race([countPromise, timeoutPromise]);
+      console.log('DEBUG: Connection Test Success (Head):', result);
+    } catch (e) {
+      console.error('DEBUG: Connection Test Failed (Head):', e);
+    }
+
+    try {
+      // Test 2: Select Single ID
+      if (user?.id) {
+        const selectPromise = supabase.from('restaurants').select('id').eq('user_id', user.id).maybeSingle();
+        const result = await Promise.race([selectPromise, timeoutPromise]);
+        console.log('DEBUG: Connection Test Success (Select):', result);
+      }
+    } catch (e) {
+      console.error('DEBUG: Connection Test Failed (Select):', e);
+    }
+  };
 
   useEffect(() => {
     if (!mounted) return;
 
+    console.log('RestaurantDashboard: Auth State Update', { user: user?.id, role: user?.role, loading, restaurantId });
+
     if (!loading && !user) {
+      console.log('RestaurantDashboard: No user, redirecting to login');
       router.push('/login');
       return;
     }
 
     if (user && user.role !== 'restaurant') {
+      console.log('RestaurantDashboard: User is not restaurant, redirecting');
       router.push('/login');
       return;
     }
-  }, [user, loading, router, mounted]);
+
+    if (user && !restaurantId) {
+      console.log('RestaurantDashboard: Fetching restaurant ID');
+      fetchRestaurantId();
+    }
+  }, [user, loading, router, mounted, restaurantId]);
+
+  const fetchRestaurantId = async () => {
+    if (!user?.id) return;
+
+    console.log('RestaurantDashboard: fetchRestaurantId started for user', user.id);
+
+    // Add timeout to the actual fetch
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Fetch Timeout')), 10000));
+
+    try {
+      const fetchPromise = supabase
+        .from('restaurants')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('RestaurantDashboard: Error fetching restaurant ID:', error);
+      }
+
+      if (data) {
+        console.log('RestaurantDashboard: Restaurant ID found', data.id);
+        setRestaurantId(data.id);
+      } else {
+        console.log('RestaurantDashboard: No restaurant data found for user');
+      }
+    } catch (e) {
+      console.error('RestaurantDashboard: fetchRestaurantId CRITICAL ERROR (Timeout?):', e);
+    }
+  };
 
   if (!mounted || loading) {
     return (
@@ -75,17 +147,26 @@ export default function RestaurantDashboard() {
             <button
               onClick={() => setActiveTab('profile')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'profile'
-                  ? 'border-[#e4007c] text-[#e4007c]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-[#e4007c] text-[#e4007c]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Perfil del Negocio
             </button>
             <button
+              onClick={() => setActiveTab('menu')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'menu'
+                ? 'border-[#e4007c] text-[#e4007c]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Menú Digital
+            </button>
+            <button
               onClick={() => setActiveTab('documents')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'documents'
-                  ? 'border-[#e4007c] text-[#e4007c]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-[#e4007c] text-[#e4007c]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Documentación
@@ -93,8 +174,8 @@ export default function RestaurantDashboard() {
             <button
               onClick={() => setActiveTab('settings')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'settings'
-                  ? 'border-[#e4007c] text-[#e4007c]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-[#e4007c] text-[#e4007c]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Configuración
@@ -121,6 +202,19 @@ export default function RestaurantDashboard() {
               </div>
             </div>
             <RestaurantProfileForm />
+          </div>
+        )}
+
+        {activeTab === 'menu' && (
+          <div className="space-y-6">
+            {restaurantId ? (
+              <ProductList restaurantId={restaurantId} />
+            ) : (
+              <div className="text-center py-12">
+                <LoadingSpinner isLoading={true} />
+                <p className="mt-2 text-gray-500">Cargando información del restaurante...</p>
+              </div>
+            )}
           </div>
         )}
 
