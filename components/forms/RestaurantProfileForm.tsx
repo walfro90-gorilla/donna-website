@@ -175,168 +175,173 @@ export default function RestaurantProfileForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow-sm">
-            <div className="border-b border-gray-200 pb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Información Básica</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                    Esta información será visible para los clientes en la app.
-                </p>
-            </div>
-
+        <form onSubmit={handleSubmit} className="space-y-6">
             {message && (
                 <Alert variant={message.type === 'success' ? 'success' : 'error'}>
                     {message.text}
                 </Alert>
             )}
 
-            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                {/* Name */}
-                <div className="sm:col-span-4">
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                        Nombre del Restaurante
-                    </label>
-                    <div className="mt-1">
-                        <input
-                            type="text"
-                            name="name"
-                            id="name"
-                            required
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                        />
-                    </div>
+            {/* Basic Info Section */}
+            <div className="bg-white shadow rounded-lg p-6">
+                <div className="border-b border-gray-200 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">Información Básica</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Detalles generales de tu restaurante.
+                    </p>
                 </div>
-
-                {/* Cuisine Type */}
-                <div className="sm:col-span-2">
-                    <label htmlFor="cuisine_type" className="block text-sm font-medium text-gray-700">
-                        Tipo de Cocina
-                    </label>
-                    <div className="mt-1">
-                        <select
-                            id="cuisine_type"
-                            name="cuisine_type"
-                            required
-                            value={formData.cuisine_type}
-                            onChange={handleInputChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                        >
-                            <option value="">Selecciona...</option>
-                            <option value="mexicana">Mexicana</option>
-                            <option value="italiana">Italiana</option>
-                            <option value="japonesa">Japonesa</option>
-                            <option value="hamburguesas">Hamburguesas</option>
-                            <option value="pizza">Pizza</option>
-                            <option value="cafe">Cafetería</option>
-                            <option value="postres">Postres</option>
-                            <option value="otro">Otro</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* Description */}
-                <div className="sm:col-span-6">
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                        Descripción
-                    </label>
-                    <div className="mt-1">
-                        <textarea
-                            id="description"
-                            name="description"
-                            rows={3}
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                            placeholder="Describe tu restaurante, especialidades, etc."
-                        />
-                    </div>
-                </div>
-
-                {/* Phone */}
-                <div className="sm:col-span-3">
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                        Teléfono de Contacto
-                    </label>
-                    <div className="mt-1">
-                        <input
-                            type="tel"
-                            name="phone"
-                            id="phone"
-                            value={formData.phone}
-                            onChange={handleInputChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                        />
-                    </div>
-                </div>
-
-                {/* Address */}
-                <div className="sm:col-span-6">
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                        Dirección
-                    </label>
-                    <div className="mt-1 relative rounded-md shadow-sm">
-                        <AddressAutocompleteRestaurant
-                            value={formData.address}
-                            onChange={handleAddressChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                            placeholder="Busca tu dirección..."
-                        />
-                    </div>
-                </div>
-
-                {/* Images Section */}
-                <div className="sm:col-span-6 pt-6 border-t border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Imágenes</h3>
-
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                        {/* Logo */}
-                        <div>
-                            <ImageUpload
-                                bucket="restaurant-images"
-                                folderPath={`${user?.id}/logo`}
-                                label="Logo del Restaurante"
-                                defaultImage={formData.logo_url}
-                                onUploadComplete={(url) => setFormData(prev => ({ ...prev, logo_url: url }))}
+                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div className="sm:col-span-4">
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                            Nombre del Restaurante
+                        </label>
+                        <div className="mt-1">
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                required
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
                             />
                         </div>
+                    </div>
 
-                        {/* Cover Image */}
-                        <div>
-                            <ImageUpload
-                                bucket="restaurant-images"
-                                folderPath={`${user?.id}/cover`}
-                                label="Imagen de Portada"
-                                defaultImage={formData.cover_image_url}
-                                onUploadComplete={(url) => setFormData(prev => ({ ...prev, cover_image_url: url }))}
-                            />
+                    <div className="sm:col-span-2">
+                        <label htmlFor="cuisine_type" className="block text-sm font-medium text-gray-700">
+                            Tipo de Cocina
+                        </label>
+                        <div className="mt-1">
+                            <select
+                                id="cuisine_type"
+                                name="cuisine_type"
+                                required
+                                value={formData.cuisine_type}
+                                onChange={handleInputChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                            >
+                                <option value="">Selecciona...</option>
+                                <option value="mexicana">Mexicana</option>
+                                <option value="italiana">Italiana</option>
+                                <option value="japonesa">Japonesa</option>
+                                <option value="hamburguesas">Hamburguesas</option>
+                                <option value="pizza">Pizza</option>
+                                <option value="cafe">Cafetería</option>
+                                <option value="postres">Postres</option>
+                                <option value="otro">Otro</option>
+                            </select>
                         </div>
+                    </div>
 
-                        {/* Facade Image */}
-                        <div>
-                            <ImageUpload
-                                bucket="restaurant-images"
-                                folderPath={`${user?.id}/facade`}
-                                label="Foto de la Fachada"
-                                defaultImage={formData.facade_image_url}
-                                onUploadComplete={(url) => setFormData(prev => ({ ...prev, facade_image_url: url }))}
+                    <div className="sm:col-span-6">
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                            Descripción
+                        </label>
+                        <div className="mt-1">
+                            <textarea
+                                id="description"
+                                name="description"
+                                rows={3}
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                placeholder="Describe tu restaurante, especialidades, etc."
                             />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="pt-5 border-t border-gray-200">
-                <div className="flex justify-end">
-                    <Button
-                        type="submit"
-                        isLoading={isSaving}
-                        disabled={isSaving}
-                        className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#e4007c] hover:bg-[#c0006a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c]"
-                    >
-                        Guardar Cambios
-                    </Button>
+            {/* Contact & Location Section */}
+            <div className="bg-white shadow rounded-lg p-6">
+                <div className="border-b border-gray-200 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">Contacto y Ubicación</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        ¿Dónde pueden encontrarte tus clientes?
+                    </p>
                 </div>
+                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div className="sm:col-span-3">
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                            Teléfono de Contacto
+                        </label>
+                        <div className="mt-1">
+                            <input
+                                type="tel"
+                                name="phone"
+                                id="phone"
+                                value={formData.phone}
+                                onChange={handleInputChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="sm:col-span-6">
+                        <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                            Dirección
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <AddressAutocompleteRestaurant
+                                value={formData.address}
+                                onChange={handleAddressChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                placeholder="Busca tu dirección..."
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Images Section */}
+            <div className="bg-white shadow rounded-lg p-6">
+                <div className="border-b border-gray-200 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">Imágenes del Negocio</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Las fotos atractivas aumentan tus ventas.
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div>
+                        <ImageUpload
+                            bucket="restaurant-images"
+                            folderPath={`${user?.id}/logo`}
+                            label="Logo del Restaurante"
+                            defaultImage={formData.logo_url}
+                            onUploadComplete={(url) => setFormData(prev => ({ ...prev, logo_url: url }))}
+                        />
+                    </div>
+                    <div>
+                        <ImageUpload
+                            bucket="restaurant-images"
+                            folderPath={`${user?.id}/cover`}
+                            label="Imagen de Portada"
+                            defaultImage={formData.cover_image_url}
+                            onUploadComplete={(url) => setFormData(prev => ({ ...prev, cover_image_url: url }))}
+                        />
+                    </div>
+                    <div>
+                        <ImageUpload
+                            bucket="restaurant-images"
+                            folderPath={`${user?.id}/facade`}
+                            label="Foto de la Fachada"
+                            defaultImage={formData.facade_image_url}
+                            onUploadComplete={(url) => setFormData(prev => ({ ...prev, facade_image_url: url }))}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+                <Button
+                    type="submit"
+                    isLoading={isSaving}
+                    disabled={isSaving}
+                    className="ml-3 inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#e4007c] hover:bg-[#c0006a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c]"
+                >
+                    Guardar Cambios
+                </Button>
             </div>
         </form>
     );

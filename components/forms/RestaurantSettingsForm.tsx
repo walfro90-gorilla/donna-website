@@ -125,82 +125,90 @@ export default function RestaurantSettingsForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow-sm">
-            <div className="border-b border-gray-200 pb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Configuración del Negocio</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                    Define tus horarios y zonas de entrega.
-                </p>
-            </div>
-
+        <form onSubmit={handleSubmit} className="space-y-6">
             {message && (
                 <Alert variant={message.type === 'success' ? 'success' : 'error'}>
                     {message.text}
                 </Alert>
             )}
 
-            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
-                {/* Delivery Radius */}
-                <div>
-                    <label htmlFor="delivery_radius_km" className="block text-sm font-medium text-gray-700">
-                        Radio de Entrega (km)
-                    </label>
-                    <div className="mt-1">
-                        <input
-                            type="number"
-                            name="delivery_radius_km"
-                            id="delivery_radius_km"
-                            min="0"
-                            step="0.1"
-                            value={formData.delivery_radius_km}
-                            onChange={handleInputChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                        />
-                    </div>
+            {/* General Settings */}
+            <div className="bg-white shadow rounded-lg p-6">
+                <div className="border-b border-gray-200 pb-4 mb-6">
+                    <h2 className="text-lg font-medium leading-6 text-gray-900">Configuración General</h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Define tus zonas de entrega y condiciones de pedido.
+                    </p>
                 </div>
 
-                {/* Min Order Amount */}
-                <div>
-                    <label htmlFor="min_order_amount" className="block text-sm font-medium text-gray-700">
-                        Pedido Mínimo ($)
-                    </label>
-                    <div className="mt-1">
-                        <input
-                            type="number"
-                            name="min_order_amount"
-                            id="min_order_amount"
-                            min="0"
-                            step="1"
-                            value={formData.min_order_amount}
-                            onChange={handleInputChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                        />
+                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
+                    {/* Delivery Radius */}
+                    <div>
+                        <label htmlFor="delivery_radius_km" className="block text-sm font-medium text-gray-700">
+                            Radio de Entrega (km)
+                        </label>
+                        <div className="mt-1">
+                            <input
+                                type="number"
+                                name="delivery_radius_km"
+                                id="delivery_radius_km"
+                                min="0"
+                                step="0.1"
+                                value={formData.delivery_radius_km}
+                                onChange={handleInputChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                            />
+                        </div>
                     </div>
-                </div>
 
-                {/* Estimated Time */}
-                <div>
-                    <label htmlFor="estimated_delivery_time_minutes" className="block text-sm font-medium text-gray-700">
-                        Tiempo Estimado (min)
-                    </label>
-                    <div className="mt-1">
-                        <input
-                            type="number"
-                            name="estimated_delivery_time_minutes"
-                            id="estimated_delivery_time_minutes"
-                            min="0"
-                            step="5"
-                            value={formData.estimated_delivery_time_minutes}
-                            onChange={handleInputChange}
-                            className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-                        />
+                    {/* Min Order Amount */}
+                    <div>
+                        <label htmlFor="min_order_amount" className="block text-sm font-medium text-gray-700">
+                            Pedido Mínimo ($)
+                        </label>
+                        <div className="mt-1">
+                            <input
+                                type="number"
+                                name="min_order_amount"
+                                id="min_order_amount"
+                                min="0"
+                                step="1"
+                                value={formData.min_order_amount}
+                                onChange={handleInputChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Estimated Time */}
+                    <div>
+                        <label htmlFor="estimated_delivery_time_minutes" className="block text-sm font-medium text-gray-700">
+                            Tiempo Estimado (min)
+                        </label>
+                        <div className="mt-1">
+                            <input
+                                type="number"
+                                name="estimated_delivery_time_minutes"
+                                id="estimated_delivery_time_minutes"
+                                min="0"
+                                step="5"
+                                value={formData.estimated_delivery_time_minutes}
+                                onChange={handleInputChange}
+                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Business Hours */}
-            <div className="pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Horarios de Atención</h3>
+            <div className="bg-white shadow rounded-lg p-6">
+                <div className="border-b border-gray-200 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">Horarios de Atención</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Configura los días y horas que tu negocio está abierto.
+                    </p>
+                </div>
                 <div className="space-y-4">
                     {DAYS.map((day) => (
                         <div key={day.key} className="flex items-center space-x-4">
@@ -239,17 +247,15 @@ export default function RestaurantSettingsForm() {
                 </div>
             </div>
 
-            <div className="pt-5 border-t border-gray-200">
-                <div className="flex justify-end">
-                    <Button
-                        type="submit"
-                        isLoading={isSaving}
-                        disabled={isSaving}
-                        className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#e4007c] hover:bg-[#c0006a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c]"
-                    >
-                        Guardar Configuración
-                    </Button>
-                </div>
+            <div className="flex justify-end pt-4">
+                <Button
+                    type="submit"
+                    isLoading={isSaving}
+                    disabled={isSaving}
+                    className="ml-3 inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#e4007c] hover:bg-[#c0006a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c]"
+                >
+                    Guardar Configuración
+                </Button>
             </div>
         </form>
     );

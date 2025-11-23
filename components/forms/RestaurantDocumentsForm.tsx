@@ -96,61 +96,61 @@ export default function RestaurantDocumentsForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow-sm">
-            <div className="border-b border-gray-200 pb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Documentación Legal</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                    Sube los documentos requeridos para verificar tu negocio.
-                </p>
-            </div>
-
+        <form onSubmit={handleSubmit} className="space-y-6">
             {message && (
                 <Alert variant={message.type === 'success' ? 'success' : 'error'}>
                     {message.text}
                 </Alert>
             )}
 
-            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                {/* Business Permit */}
-                <div>
-                    <DocumentUpload
-                        folderPath={`${user?.id}/permits`}
-                        label="Permiso de Funcionamiento"
-                        onUploadComplete={(path) => setFormData(prev => ({ ...prev, business_permit_url: path }))}
-                    />
-                    {formData.business_permit_url && (
-                        <p className="mt-2 text-sm text-green-600">
-                            ✓ Documento subido: {formData.business_permit_url.split('/').pop()}
-                        </p>
-                    )}
+            <div className="bg-white shadow rounded-lg p-6">
+                <div className="border-b border-gray-200 pb-4 mb-6">
+                    <h2 className="text-lg font-medium leading-6 text-gray-900">Documentación Legal</h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Sube los documentos requeridos para verificar tu negocio.
+                    </p>
                 </div>
 
-                {/* Health Permit */}
-                <div>
-                    <DocumentUpload
-                        folderPath={`${user?.id}/permits`}
-                        label="Permiso de Salubridad"
-                        onUploadComplete={(path) => setFormData(prev => ({ ...prev, health_permit_url: path }))}
-                    />
-                    {formData.health_permit_url && (
-                        <p className="mt-2 text-sm text-green-600">
-                            ✓ Documento subido: {formData.health_permit_url.split('/').pop()}
-                        </p>
-                    )}
+                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                    {/* Business Permit */}
+                    <div>
+                        <DocumentUpload
+                            folderPath={`${user?.id}/permits`}
+                            label="Permiso de Funcionamiento"
+                            onUploadComplete={(path) => setFormData(prev => ({ ...prev, business_permit_url: path }))}
+                        />
+                        {formData.business_permit_url && (
+                            <p className="mt-2 text-sm text-green-600">
+                                ✓ Documento subido: {formData.business_permit_url.split('/').pop()}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Health Permit */}
+                    <div>
+                        <DocumentUpload
+                            folderPath={`${user?.id}/permits`}
+                            label="Permiso de Salubridad"
+                            onUploadComplete={(path) => setFormData(prev => ({ ...prev, health_permit_url: path }))}
+                        />
+                        {formData.health_permit_url && (
+                            <p className="mt-2 text-sm text-green-600">
+                                ✓ Documento subido: {formData.health_permit_url.split('/').pop()}
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <div className="pt-5 border-t border-gray-200">
-                <div className="flex justify-end">
-                    <Button
-                        type="submit"
-                        isLoading={isSaving}
-                        disabled={isSaving}
-                        className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#e4007c] hover:bg-[#c0006a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c]"
-                    >
-                        Guardar Documentos
-                    </Button>
-                </div>
+            <div className="flex justify-end pt-4">
+                <Button
+                    type="submit"
+                    isLoading={isSaving}
+                    disabled={isSaving}
+                    className="ml-3 inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#e4007c] hover:bg-[#c0006a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c]"
+                >
+                    Guardar Documentos
+                </Button>
             </div>
         </form>
     );

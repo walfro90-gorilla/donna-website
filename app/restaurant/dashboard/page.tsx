@@ -8,16 +8,24 @@ import RestaurantProfileForm from '@/components/forms/RestaurantProfileForm';
 import RestaurantDocumentsForm from '@/components/forms/RestaurantDocumentsForm';
 import RestaurantSettingsForm from '@/components/forms/RestaurantSettingsForm';
 import ProductList from '@/components/menu/ProductList';
+import DashboardHome from '@/components/restaurant/DashboardHome';
 import { LoadingSpinner } from '@/components/ui';
 
-type Tab = 'profile' | 'documents' | 'settings' | 'menu';
+type Tab = 'home' | 'profile' | 'documents' | 'settings' | 'menu';
 
 export default function RestaurantDashboard() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('profile');
+  const [activeTab, setActiveTab] = useState<Tab>('home');
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [restaurantData, setRestaurantData] = useState<any>(null);
+  const [dashboardStats, setDashboardStats] = useState({
+    ordersToday: 0,
+    totalSales: 0,
+    rating: 0,
+    recentOrders: [] as any[]
+  });
 
   useEffect(() => {
     console.log('RestaurantDashboard: Mounted');
@@ -55,7 +63,7 @@ export default function RestaurantDashboard() {
     try {
       const { data, error } = await supabase
         .from('restaurants')
-        .select('id')
+        .select('id, name, profile_completion_percentage, business_permit_url, health_permit_url, average_rating')
         .eq('user_id', user.id)
         .single();
 
@@ -66,6 +74,7 @@ export default function RestaurantDashboard() {
       if (data) {
         console.log('RestaurantDashboard: Restaurant ID found', data.id);
         setRestaurantId(data.id);
+        setRestaurantData(data);
       } else {
         console.log('RestaurantDashboard: No restaurant data found for user');
       }
@@ -73,6 +82,49 @@ export default function RestaurantDashboard() {
       console.error('RestaurantDashboard: fetchRestaurantId error:', e);
     }
   };
+
+  const fetchDashboardStats = async (id: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
+
+    // Fetch orders today
+    const { count: ordersTodayCount, error: ordersError } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('restaurant_id', id)
+      .gte('created_at', todayISO);
+
+    // Fetch total sales (completed orders)
+    const { data: salesData, error: salesError } = await supabase
+      .from('orders')
+      .select('total_amount')
+      .eq('restaurant_id', id)
+      .eq('status', 'delivered'); // Assuming 'delivered' is the completed status
+
+    const totalSales = salesData?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0;
+
+    // Fetch recent orders
+    const { data: recentOrders, error: recentOrdersError } = await supabase
+      .from('orders')
+      .select('id, created_at, total_amount, status, user_id')
+      .eq('restaurant_id', id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    setDashboardStats({
+      ordersToday: ordersTodayCount || 0,
+      totalSales: totalSales,
+      rating: restaurantData?.average_rating || 0,
+      recentOrders: recentOrders || []
+    });
+  };
+
+  useEffect(() => {
+    if (restaurantId) {
+      fetchDashboardStats(restaurantId);
+    }
+  }, [restaurantId]);
 
   if (!mounted || loading) {
     return (
@@ -99,20 +151,19 @@ export default function RestaurantDashboard() {
                 Dashboard Restaurante
               </h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
-                {user.name || user.email}
-              </span>
-              <div className="w-8 h-8 bg-[#e4007c] rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {(user.name || user.email || 'U').charAt(0).toUpperCase()}
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* Tabs */}
           <div className="flex space-x-8 -mb-px overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'home'
+                ? 'border-[#e4007c] text-[#e4007c]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Resumen
+            </button>
             <button
               onClick={() => setActiveTab('profile')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'profile'
@@ -154,6 +205,44 @@ export default function RestaurantDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'home' && (
+          <DashboardHome
+            restaurantName={restaurantData?.name}
+            checklistCompletion={restaurantData?.profile_completion_percentage || 0}
+            stats={dashboardStats}
+            checklistItems={[
+              {
+                id: 'profile',
+                label: 'Perfil del Negocio',
+                description: 'Completa la información básica de tu restaurante',
+                isCompleted: (restaurantData?.profile_completion_percentage || 0) >= 100,
+                action: () => setActiveTab('profile')
+              },
+              {
+                id: 'menu',
+                label: 'Menú Digital',
+                description: 'Agrega tus platillos y categorías',
+                isCompleted: false, // TODO: Check if menu has items
+                action: () => setActiveTab('menu')
+              },
+              {
+                id: 'documents',
+                label: 'Documentación Legal',
+                description: 'Sube tus documentos para verificación',
+                isCompleted: !!(restaurantData?.business_permit_url && restaurantData?.health_permit_url),
+                action: () => setActiveTab('documents')
+              },
+              {
+                id: 'settings',
+                label: 'Configuración',
+                description: 'Configura horarios y métodos de pago',
+                isCompleted: false,
+                action: () => setActiveTab('settings')
+              }
+            ]}
+          />
+        )}
+
         {activeTab === 'profile' && (
           <div className="space-y-6">
             <div className="bg-blue-50 border-l-4 border-blue-400 p-4">

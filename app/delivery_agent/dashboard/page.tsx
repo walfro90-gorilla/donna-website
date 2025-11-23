@@ -6,15 +6,17 @@ import { useAuth } from '@/lib/auth/context';
 import { supabase } from '@/lib/supabase/client';
 import DeliveryProfileForm from '@/components/forms/DeliveryProfileForm';
 import DeliveryDocumentsForm from '@/components/forms/DeliveryDocumentsForm';
+import DashboardHome from '@/components/delivery/DashboardHome';
 
-type Tab = 'profile' | 'documents' | 'operations';
+type Tab = 'home' | 'profile' | 'documents' | 'operations';
 
 export default function DeliveryAgentDashboard() {
     const router = useRouter();
     const { user, loading, signOut } = useAuth();
     const [mounted, setMounted] = useState(false);
-    const [activeTab, setActiveTab] = useState<Tab>('profile');
+    const [activeTab, setActiveTab] = useState<Tab>('home');
     const [status, setStatus] = useState<string>('pending');
+    const [profileData, setProfileData] = useState<any>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -34,25 +36,59 @@ export default function DeliveryAgentDashboard() {
         }
 
         if (user) {
-            checkStatus();
+            fetchProfileData();
         }
     }, [user, loading, router, mounted]);
 
-    const checkStatus = async () => {
-        const { data } = await supabase
+    const fetchProfileData = async () => {
+        const { data, error } = await supabase
             .from('delivery_agent_profiles')
-            .select('status')
+            .select('*')
             .eq('user_id', user?.id)
             .single();
 
         if (data) {
             setStatus(data.status);
+            setProfileData(data);
         }
     };
 
-    const handleSignOut = async () => {
-        await signOut();
-        router.push('/login');
+    const calculateCompletion = () => {
+        if (!profileData) return 0;
+
+        const profileFields = [
+            'profile_image_url', 'vehicle_type', 'vehicle_plate',
+            'vehicle_model', 'vehicle_color', 'vehicle_photo_url',
+            'emergency_contact_name', 'emergency_contact_phone'
+        ];
+
+        const docFields = [
+            'id_document_front_url', 'id_document_back_url',
+            'vehicle_registration_url', 'vehicle_insurance_url'
+        ];
+
+        const totalFields = profileFields.length + docFields.length;
+        let completedFields = 0;
+
+        profileFields.forEach(field => {
+            if (profileData[field]) completedFields++;
+        });
+
+        docFields.forEach(field => {
+            if (profileData[field]) completedFields++;
+        });
+
+        return Math.round((completedFields / totalFields) * 100);
+    };
+
+    const isProfileComplete = () => {
+        if (!profileData) return false;
+        return !!(profileData.profile_image_url && profileData.vehicle_plate && profileData.vehicle_photo_url);
+    };
+
+    const areDocumentsComplete = () => {
+        if (!profileData) return false;
+        return !!(profileData.id_document_front_url && profileData.vehicle_registration_url);
     };
 
     if (!mounted || loading) {
@@ -72,11 +108,13 @@ export default function DeliveryAgentDashboard() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <nav className="bg-white shadow-sm">
+            <div className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
+                    <div className="flex justify-between items-center py-6">
                         <div className="flex items-center">
-                            <h1 className="text-xl font-bold text-[#e4007c]">Doña Repartos</h1>
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                Dashboard Repartidor
+                            </h1>
                             {status === 'pending' && (
                                 <span className="ml-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     Verificación Pendiente
@@ -87,34 +125,25 @@ export default function DeliveryAgentDashboard() {
                                     Verificado
                                 </span>
                             )}
-                            {status === 'rejected' && (
-                                <span className="ml-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    Rechazado
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <span className="text-gray-700">Hola, {user.name || user.email}</span>
-                            <button
-                                onClick={handleSignOut}
-                                className="text-sm text-gray-500 hover:text-gray-700"
-                            >
-                                Cerrar Sesión
-                            </button>
                         </div>
                     </div>
-                </div>
-            </nav>
 
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Tabs */}
                     <div className="flex space-x-8 -mb-px overflow-x-auto">
                         <button
+                            onClick={() => setActiveTab('home')}
+                            className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'home'
+                                ? 'border-[#e4007c] text-[#e4007c]'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Resumen
+                        </button>
+                        <button
                             onClick={() => setActiveTab('profile')}
                             className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'profile'
-                                    ? 'border-[#e4007c] text-[#e4007c]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-[#e4007c] text-[#e4007c]'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             Mi Perfil y Vehículo
@@ -122,8 +151,8 @@ export default function DeliveryAgentDashboard() {
                         <button
                             onClick={() => setActiveTab('documents')}
                             className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'documents'
-                                    ? 'border-[#e4007c] text-[#e4007c]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-[#e4007c] text-[#e4007c]'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             Documentación
@@ -131,17 +160,47 @@ export default function DeliveryAgentDashboard() {
                         <button
                             onClick={() => setActiveTab('operations')}
                             className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'operations'
-                                    ? 'border-[#e4007c] text-[#e4007c]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-[#e4007c] text-[#e4007c]'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
-                            Operaciones (Próximamente)
+                            Operaciones
                         </button>
                     </div>
                 </div>
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {activeTab === 'home' && (
+                    <DashboardHome
+                        agentName={user.name || user.email || ''}
+                        checklistCompletion={calculateCompletion()}
+                        checklistItems={[
+                            {
+                                id: 'profile',
+                                label: 'Perfil y Vehículo',
+                                description: 'Completa tu información personal y de tu vehículo',
+                                isCompleted: isProfileComplete(),
+                                action: () => setActiveTab('profile')
+                            },
+                            {
+                                id: 'documents',
+                                label: 'Documentación Legal',
+                                description: 'Sube tu identificación y documentos del vehículo',
+                                isCompleted: areDocumentsComplete(),
+                                action: () => setActiveTab('documents')
+                            },
+                            {
+                                id: 'training',
+                                label: 'Capacitación (Opcional)',
+                                description: 'Aprende cómo usar la app de repartidor',
+                                isCompleted: false,
+                                action: () => { }
+                            }
+                        ]}
+                    />
+                )}
+
                 {activeTab === 'profile' && (
                     <div className="space-y-6">
                         <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
