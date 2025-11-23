@@ -22,33 +22,7 @@ export default function RestaurantDashboard() {
   useEffect(() => {
     console.log('RestaurantDashboard: Mounted');
     setMounted(true);
-    debugConnection();
   }, []);
-
-  const debugConnection = async () => {
-    console.log('DEBUG: Starting connection test...');
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
-
-    try {
-      // Test 1: Simple Count (Head)
-      const countPromise = supabase.from('restaurants').select('*', { count: 'exact', head: true });
-      const result = await Promise.race([countPromise, timeoutPromise]);
-      console.log('DEBUG: Connection Test Success (Head):', result);
-    } catch (e) {
-      console.error('DEBUG: Connection Test Failed (Head):', e);
-    }
-
-    try {
-      // Test 2: Select Single ID
-      if (user?.id) {
-        const selectPromise = supabase.from('restaurants').select('id').eq('user_id', user.id).maybeSingle();
-        const result = await Promise.race([selectPromise, timeoutPromise]);
-        console.log('DEBUG: Connection Test Success (Select):', result);
-      }
-    } catch (e) {
-      console.error('DEBUG: Connection Test Failed (Select):', e);
-    }
-  };
 
   useEffect(() => {
     if (!mounted) return;
@@ -78,17 +52,12 @@ export default function RestaurantDashboard() {
 
     console.log('RestaurantDashboard: fetchRestaurantId started for user', user.id);
 
-    // Add timeout to the actual fetch
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Fetch Timeout')), 10000));
-
     try {
-      const fetchPromise = supabase
+      const { data, error } = await supabase
         .from('restaurants')
         .select('id')
         .eq('user_id', user.id)
         .single();
-
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('RestaurantDashboard: Error fetching restaurant ID:', error);
@@ -101,7 +70,7 @@ export default function RestaurantDashboard() {
         console.log('RestaurantDashboard: No restaurant data found for user');
       }
     } catch (e) {
-      console.error('RestaurantDashboard: fetchRestaurantId CRITICAL ERROR (Timeout?):', e);
+      console.error('RestaurantDashboard: fetchRestaurantId error:', e);
     }
   };
 

@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} bg-gray-50`}>
         <AuthProvider>
           {/* Skip to main content link - Requirement 14.3 */}
