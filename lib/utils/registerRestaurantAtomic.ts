@@ -38,7 +38,7 @@ export async function registerRestaurantAtomic(
 
     // PASO 1: Crear usuario en auth.users (igual que la app móvil)
     console.log('📝 PASO 1: Creando usuario en auth.users...');
-    
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -58,19 +58,19 @@ export async function registerRestaurantAtomic(
 
     if (authError) {
       console.error('❌ Error en auth.signUp:', authError);
-      
+
       if (authError.message.includes('User already registered')) {
         return { success: false, error: 'Este correo electrónico ya está registrado.' };
       }
-      
+
       if (authError.message.includes('Password should be at least')) {
         return { success: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
       }
-      
+
       if (authError.message.includes('Invalid email')) {
         return { success: false, error: 'El formato del correo electrónico no es válido.' };
       }
-      
+
       throw authError;
     }
 
@@ -83,11 +83,13 @@ export async function registerRestaurantAtomic(
 
     // PASO 2: Ejecutar RPC atómica (igual que la app móvil)
     console.log('🔧 PASO 2: Ejecutando RPC register_restaurant_atomic...');
-    
+
     const { data: rpcData, error: rpcError } = await supabase.rpc(
       'register_restaurant_atomic',
       {
         p_user_id: userId,
+        p_email: data.email,
+        p_name: data.ownerName,
         p_restaurant_name: data.restaurantName,
         p_phone: data.phone,
         p_address: data.address,
@@ -124,25 +126,25 @@ export async function registerRestaurantAtomic(
 
   } catch (error: unknown) {
     console.error('💥 Error inesperado en registro:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    
+
     // Mapear errores comunes
     if (errorMessage.includes('already registered')) {
       return { success: false, error: 'Este correo electrónico ya está registrado.' };
     }
-    
+
     if (errorMessage.includes('already exists')) {
       return { success: false, error: 'Este nombre de restaurante ya existe.' };
     }
-    
+
     if (errorMessage.includes('User not found')) {
       return { success: false, error: 'Error creando usuario. Intenta de nuevo.' };
     }
-    
-    return { 
-      success: false, 
-      error: 'Hubo un error al procesar tu registro. Por favor, intenta de nuevo.' 
+
+    return {
+      success: false,
+      error: 'Hubo un error al procesar tu registro. Por favor, intenta de nuevo.'
     };
   }
 }
