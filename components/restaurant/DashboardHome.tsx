@@ -1,19 +1,29 @@
+
 import React from 'react';
-import OnboardingChecklist from './OnboardingChecklist';
+import { CompletionCard } from '@/components/onboarding/CompletionCard';
 
 interface DashboardHomeProps {
     restaurantName: string;
-    checklistItems: any[];
-    checklistCompletion: number;
+    checklistItems?: any[]; // Keeping optional for backward compatibility
+    checklistCompletion?: number; // Keeping optional
     stats?: {
         ordersToday: number;
         totalSales: number;
         rating: number;
         recentOrders: any[];
     };
+    onboardingStatus?: {
+        percentage: number;
+        missingFields: {
+            key: string;
+            label: string;
+            href?: string;
+        }[];
+    };
+    onNavigateToField?: (fieldKey: string) => void;
 }
 
-export default function DashboardHome({ restaurantName, checklistItems, checklistCompletion, stats }: DashboardHomeProps) {
+export default function DashboardHome({ restaurantName, checklistItems, checklistCompletion, stats, onboardingStatus, onNavigateToField }: DashboardHomeProps) {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-MX', {
             style: 'currency',
@@ -84,7 +94,18 @@ export default function DashboardHome({ restaurantName, checklistItems, checklis
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Checklist Column */}
                 <div className="lg:col-span-2">
-                    <OnboardingChecklist items={checklistItems} completionPercentage={checklistCompletion} />
+                    {onboardingStatus ? (
+                        <CompletionCard
+                            percentage={onboardingStatus.percentage}
+                            missingFields={onboardingStatus.missingFields}
+                            role="restaurant"
+                            onFieldClick={onNavigateToField}
+                        />
+                    ) : (
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
+                            Cargando estado del perfil...
+                        </div>
+                    )}
                 </div>
 
                 {/* Recent Activity / Notifications */}

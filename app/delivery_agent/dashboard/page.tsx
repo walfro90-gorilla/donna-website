@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,6 +8,10 @@ import { supabase } from '@/lib/supabase/client';
 import DeliveryProfileForm from '@/components/forms/DeliveryProfileForm';
 import DeliveryDocumentsForm from '@/components/forms/DeliveryDocumentsForm';
 import DashboardHome from '@/components/delivery/DashboardHome';
+import { calculateDeliveryAgentProgress } from '@/lib/utils/onboarding';
+import { CompletionCard } from '@/components/onboarding/CompletionCard';
+import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
+import { markDeliveryWelcomeAsSeen } from '@/app/actions/onboarding';
 
 type Tab = 'home' | 'profile' | 'documents' | 'operations';
 
@@ -17,6 +22,8 @@ export default function DeliveryAgentDashboard() {
     const [activeTab, setActiveTab] = useState<Tab>('home');
     const [status, setStatus] = useState<string>('pending');
     const [profileData, setProfileData] = useState<any>(null);
+    const [hasSeenWelcome, setHasSeenWelcome] = useState(true); // Default to true to avoid flash
+    const [onboardingStatus, setOnboardingStatus] = useState<any>({ percentage: 0, missingFields: [] });
 
     useEffect(() => {
         setMounted(true);
@@ -37,6 +44,7 @@ export default function DeliveryAgentDashboard() {
 
         if (user) {
             fetchProfileData();
+            fetchPreferences();
         }
     }, [user, loading, router, mounted]);
 
@@ -50,45 +58,47 @@ export default function DeliveryAgentDashboard() {
         if (data) {
             setStatus(data.status);
             setProfileData(data);
+            setOnboardingStatus(calculateDeliveryAgentProgress(data));
         }
     };
 
+    const fetchPreferences = async () => {
+        const { data } = await supabase
+            .from('user_preferences')
+            .select('has_seen_delivery_welcome')
+            .eq('user_id', user?.id)
+            .single();
+
+        if (data) {
+            setHasSeenWelcome(data.has_seen_delivery_welcome);
+        } else {
+            // If no preferences record, assume false (not seen)
+            setHasSeenWelcome(false);
+        }
+    };
+
+    const handleWelcomeClose = async () => {
+        await markDeliveryWelcomeAsSeen();
+        setHasSeenWelcome(true);
+    };
+
+    // Keep existing calculation for backward compatibility with DashboardHome if needed, 
+    // or replace with new util. The new util is more robust.
     const calculateCompletion = () => {
-        if (!profileData) return 0;
-
-        const profileFields = [
-            'profile_image_url', 'vehicle_type', 'vehicle_plate',
-            'vehicle_model', 'vehicle_color', 'vehicle_photo_url',
-            'emergency_contact_name', 'emergency_contact_phone'
-        ];
-
-        const docFields = [
-            'id_document_front_url', 'id_document_back_url',
-            'vehicle_registration_url', 'vehicle_insurance_url'
-        ];
-
-        const totalFields = profileFields.length + docFields.length;
-        let completedFields = 0;
-
-        profileFields.forEach(field => {
-            if (profileData[field]) completedFields++;
-        });
-
-        docFields.forEach(field => {
-            if (profileData[field]) completedFields++;
-        });
-
-        return Math.round((completedFields / totalFields) * 100);
+        return onboardingStatus.percentage;
     };
 
     const isProfileComplete = () => {
-        if (!profileData) return false;
-        return !!(profileData.profile_image_url && profileData.vehicle_plate && profileData.vehicle_photo_url);
+        // Simple check based on new util logic or keep existing
+        return onboardingStatus.missingFields.filter((f: any) =>
+            ['profile_image_url', 'vehicle_plate', 'vehicle_photo_url'].includes(f.key)
+        ).length === 0;
     };
 
     const areDocumentsComplete = () => {
-        if (!profileData) return false;
-        return !!(profileData.id_document_front_url && profileData.vehicle_registration_url);
+        return onboardingStatus.missingFields.filter((f: any) =>
+            ['id_document_front_url', 'vehicle_registration_url'].includes(f.key)
+        ).length === 0;
     };
 
     if (!mounted || loading) {
@@ -108,6 +118,13 @@ export default function DeliveryAgentDashboard() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <OnboardingModal
+                isOpen={!hasSeenWelcome}
+                onClose={handleWelcomeClose}
+                role="delivery_agent"
+                userName={user.name || 'Repartidor'}
+            />
+
             <div className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-6">
@@ -172,33 +189,44 @@ export default function DeliveryAgentDashboard() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {activeTab === 'home' && (
-                    <DashboardHome
-                        agentName={user.name || user.email || ''}
-                        checklistCompletion={calculateCompletion()}
-                        checklistItems={[
-                            {
-                                id: 'profile',
-                                label: 'Perfil y Vehículo',
-                                description: 'Completa tu información personal y de tu vehículo',
-                                isCompleted: isProfileComplete(),
-                                action: () => setActiveTab('profile')
-                            },
-                            {
-                                id: 'documents',
-                                label: 'Documentación Legal',
-                                description: 'Sube tu identificación y documentos del vehículo',
-                                isCompleted: areDocumentsComplete(),
-                                action: () => setActiveTab('documents')
-                            },
-                            {
-                                id: 'training',
-                                label: 'Capacitación (Opcional)',
-                                description: 'Aprende cómo usar la app de repartidor',
-                                isCompleted: false,
-                                action: () => { }
-                            }
-                        ]}
-                    />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2">
+                            <DashboardHome
+                                agentName={user.name || user.email || ''}
+                                checklistCompletion={calculateCompletion()}
+                                checklistItems={[
+                                    {
+                                        id: 'profile',
+                                        label: 'Perfil y Vehículo',
+                                        description: 'Completa tu información personal y de tu vehículo',
+                                        isCompleted: isProfileComplete(),
+                                        action: () => setActiveTab('profile')
+                                    },
+                                    {
+                                        id: 'documents',
+                                        label: 'Documentación Legal',
+                                        description: 'Sube tu identificación y documentos del vehículo',
+                                        isCompleted: areDocumentsComplete(),
+                                        action: () => setActiveTab('documents')
+                                    },
+                                    {
+                                        id: 'training',
+                                        label: 'Capacitación (Opcional)',
+                                        description: 'Aprende cómo usar la app de repartidor',
+                                        isCompleted: false,
+                                        action: () => { }
+                                    }
+                                ]}
+                            />
+                        </div>
+                        <div>
+                            <CompletionCard
+                                percentage={onboardingStatus.percentage}
+                                missingFields={onboardingStatus.missingFields}
+                                role="delivery_agent"
+                            />
+                        </div>
+                    </div>
                 )}
 
                 {activeTab === 'profile' && (

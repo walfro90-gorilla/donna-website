@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   /* ===== PRIMARY COLORS ===== */
@@ -25,17 +28,17 @@
   --color-success: #059669; /* Darker green for better contrast (was #10b981) - 4.52:1 on white */
   --color-success-light: #d1fae5;
   --color-success-dark: #047857; /* For text on light backgrounds - 7.09:1 on white */
-  
+
   /* Error colors - Contrast ratio validated for WCAG AA compliance */
   --color-error: #dc2626; /* Darker red for better contrast (was #ef4444) - 5.53:1 on white */
   --color-error-light: #fee2e2;
   --color-error-dark: #b91c1c; /* For text on light backgrounds - 7.71:1 on white */
-  
+
   /* Warning colors - Contrast ratio validated for WCAG AA compliance */
   --color-warning: #d97706; /* Darker orange for better contrast (was #f59e0b) - 4.54:1 on white */
   --color-warning-light: #fef3c7;
   --color-warning-dark: #b45309; /* For text on light backgrounds - 6.37:1 on white */
-  
+
   /* Info colors - Contrast ratio validated for WCAG AA compliance */
   --color-info: #2563eb; /* Darker blue for better contrast (was #3b82f6) - 5.14:1 on white */
   --color-info-light: #dbeafe;
@@ -97,8 +100,70 @@
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 
   /* ===== LEGACY COMPATIBILITY ===== */
-  --background: var(--color-white);
-  --foreground: var(--color-gray-900);
+
+  --radius: 0.625rem;
+
+  --background: oklch(1 0 0);
+
+  --foreground: oklch(0.145 0 0);
+
+  --card: oklch(1 0 0);
+
+  --card-foreground: oklch(0.145 0 0);
+
+  --popover: oklch(1 0 0);
+
+  --popover-foreground: oklch(0.145 0 0);
+
+  --primary: oklch(0.205 0 0);
+
+  --primary-foreground: oklch(0.985 0 0);
+
+  --secondary: oklch(0.97 0 0);
+
+  --secondary-foreground: oklch(0.205 0 0);
+
+  --muted: oklch(0.97 0 0);
+
+  --muted-foreground: oklch(0.556 0 0);
+
+  --accent: oklch(0.97 0 0);
+
+  --accent-foreground: oklch(0.205 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+
+  --border: oklch(0.922 0 0);
+
+  --input: oklch(0.922 0 0);
+
+  --ring: oklch(0.708 0 0);
+
+  --chart-1: oklch(0.646 0.222 41.116);
+
+  --chart-2: oklch(0.6 0.118 184.704);
+
+  --chart-3: oklch(0.398 0.07 227.392);
+
+  --chart-4: oklch(0.828 0.189 84.429);
+
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  --sidebar: oklch(0.985 0 0);
+
+  --sidebar-foreground: oklch(0.145 0 0);
+
+  --sidebar-primary: oklch(0.205 0 0);
+
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+
+  --sidebar-accent: oklch(0.97 0 0);
+
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+
+  --sidebar-border: oklch(0.922 0 0);
+
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 @theme inline {
@@ -106,13 +171,39 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 /* ===== RESPONSIVE BREAKPOINTS ===== */
@@ -122,16 +213,13 @@
   - Tablet: >= 640px (sm: in Tailwind)
   - Desktop: >= 1024px (lg: in Tailwind)
   - Large Desktop: >= 1280px (xl: in Tailwind)
-  
+
   Requirements: 13.1, 13.3
 */
 
 /* ===== GLOBAL BASE STYLES ===== */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
   font-size: var(--text-base);
   line-height: 1.6; /* Improved readability */
 }
@@ -205,7 +293,7 @@ select:focus-visible {
     min-height: 48px;
     min-width: 48px;
   }
-  
+
   /* Ensure adequate spacing between interactive elements - Requirement: 2.2 */
   button + button,
   a + a {
@@ -523,27 +611,27 @@ select {
   /* Colors and contrast */
   color: var(--color-gray-900);
   background-color: var(--color-white);
-  
+
   /* Border and radius - Requirement 8.1 */
   border: 2px solid var(--color-gray-300);
   border-radius: var(--radius-lg); /* 12px */
-  
+
   /* Sizing - Requirements 8.1, 2.1 */
   min-height: 48px;
   padding: 0.75rem 1rem; /* 12px 16px */
-  
+
   /* Typography - Requirement 8.5 */
   font-size: var(--text-base); /* 16px minimum */
   line-height: var(--leading-normal);
-  
+
   /* Transitions - Requirement 5.1 */
   transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
               background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Ensure full width by default */
   width: 100%;
-  
+
   /* Remove default appearance */
   appearance: none;
 }
@@ -785,7 +873,7 @@ input[type="radio"] + label {
     min-height: 48px;
     font-size: 16px; /* Prevents zoom on iOS */
   }
-  
+
   /* Adjust spacing between form elements on mobile */
   .form-group,
   .field-group {
@@ -800,7 +888,7 @@ input[type="radio"] + label {
   - Minimum size: 44x44 CSS pixels for desktop
   - Minimum spacing: 8px between adjacent touch targets
   - Exception: Inline text links can be smaller if adequate line-height
-  
+
   These rules ensure:
   1. Users can accurately tap/click interactive elements
   2. Reduced accidental activations
@@ -834,7 +922,7 @@ input[type="button"],
     /* Ensure padding provides adequate touch area */
     padding: max(0.75rem, calc((48px - 1em) / 2)) 1rem;
   }
-  
+
   /* Links in navigation should have adequate touch targets */
   nav a,
   [role="navigation"] a {
@@ -843,20 +931,20 @@ input[type="button"],
     align-items: center;
     padding: 0.75rem 1rem;
   }
-  
+
   /* Ensure spacing between touch targets - Requirement 2.2 */
   button + button,
   a[role="button"] + a[role="button"],
   .btn + .btn {
     margin-left: var(--spacing-2); /* 8px minimum */
   }
-  
+
   /* Vertical spacing for stacked interactive elements */
   button + button:not([class*="inline"]),
   .btn + .btn:not([class*="inline"]) {
     margin-top: var(--spacing-2); /* 8px minimum */
   }
-  
+
   /* Form controls touch targets */
   input[type="checkbox"],
   input[type="radio"] {
@@ -864,7 +952,7 @@ input[type="button"],
     min-height: 24px;
     /* Add padding to label for larger touch area */
   }
-  
+
   input[type="checkbox"] + label,
   input[type="radio"] + label {
     padding: 0.75rem 0.5rem;
@@ -872,13 +960,13 @@ input[type="button"],
     display: inline-flex;
     align-items: center;
   }
-  
+
   /* Select dropdowns */
   select {
     min-height: 48px;
     padding: 0.75rem 2.5rem 0.75rem 1rem;
   }
-  
+
   /* Icon buttons need adequate touch area */
   button[aria-label]:not([class*="text"]),
   [role="button"][aria-label]:not([class*="text"]) {
@@ -1209,14 +1297,14 @@ select[aria-invalid="true"]:focus {
   - Normal text (< 18px or < 14px bold): Minimum 4.5:1 contrast ratio
   - Large text (>= 18px or >= 14px bold): Minimum 3:1 contrast ratio
   - UI components and graphical objects: Minimum 3:1 contrast ratio
-  
+
   Color Contrast Validation:
-  
+
   PRIMARY COLORS:
   - #e4007c (primary) on white (#ffffff): 4.51:1 ✓ PASS AA (normal text)
   - #c6006b (primary-hover) on white: 6.02:1 ✓ PASS AA (normal text)
   - White text on #e4007c: 4.51:1 ✓ PASS AA (normal text)
-  
+
   NEUTRAL COLORS (Text on white background):
   - #111827 (gray-900): 16.67:1 ✓ PASS AAA
   - #1f2937 (gray-800): 13.54:1 ✓ PASS AAA
@@ -1224,7 +1312,7 @@ select[aria-invalid="true"]:focus {
   - #4b5563 (gray-600): 7.92:1 ✓ PASS AA
   - #6b7280 (gray-500): 5.74:1 ✓ PASS AA
   - #9ca3af (gray-400): 3.54:1 ✗ FAIL (use only for large text or placeholders)
-  
+
   SEMANTIC COLORS (Text on white background):
   - #047857 (success-dark): 7.09:1 ✓ PASS AA
   - #059669 (success): 4.52:1 ✓ PASS AA
@@ -1234,11 +1322,11 @@ select[aria-invalid="true"]:focus {
   - #d97706 (warning): 4.54:1 ✓ PASS AA
   - #1e40af (info-dark): 7.67:1 ✓ PASS AA
   - #2563eb (info): 5.14:1 ✓ PASS AA
-  
+
   FOOTER (Text on gray-800 #1f2937):
   - #9ca3af (gray-400) on gray-800: 4.24:1 ✓ PASS AA (normal text)
   - #e4007c (primary) on gray-800: 3.00:1 ✓ PASS AA (large text only)
-  
+
   USAGE GUIDELINES:
   - Use gray-600 or darker for body text on white backgrounds
   - Use gray-400 only for placeholders, disabled states, or large text (18px+)
@@ -1407,7 +1495,7 @@ body {
   body {
     font-size: 1rem; /* Always 16px minimum on mobile */
   }
-  
+
   /* Ensure form inputs don't zoom on iOS */
   input,
   textarea,
@@ -1468,7 +1556,7 @@ nav.vertical button + button,
   select {
     border: 2px solid currentColor;
   }
-  
+
   /* Ensure focus indicators are visible */
   *:focus-visible {
     outline: 3px solid currentColor;
@@ -1486,15 +1574,58 @@ nav.vertical button + button,
   .no-print {
     display: none;
   }
-  
+
   /* Ensure links are visible */
   a[href]::after {
     content: " (" attr(href) ")";
   }
-  
+
   /* Ensure good contrast for printing */
   body {
     color: #000;
     background: #fff;
+  }
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

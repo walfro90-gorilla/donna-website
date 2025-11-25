@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,6 +11,9 @@ import RestaurantSettingsForm from '@/components/forms/RestaurantSettingsForm';
 import ProductList from '@/components/menu/ProductList';
 import DashboardHome from '@/components/restaurant/DashboardHome';
 import { LoadingSpinner } from '@/components/ui';
+import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
+import { markRestaurantWelcomeAsSeen } from '@/app/actions/onboarding';
+import { calculateRestaurantProgress } from '@/lib/utils/onboarding';
 
 type Tab = 'home' | 'profile' | 'documents' | 'settings' | 'menu';
 
@@ -26,6 +30,8 @@ export default function RestaurantDashboard() {
     rating: 0,
     recentOrders: [] as any[]
   });
+  const [hasSeenWelcome, setHasSeenWelcome] = useState(true);
+  const [onboardingStatus, setOnboardingStatus] = useState<any>(null);
 
   useEffect(() => {
     console.log('RestaurantDashboard: Mounted');
@@ -52,8 +58,24 @@ export default function RestaurantDashboard() {
     if (user && !restaurantId) {
       console.log('RestaurantDashboard: Fetching restaurant ID');
       fetchRestaurantId();
+      fetchPreferences();
     }
   }, [user, loading, router, mounted, restaurantId]);
+
+  const fetchPreferences = async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from('user_preferences')
+      .select('has_seen_restaurant_welcome')
+      .eq('user_id', user.id)
+      .single();
+
+    if (data) {
+      setHasSeenWelcome(data.has_seen_restaurant_welcome);
+    } else {
+      setHasSeenWelcome(false);
+    }
+  };
 
   const fetchRestaurantId = async () => {
     if (!user?.id) return;
@@ -61,9 +83,10 @@ export default function RestaurantDashboard() {
     console.log('RestaurantDashboard: fetchRestaurantId started for user', user.id);
 
     try {
+      // Fetch all fields needed for progress calculation
       const { data, error } = await supabase
         .from('restaurants')
-        .select('id, name, profile_completion_percentage, business_permit_url, health_permit_url, average_rating')
+        .select('*')
         .eq('user_id', user.id)
         .single();
 
@@ -75,6 +98,7 @@ export default function RestaurantDashboard() {
         console.log('RestaurantDashboard: Restaurant ID found', data.id);
         setRestaurantId(data.id);
         setRestaurantData(data);
+        setOnboardingStatus(calculateRestaurantProgress(data));
       } else {
         console.log('RestaurantDashboard: No restaurant data found for user');
       }
@@ -126,6 +150,23 @@ export default function RestaurantDashboard() {
     }
   }, [restaurantId]);
 
+  const handleWelcomeClose = async () => {
+    await markRestaurantWelcomeAsSeen();
+    setHasSeenWelcome(true);
+  };
+
+  const handleNavigateToField = (fieldKey: string) => {
+    if (['name', 'description', 'address', 'phone', 'logo_url', 'cover_image_url', 'cuisine_type'].includes(fieldKey)) {
+      setActiveTab('profile');
+    } else if (['business_hours'].includes(fieldKey)) {
+      setActiveTab('settings');
+    } else if (['business_permit_url', 'health_permit_url'].includes(fieldKey)) {
+      setActiveTab('documents');
+    } else {
+      setActiveTab('profile'); // Default
+    }
+  };
+
   if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -143,6 +184,13 @@ export default function RestaurantDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <OnboardingModal
+        isOpen={!hasSeenWelcome}
+        onClose={handleWelcomeClose}
+        role="restaurant"
+        userName={user.name || 'Socio'}
+      />
+
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -208,38 +256,9 @@ export default function RestaurantDashboard() {
         {activeTab === 'home' && (
           <DashboardHome
             restaurantName={restaurantData?.name}
-            checklistCompletion={restaurantData?.profile_completion_percentage || 0}
             stats={dashboardStats}
-            checklistItems={[
-              {
-                id: 'profile',
-                label: 'Perfil del Negocio',
-                description: 'Completa la información básica de tu restaurante',
-                isCompleted: (restaurantData?.profile_completion_percentage || 0) >= 100,
-                action: () => setActiveTab('profile')
-              },
-              {
-                id: 'menu',
-                label: 'Menú Digital',
-                description: 'Agrega tus platillos y categorías',
-                isCompleted: false, // TODO: Check if menu has items
-                action: () => setActiveTab('menu')
-              },
-              {
-                id: 'documents',
-                label: 'Documentación Legal',
-                description: 'Sube tus documentos para verificación',
-                isCompleted: !!(restaurantData?.business_permit_url && restaurantData?.health_permit_url),
-                action: () => setActiveTab('documents')
-              },
-              {
-                id: 'settings',
-                label: 'Configuración',
-                description: 'Configura horarios y métodos de pago',
-                isCompleted: false,
-                action: () => setActiveTab('settings')
-              }
-            ]}
+            onboardingStatus={onboardingStatus}
+            onNavigateToField={handleNavigateToField}
           />
         )}
 

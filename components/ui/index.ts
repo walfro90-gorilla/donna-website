@@ -42,3 +42,17 @@ export type { OptimizedImageProps } from './OptimizedImage';
 export { default as ImageUpload } from './ImageUpload';
 export { default as DocumentUpload } from './DocumentUpload';
 export { default as ImageCropper } from './ImageCropper';
+
+export { Progress } from './progress';
+export {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogClose,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "./dialog"
