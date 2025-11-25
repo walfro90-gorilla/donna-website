@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   description: 'Apoya a los restaurantes locales y recibe tu comida favorita más rápido que nunca.',
 };
 
+import { ThemeProvider } from '@/components/ThemeProvider';
+
+// ... (imports)
+
 export default function RootLayout({
   children,
 }: {
@@ -21,22 +25,24 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gray-50`}>
-        <AuthProvider>
-          {/* Skip to main content link - Requirement 14.3 */}
-          <a href="#main-content" className="skip-to-main">
-            Saltar al contenido principal
-          </a>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            {/* Main content with proper ARIA landmark and keyboard focus support - Requirements 14.2, 14.3 */}
-            <main id="main-content" className="flex-grow" tabIndex={-1} role="main" aria-label="Contenido principal">
-              {children}
-            </main>
-            <Footer />
-            <CookieConsent />
-          </div>
-        </AuthProvider>
+      <body className={`${inter.className} bg-gray-50 dark:bg-gray-900 transition-colors duration-300`}>
+        <ThemeProvider>
+          <AuthProvider>
+            {/* Skip to main content link - Requirement 14.3 */}
+            <a href="#main-content" className="skip-to-main">
+              Saltar al contenido principal
+            </a>
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              {/* Main content with proper ARIA landmark and keyboard focus support - Requirements 14.2, 14.3 */}
+              <main id="main-content" className="flex-grow" tabIndex={-1} role="main" aria-label="Contenido principal">
+                {children}
+              </main>
+              <Footer />
+              <CookieConsent />
+            </div>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

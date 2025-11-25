@@ -2,13 +2,13 @@
 "use client";
 
 import { forwardRef, ButtonHTMLAttributes, ReactNode } from 'react';
-import { 
+import {
   generateResponsiveComponentSizes,
   generateFocusRingClasses,
   generateTouchFriendlyClasses,
   generateAriaAttributes,
   ACCESSIBILITY,
-  type ResponsiveValue 
+  type ResponsiveValue
 } from '@/lib/utils';
 import LoadingSpinner from '../LoadingSpinner';
 
@@ -27,6 +27,8 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   'aria-expanded'?: boolean;
   'aria-pressed'?: boolean;
   'aria-haspopup'?: boolean | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog';
+  // Fix for "React does not recognize the asChild prop"
+  asChild?: boolean;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
@@ -46,6 +48,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   'aria-expanded': ariaExpanded,
   'aria-pressed': ariaPressed,
   'aria-haspopup': ariaHasPopup,
+  asChild, // Destructure but don't use (to prevent passing to DOM)
   ...props
 }, ref) => {
   const isDisabled = disabled || isLoading;
@@ -111,7 +114,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   };
 
   // Responsive size classes
-  const responsiveSizeClasses = typeof size === 'object' 
+  const responsiveSizeClasses = typeof size === 'object'
     ? generateResponsiveComponentSizes('button', size)
     : generateResponsiveComponentSizes('button', { base: size });
 
@@ -171,9 +174,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     >
       {/* Loading spinner */}
       {isLoading && (
-        <LoadingSpinner 
-          size="sm" 
-          className="mr-2" 
+        <LoadingSpinner
+          size="sm"
+          className="mr-2"
           aria-hidden="true"
         />
       )}

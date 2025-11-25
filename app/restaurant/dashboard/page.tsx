@@ -28,10 +28,13 @@ export default function RestaurantDashboard() {
     ordersToday: 0,
     totalSales: 0,
     rating: 0,
-    recentOrders: [] as any[]
+    recentOrders: [] as any[],
+    weeklySales: [] as any[],
+    topProducts: [] as any[]
   });
   const [hasSeenWelcome, setHasSeenWelcome] = useState(true);
   const [onboardingStatus, setOnboardingStatus] = useState<any>(null);
+  const [isStoreOpen, setIsStoreOpen] = useState(false);
 
   useEffect(() => {
     console.log('RestaurantDashboard: Mounted');
@@ -98,6 +101,7 @@ export default function RestaurantDashboard() {
         console.log('RestaurantDashboard: Restaurant ID found', data.id);
         setRestaurantId(data.id);
         setRestaurantData(data);
+        setIsStoreOpen(data.online || false);
         setOnboardingStatus(calculateRestaurantProgress(data));
       } else {
         console.log('RestaurantDashboard: No restaurant data found for user');
@@ -131,17 +135,54 @@ export default function RestaurantDashboard() {
     // Fetch recent orders
     const { data: recentOrders, error: recentOrdersError } = await supabase
       .from('orders')
-      .select('id, created_at, total_amount, status, user_id')
+      .select('id, created_at, total_amount, status, user_id, delivery_address')
       .eq('restaurant_id', id)
       .order('created_at', { ascending: false })
       .limit(5);
+
+    // Mock Weekly Sales Data (Since we might not have enough historical data yet)
+    // In a real scenario, we would query orders grouped by day for the last 7 days
+    const weeklySales = [
+      { day: 'Lun', amount: 0 },
+      { day: 'Mar', amount: 0 },
+      { day: 'Mié', amount: 0 },
+      { day: 'Jue', amount: 0 },
+      { day: 'Vie', amount: 0 },
+      { day: 'Sáb', amount: 0 },
+      { day: 'Dom', amount: 0 },
+    ];
+
+    // Mock Top Products (We would query order_items joined with products)
+    const topProducts = [
+      { name: 'Hamburguesa Clásica', count: 12, revenue: 1800 },
+      { name: 'Papas Fritas', count: 25, revenue: 1250 },
+      { name: 'Refresco', count: 30, revenue: 900 },
+    ];
 
     setDashboardStats({
       ordersToday: ordersTodayCount || 0,
       totalSales: totalSales,
       rating: restaurantData?.average_rating || 0,
-      recentOrders: recentOrders || []
+      recentOrders: recentOrders || [],
+      weeklySales,
+      topProducts
     });
+  };
+
+  const toggleStoreStatus = async () => {
+    if (!restaurantId) return;
+    const newStatus = !isStoreOpen;
+    setIsStoreOpen(newStatus);
+
+    const { error } = await supabase
+      .from('restaurants')
+      .update({ online: newStatus })
+      .eq('id', restaurantId);
+
+    if (error) {
+      console.error('Error updating store status:', error);
+      setIsStoreOpen(!newStatus); // Revert on error
+    }
   };
 
   useEffect(() => {
@@ -259,6 +300,8 @@ export default function RestaurantDashboard() {
             stats={dashboardStats}
             onboardingStatus={onboardingStatus}
             onNavigateToField={handleNavigateToField}
+            isStoreOpen={isStoreOpen}
+            onToggleStoreStatus={toggleStoreStatus}
           />
         )}
 

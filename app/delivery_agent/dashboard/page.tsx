@@ -22,8 +22,16 @@ export default function DeliveryAgentDashboard() {
     const [activeTab, setActiveTab] = useState<Tab>('home');
     const [status, setStatus] = useState<string>('pending');
     const [profileData, setProfileData] = useState<any>(null);
-    const [hasSeenWelcome, setHasSeenWelcome] = useState(true); // Default to true to avoid flash
+    const [hasSeenWelcome, setHasSeenWelcome] = useState(true);
     const [onboardingStatus, setOnboardingStatus] = useState<any>({ percentage: 0, missingFields: [] });
+    const [dashboardStats, setDashboardStats] = useState({
+        deliveriesToday: 0,
+        earningsToday: 0,
+        rating: 0,
+        onlineTime: '0h 0m'
+    });
+    const [currentDelivery, setCurrentDelivery] = useState<any>(null);
+    const [isOnline, setIsOnline] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -45,6 +53,7 @@ export default function DeliveryAgentDashboard() {
         if (user) {
             fetchProfileData();
             fetchPreferences();
+            fetchDashboardStats();
         }
     }, [user, loading, router, mounted]);
 
@@ -58,8 +67,62 @@ export default function DeliveryAgentDashboard() {
         if (data) {
             setStatus(data.status);
             setProfileData(data);
+            // Assuming 'account_state' or similar field tracks online status, or we use a separate table/field
+            // For now, we'll use a local state or a mock field if not in schema. 
+            // Schema has 'account_state' enum, but 'online' boolean is common. 
+            // Let's assume we might need to add 'online' to profile or use a separate mechanism.
+            // For this demo, we will default to false.
+            setIsOnline(false);
             setOnboardingStatus(calculateDeliveryAgentProgress(data));
         }
+    };
+
+    const fetchDashboardStats = async () => {
+        if (!user?.id) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayISO = today.toISOString();
+
+        // Fetch deliveries today
+        const { count: deliveriesCount } = await supabase
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .eq('delivery_agent_id', user.id)
+            .eq('status', 'delivered')
+            .gte('updated_at', todayISO);
+
+        // Fetch earnings today (Mocking for now as transactions might be complex)
+        // In real app: sum account_transactions where type='DELIVERY_EARNING' and created_at >= today
+        const earningsToday = (deliveriesCount || 0) * 35; // Mock: $35 per delivery
+
+        // Fetch current active delivery
+        const { data: activeOrder } = await supabase
+            .from('orders')
+            .select('*, restaurants(name)')
+            .eq('delivery_agent_id', user.id)
+            .in('status', ['assigned', 'picked_up', 'on_the_way'])
+            .single();
+
+        let formattedDelivery = null;
+        if (activeOrder) {
+            formattedDelivery = {
+                id: activeOrder.id,
+                restaurantName: activeOrder.restaurants?.name || 'Restaurante',
+                customerAddress: activeOrder.delivery_address,
+                status: activeOrder.status,
+                earnings: 35 // Mock earning for this order
+            };
+        }
+
+        setDashboardStats({
+            deliveriesToday: deliveriesCount || 0,
+            earningsToday,
+            rating: 4.8, // Mock rating
+            onlineTime: '2h 15m' // Mock online time
+        });
+
+        setCurrentDelivery(formattedDelivery);
     };
 
     const fetchPreferences = async () => {
@@ -72,7 +135,6 @@ export default function DeliveryAgentDashboard() {
         if (data) {
             setHasSeenWelcome(data.has_seen_delivery_welcome);
         } else {
-            // If no preferences record, assume false (not seen)
             setHasSeenWelcome(false);
         }
     };
@@ -82,14 +144,21 @@ export default function DeliveryAgentDashboard() {
         setHasSeenWelcome(true);
     };
 
-    // Keep existing calculation for backward compatibility with DashboardHome if needed, 
-    // or replace with new util. The new util is more robust.
+    const toggleOnlineStatus = () => {
+        setIsOnline(!isOnline);
+        // Here we would update the backend status
+    };
+
+    const handleViewDelivery = (id: string) => {
+        // Navigate to delivery details page (to be implemented)
+        console.log('View delivery', id);
+    };
+
     const calculateCompletion = () => {
         return onboardingStatus.percentage;
     };
 
     const isProfileComplete = () => {
-        // Simple check based on new util logic or keep existing
         return onboardingStatus.missingFields.filter((f: any) =>
             ['profile_image_url', 'vehicle_plate', 'vehicle_photo_url'].includes(f.key)
         ).length === 0;
@@ -217,6 +286,11 @@ export default function DeliveryAgentDashboard() {
                                         action: () => { }
                                     }
                                 ]}
+                                stats={dashboardStats}
+                                currentDelivery={currentDelivery}
+                                isOnline={isOnline}
+                                onToggleOnline={toggleOnlineStatus}
+                                onViewDelivery={handleViewDelivery}
                             />
                         </div>
                         <div>
