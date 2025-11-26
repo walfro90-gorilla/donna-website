@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -236,38 +237,38 @@ export default function ExportReportsWidget() {
     ];
 
     return (
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-card shadow rounded-lg p-6 border border-border">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900">Exportar Reportes</h3>
-                    <p className="text-sm text-gray-500 mt-1">Descarga reportes en formato CSV</p>
+                    <h3 className="text-lg font-medium text-foreground">Exportar Reportes</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Descarga reportes en formato CSV</p>
                 </div>
-                <Download className="h-6 w-6 text-gray-400" />
+                <Download className="h-6 w-6 text-muted-foreground" />
             </div>
 
             {/* Date Range Selector */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-6 p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-700">Rango de Fechas</label>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <label className="text-sm font-medium text-foreground">Rango de Fechas</label>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">Desde</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Desde</label>
                         <input
                             type="date"
                             value={dateRange.start}
                             onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-[#e4007c] focus:border-[#e4007c]"
+                            className="w-full px-3 py-2 border border-input rounded-md text-sm focus:ring-[#e4007c] focus:border-[#e4007c] bg-background text-foreground"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">Hasta</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Hasta</label>
                         <input
                             type="date"
                             value={dateRange.end}
                             onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-[#e4007c] focus:border-[#e4007c]"
+                            className="w-full px-3 py-2 border border-input rounded-md text-sm focus:ring-[#e4007c] focus:border-[#e4007c] bg-background text-foreground"
                         />
                     </div>
                 </div>
@@ -280,22 +281,22 @@ export default function ExportReportsWidget() {
                         key={report.type}
                         onClick={report.action}
                         disabled={loading}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-[#e4007c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 hover:border-[#e4007c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                         <div className="flex items-center gap-3">
-                            <report.icon className="h-5 w-5 text-gray-400 group-hover:text-[#e4007c]" />
+                            <report.icon className="h-5 w-5 text-muted-foreground group-hover:text-[#e4007c]" />
                             <div className="text-left">
-                                <p className="text-sm font-medium text-gray-900">{report.title}</p>
-                                <p className="text-xs text-gray-500">{report.description}</p>
+                                <p className="text-sm font-medium text-foreground">{report.title}</p>
+                                <p className="text-xs text-muted-foreground">{report.description}</p>
                             </div>
                         </div>
-                        <Download className="h-4 w-4 text-gray-400 group-hover:text-[#e4007c]" />
+                        <Download className="h-4 w-4 text-muted-foreground group-hover:text-[#e4007c]" />
                     </button>
                 ))}
             </div>
 
             {loading && (
-                <div className="mt-4 text-center text-sm text-gray-500">
+                <div className="mt-4 text-center text-sm text-muted-foreground">
                     Generando reporte...
                 </div>
             )}

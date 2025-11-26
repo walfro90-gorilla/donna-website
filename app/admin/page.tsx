@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -108,14 +109,14 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="p-8 text-center">Cargando estadísticas...</div>
+        <div className="p-8 text-center text-muted-foreground">Cargando estadísticas...</div>
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Dashboard General</h1>
+      <h1 className="text-2xl font-semibold text-foreground mb-6">Dashboard General</h1>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -150,20 +151,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Operational Status */}
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Estado Operativo</h2>
+      <h2 className="text-lg font-medium text-foreground mb-4">Estado Operativo</h2>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-yellow-400">
+        <div className="bg-card overflow-hidden shadow rounded-lg border-l-4 border-yellow-400 dark:border-yellow-500">
           <div className="p-5">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium text-gray-500">Restaurantes Pendientes</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.pendingRestaurants}</p>
+                <p className="text-sm font-medium text-muted-foreground">Restaurantes Pendientes</p>
+                <p className="text-2xl font-semibold text-foreground">{stats.pendingRestaurants}</p>
               </div>
-              <Store className="h-8 w-8 text-yellow-400" />
+              <Store className="h-8 w-8 text-yellow-400 dark:text-yellow-500" />
             </div>
             <div className="mt-4">
               <div className="text-sm">
-                <a href="/admin/restaurants" className="font-medium text-yellow-600 hover:text-yellow-500">
+                <a href="/admin/restaurants" className="font-medium text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300">
                   Ver solicitudes &rarr;
                 </a>
               </div>
@@ -171,18 +172,18 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-orange-400">
+        <div className="bg-card overflow-hidden shadow rounded-lg border-l-4 border-orange-400 dark:border-orange-500">
           <div className="p-5">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium text-gray-500">Repartidores Pendientes</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.pendingCouriers}</p>
+                <p className="text-sm font-medium text-muted-foreground">Repartidores Pendientes</p>
+                <p className="text-2xl font-semibold text-foreground">{stats.pendingCouriers}</p>
               </div>
-              <Bike className="h-8 w-8 text-orange-400" />
+              <Bike className="h-8 w-8 text-orange-400 dark:text-orange-500" />
             </div>
             <div className="mt-4">
               <div className="text-sm">
-                <a href="/admin/couriers" className="font-medium text-orange-600 hover:text-orange-500">
+                <a href="/admin/couriers" className="font-medium text-orange-600 dark:text-orange-400 hover:text-orange-500 dark:hover:text-orange-300">
                   Ver solicitudes &rarr;
                 </a>
               </div>
@@ -190,14 +191,14 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-blue-400">
+        <div className="bg-card overflow-hidden shadow rounded-lg border-l-4 border-blue-400 dark:border-blue-500">
           <div className="p-5">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium text-gray-500">Restaurantes Activos</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalRestaurants - stats.pendingRestaurants}</p>
+                <p className="text-sm font-medium text-muted-foreground">Restaurantes Activos</p>
+                <p className="text-2xl font-semibold text-foreground">{stats.totalRestaurants - stats.pendingRestaurants}</p>
               </div>
-              <Store className="h-8 w-8 text-blue-400" />
+              <Store className="h-8 w-8 text-blue-400 dark:text-blue-500" />
             </div>
           </div>
         </div>
@@ -208,31 +209,31 @@ export default function AdminDashboard() {
         <RecentOrdersWidget />
 
         {/* Platform Stats Summary */}
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-card shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
+            <h3 className="text-lg font-medium leading-6 text-foreground mb-4">
               Resumen de la Plataforma
             </h3>
             <dl className="space-y-4">
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Total Restaurantes</dt>
-                <dd className="text-sm font-semibold text-gray-900">{stats.totalRestaurants}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Total Restaurantes</dt>
+                <dd className="text-sm font-semibold text-foreground">{stats.totalRestaurants}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Total Repartidores</dt>
-                <dd className="text-sm font-semibold text-gray-900">{stats.totalCouriers}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Total Repartidores</dt>
+                <dd className="text-sm font-semibold text-foreground">{stats.totalCouriers}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Total Clientes</dt>
-                <dd className="text-sm font-semibold text-gray-900">{stats.totalUsers}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Total Clientes</dt>
+                <dd className="text-sm font-semibold text-foreground">{stats.totalUsers}</dd>
               </div>
-              <div className="flex justify-between border-t pt-4">
-                <dt className="text-sm font-medium text-gray-500">Pedidos Completados</dt>
-                <dd className="text-sm font-semibold text-gray-900">{stats.totalOrders}</dd>
+              <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
+                <dt className="text-sm font-medium text-muted-foreground">Pedidos Completados</dt>
+                <dd className="text-sm font-semibold text-foreground">{stats.totalOrders}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Ingresos Totales</dt>
-                <dd className="text-sm font-semibold text-green-600">{formatCurrency(stats.totalRevenue)}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Ingresos Totales</dt>
+                <dd className="text-sm font-semibold text-green-600 dark:text-green-400">{formatCurrency(stats.totalRevenue)}</dd>
               </div>
             </dl>
           </div>

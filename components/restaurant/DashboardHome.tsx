@@ -54,14 +54,14 @@ export default function DashboardHome({
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'confirmed': return 'bg-blue-100 text-blue-800';
-            case 'preparing': return 'bg-purple-100 text-purple-800';
-            case 'ready_for_pickup': return 'bg-indigo-100 text-indigo-800';
-            case 'picked_up': return 'bg-orange-100 text-orange-800';
-            case 'delivered': return 'bg-green-100 text-green-800';
-            case 'cancelled': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50';
+            case 'confirmed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50';
+            case 'preparing': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50';
+            case 'ready_for_pickup': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50';
+            case 'picked_up': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50';
+            case 'delivered': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/50';
+            case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/50';
+            default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700';
         }
     };
 
@@ -81,21 +81,21 @@ export default function DashboardHome({
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Header Section with Store Toggle */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl shadow-sm border border-border transition-colors duration-200">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight">
                         Hola, <span className="text-[#e4007c]">{restaurantName || 'Socio'}</span> 👋
                     </h1>
-                    <p className="text-gray-500 mt-1">Resumen de actividad en tiempo real.</p>
+                    <p className="text-muted-foreground mt-1">Resumen de actividad en tiempo real.</p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-xl">
-                    <span className={`text-sm font-medium ${isStoreOpen ? 'text-green-600' : 'text-gray-500'}`}>
+                <div className="flex items-center gap-4 bg-muted/50 p-2 rounded-xl border border-border">
+                    <span className={`text-sm font-medium ${isStoreOpen ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                         {isStoreOpen ? 'Tienda Abierta' : 'Tienda Cerrada'}
                     </span>
                     <button
                         onClick={onToggleStoreStatus}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 ${isStoreOpen ? 'bg-green-500' : 'bg-gray-300'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 focus:ring-offset-background ${isStoreOpen ? 'bg-green-500' : 'bg-muted-foreground/30'}`}
                     >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isStoreOpen ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
@@ -105,24 +105,24 @@ export default function DashboardHome({
             {/* Stats Grid - Premium Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Orders Card */}
-                <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <div className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-md hover:border-border/80 transition-all relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 dark:bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-blue-100 rounded-xl text-blue-600">
+                            <div className="p-3 bg-blue-100 dark:bg-blue-500/10 rounded-xl text-blue-600 dark:text-blue-400">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             </div>
-                            <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">Hoy</span>
+                            <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded-full border border-green-100 dark:border-green-500/20">Hoy</span>
                         </div>
-                        <h3 className="text-gray-500 text-sm font-medium">Pedidos Totales</h3>
-                        <p className="text-3xl font-bold text-gray-900 mt-1">{stats?.ordersToday || 0}</p>
+                        <h3 className="text-muted-foreground text-sm font-medium">Pedidos Totales</h3>
+                        <p className="text-3xl font-bold text-foreground mt-1">{stats?.ordersToday || 0}</p>
                     </div>
                 </div>
 
                 {/* Sales Card */}
-                <div className="bg-gradient-to-br from-[#e4007c] to-[#b00060] p-6 rounded-2xl shadow-lg border border-transparent text-white relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-[#e4007c] to-[#b00060] p-6 rounded-2xl shadow-lg shadow-pink-500/20 dark:shadow-none border border-transparent text-white relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-8 -mt-8 blur-2xl"></div>
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
@@ -138,23 +138,23 @@ export default function DashboardHome({
                 </div>
 
                 {/* Rating Card */}
-                <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <div className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-md hover:border-border/80 transition-all relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-50 dark:bg-yellow-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-yellow-100 rounded-xl text-yellow-600">
+                            <div className="p-3 bg-yellow-100 dark:bg-yellow-500/10 rounded-xl text-yellow-600 dark:text-yellow-400">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                 </svg>
                             </div>
-                            <span className="text-xs font-medium text-gray-500">Promedio</span>
+                            <span className="text-xs font-medium text-muted-foreground">Promedio</span>
                         </div>
-                        <h3 className="text-gray-500 text-sm font-medium">Calificación</h3>
+                        <h3 className="text-muted-foreground text-sm font-medium">Calificación</h3>
                         <div className="flex items-baseline gap-2 mt-1">
-                            <p className="text-3xl font-bold text-gray-900">{stats?.rating?.toFixed(1) || 'N/A'}</p>
+                            <p className="text-3xl font-bold text-foreground">{stats?.rating?.toFixed(1) || 'N/A'}</p>
                             <div className="flex text-yellow-400 text-sm">
                                 {[...Array(5)].map((_, i) => (
-                                    <svg key={i} className={`w-4 h-4 ${i < Math.round(stats?.rating || 0) ? 'fill-current' : 'text-gray-300 fill-current'}`} viewBox="0 0 20 20">
+                                    <svg key={i} className={`w-4 h-4 ${i < Math.round(stats?.rating || 0) ? 'fill-current' : 'text-muted-foreground/30 fill-current'}`} viewBox="0 0 20 20">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                     </svg>
                                 ))}
@@ -178,14 +178,14 @@ export default function DashboardHome({
                     )}
 
                     {/* Recent Orders Table */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-                            <h3 className="font-bold text-gray-900 text-lg">Pedidos Recientes</h3>
+                    <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+                        <div className="p-6 border-b border-border flex justify-between items-center">
+                            <h3 className="font-bold text-foreground text-lg">Pedidos Recientes</h3>
                             <button className="text-sm text-[#e4007c] font-medium hover:text-[#b00060]">Ver todos</button>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
+                                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground font-medium">
                                     <tr>
                                         <th className="px-6 py-4">ID Pedido</th>
                                         <th className="px-6 py-4">Cliente/Dirección</th>
@@ -193,31 +193,31 @@ export default function DashboardHome({
                                         <th className="px-6 py-4 text-right">Total</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-border">
                                     {stats?.recentOrders && stats.recentOrders.length > 0 ? (
                                         stats.recentOrders.map((order) => (
-                                            <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={order.id} className="hover:bg-muted/50 transition-colors">
                                                 <td className="px-6 py-4">
-                                                    <span className="font-mono text-xs text-gray-500">#{order.id.slice(0, 8)}</span>
-                                                    <div className="text-xs text-gray-400 mt-1">{formatTimeAgo(order.created_at)}</div>
+                                                    <span className="font-mono text-xs text-muted-foreground">#{order.id.slice(0, 8)}</span>
+                                                    <div className="text-xs text-muted-foreground mt-1">{formatTimeAgo(order.created_at)}</div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-gray-900">Cliente</div>
-                                                    <div className="text-xs text-gray-500 truncate max-w-[150px]">{order.delivery_address || 'Sin dirección'}</div>
+                                                    <div className="text-sm font-medium text-foreground">Cliente</div>
+                                                    <div className="text-xs text-muted-foreground truncate max-w-[150px]">{order.delivery_address || 'Sin dirección'}</div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                                                         {getStatusLabel(order.status)}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-medium text-gray-900">
+                                                <td className="px-6 py-4 text-right font-medium text-foreground">
                                                     {formatCurrency(order.total_amount)}
                                                 </td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                            <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
                                                 No hay pedidos recientes.
                                             </td>
                                         </tr>
@@ -231,39 +231,39 @@ export default function DashboardHome({
                 {/* Sidebar Column */}
                 <div className="space-y-8">
                     {/* Weekly Sales Chart (CSS Only) */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-6">Ventas Semanales</h3>
+                    <div className="bg-card p-6 rounded-2xl shadow-sm border border-border">
+                        <h3 className="font-bold text-foreground mb-6">Ventas Semanales</h3>
                         <div className="flex items-end justify-between h-40 gap-2">
                             {stats?.weeklySales?.map((day, index) => (
                                 <div key={index} className="flex flex-col items-center gap-2 flex-1 group">
-                                    <div className="w-full bg-gray-100 rounded-t-lg relative h-32 flex items-end overflow-hidden">
+                                    <div className="w-full bg-muted/50 rounded-t-lg relative h-32 flex items-end overflow-hidden">
                                         <div
                                             className="w-full bg-[#e4007c] opacity-80 group-hover:opacity-100 transition-all duration-500 ease-out rounded-t-lg"
                                             style={{ height: `${Math.random() * 80 + 10}%` }} // Mock height for visual as data is 0
                                         ></div>
                                     </div>
-                                    <span className="text-xs text-gray-400 font-medium">{day.day}</span>
+                                    <span className="text-xs text-muted-foreground font-medium">{day.day}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Top Products */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-4">Productos Top</h3>
+                    <div className="bg-card p-6 rounded-2xl shadow-sm border border-border">
+                        <h3 className="font-bold text-foreground mb-4">Productos Top</h3>
                         <div className="space-y-4">
                             {stats?.topProducts?.map((product, index) => (
                                 <div key={index} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
                                             {index + 1}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                                            <p className="text-xs text-gray-500">{product.count} vendidos</p>
+                                            <p className="text-sm font-medium text-foreground">{product.name}</p>
+                                            <p className="text-xs text-muted-foreground">{product.count} vendidos</p>
                                         </div>
                                     </div>
-                                    <span className="text-sm font-bold text-gray-900">{formatCurrency(product.revenue)}</span>
+                                    <span className="text-sm font-bold text-foreground">{formatCurrency(product.revenue)}</span>
                                 </div>
                             ))}
                         </div>

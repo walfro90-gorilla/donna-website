@@ -20,11 +20,11 @@ export function CompletionCard({ percentage, missingFields, role, onFieldClick }
     const isComplete = percentage === 100;
 
     return (
-        <Card className="overflow-hidden border-none shadow-lg bg-white">
+        <Card className="overflow-hidden border-none shadow-lg bg-card">
             <div className={cn("h-2 w-full", isComplete ? "bg-green-500" : "bg-[#e4007c]")} />
             <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg font-bold text-gray-900">
+                    <CardTitle className="text-lg font-bold text-foreground">
                         {isComplete ? '¡Perfil Completado!' : 'Completa tu Perfil'}
                     </CardTitle>
                     <span className={cn("text-sm font-bold px-2 py-1 rounded-full", isComplete ? "bg-green-100 text-green-700" : "bg-pink-100 text-[#e4007c]")}>
@@ -50,7 +50,7 @@ export function CompletionCard({ percentage, missingFields, role, onFieldClick }
                         </div>
                         <ul className="space-y-2">
                             {missingFields.slice(0, 3).map((field) => (
-                                <li key={field.key} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-2 rounded hover:bg-gray-100 transition-colors">
+                                <li key={field.key} className="flex items-center justify-between text-sm text-muted-foreground bg-muted/50 p-2 rounded hover:bg-muted transition-colors">
                                     <span>{field.label}</span>
                                     {onFieldClick ? (
                                         <button
@@ -69,7 +69,7 @@ export function CompletionCard({ percentage, missingFields, role, onFieldClick }
                                 </li>
                             ))}
                             {missingFields.length > 3 && (
-                                <li className="text-xs text-center text-gray-500 pt-1">
+                                <li className="text-xs text-center text-muted-foreground pt-1">
                                     y {missingFields.length - 3} más...
                                 </li>
                             )}
@@ -82,7 +82,7 @@ export function CompletionCard({ percentage, missingFields, role, onFieldClick }
                     <Button
                         onClick={() => onFieldClick ? onFieldClick('general') : null}
                         asChild={!onFieldClick}
-                        className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                         {onFieldClick ? (
                             <span>Completar Perfil</span>

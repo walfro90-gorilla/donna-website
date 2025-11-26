@@ -146,7 +146,7 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={formState.isLoading}
-            className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+            className="w-full py-3 px-4 bg-[#e4007c] hover:bg-[#c6006b] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
           >
             {formState.isLoading ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -171,7 +171,7 @@ export default function LoginForm() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={formState.isLoading}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex justify-center items-center gap-3"
+            className="w-full py-3 px-4 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors flex justify-center items-center gap-3"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
