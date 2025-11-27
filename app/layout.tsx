@@ -18,11 +18,11 @@ export const metadata: Metadata = {
   keywords: ['comida', 'delivery', 'restaurantes', 'local', 'barrio', 'reparto', 'app', 'méxico'],
   authors: [{ name: 'Doña Repartos Team' }],
   creator: 'Doña Repartos',
-  metadataBase: new URL('https://dona-repartos.com'), // Replace with actual domain when deployed
+  metadataBase: new URL('https://www.xn--doa-8ma.app'),
   openGraph: {
     type: 'website',
     locale: 'es_MX',
-    url: 'https://dona-repartos.com',
+    url: 'https://www.xn--doa-8ma.app',
     title: 'Doña Repartos - El sabor de tu barrio',
     description: 'Pide tu comida favorita de los mejores restaurantes locales. Rápido, seguro y con el sazón de siempre.',
     siteName: 'Doña Repartos',
