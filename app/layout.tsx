@@ -10,8 +10,42 @@ import { AuthProvider } from '@/lib/auth/context';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Doña Repartos - El sabor de tu barrio',
-  description: 'Apoya a los restaurantes locales y recibe tu comida favorita más rápido que nunca.',
+  title: {
+    default: 'Doña Repartos - El sabor de tu barrio',
+    template: '%s | Doña Repartos',
+  },
+  description: 'Apoya a los restaurantes locales y recibe tu comida favorita más rápido que nunca. Únete a la comunidad de Doña Repartos.',
+  keywords: ['comida', 'delivery', 'restaurantes', 'local', 'barrio', 'reparto', 'app', 'méxico'],
+  authors: [{ name: 'Doña Repartos Team' }],
+  creator: 'Doña Repartos',
+  metadataBase: new URL('https://dona-repartos.com'), // Replace with actual domain when deployed
+  openGraph: {
+    type: 'website',
+    locale: 'es_MX',
+    url: 'https://dona-repartos.com',
+    title: 'Doña Repartos - El sabor de tu barrio',
+    description: 'Pide tu comida favorita de los mejores restaurantes locales. Rápido, seguro y con el sazón de siempre.',
+    siteName: 'Doña Repartos',
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Doña Repartos - El sabor de tu barrio',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Doña Repartos - El sabor de tu barrio',
+    description: 'Apoya a los restaurantes locales y recibe tu comida favorita más rápido que nunca.',
+    images: ['/twitter-image.png'],
+    creator: '@donarepartos',
+  },
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+  },
 };
 
 import { ThemeProvider } from '@/components/ThemeProvider';
