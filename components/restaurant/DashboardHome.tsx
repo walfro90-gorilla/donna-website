@@ -105,56 +105,64 @@ export default function DashboardHome({
             {/* Stats Grid - Premium Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Orders Card */}
-                <div className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-md hover:border-border/80 transition-all relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 dark:bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-500/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500"></div>
                     <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-blue-100 dark:bg-blue-500/10 rounded-xl text-blue-600 dark:text-blue-400">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="p-3.5 bg-blue-100 dark:bg-blue-500/20 rounded-2xl text-blue-600 dark:text-blue-400 shadow-sm group-hover:shadow-md transition-shadow">
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             </div>
-                            <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded-full border border-green-100 dark:border-green-500/20">Hoy</span>
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-500/20">Hoy</span>
                         </div>
-                        <h3 className="text-muted-foreground text-sm font-medium">Pedidos Totales</h3>
-                        <p className="text-3xl font-bold text-foreground mt-1">{stats?.ordersToday || 0}</p>
+                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-semibold uppercase tracking-wider">Pedidos Totales</h3>
+                        <div className="flex items-baseline gap-2 mt-2">
+                            <p className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{stats?.ordersToday || 0}</p>
+                            <span className="text-sm font-medium text-green-500 flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                                +12%
+                            </span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Sales Card */}
-                <div className="bg-gradient-to-br from-[#e4007c] to-[#b00060] p-6 rounded-2xl shadow-lg shadow-pink-500/20 dark:shadow-none border border-transparent text-white relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-8 -mt-8 blur-2xl"></div>
+                <div className="bg-gradient-to-br from-[#e4007c] to-[#b00060] p-6 rounded-3xl shadow-xl shadow-pink-500/30 border border-transparent text-white relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full -ml-8 -mb-8 blur-2xl"></div>
                     <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-white/20 rounded-xl text-white backdrop-blur-sm">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="p-3.5 bg-white/20 rounded-2xl text-white backdrop-blur-md shadow-inner">
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
+                            <span className="text-xs font-bold text-white/90 bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm">Ingresos</span>
                         </div>
-                        <h3 className="text-white/80 text-sm font-medium">Ventas Totales</h3>
-                        <p className="text-3xl font-bold text-white mt-1">{formatCurrency(stats?.totalSales || 0)}</p>
+                        <h3 className="text-white/80 text-sm font-semibold uppercase tracking-wider">Ventas Totales</h3>
+                        <p className="text-4xl font-extrabold text-white mt-2 tracking-tight">{formatCurrency(stats?.totalSales || 0)}</p>
                     </div>
                 </div>
 
                 {/* Rating Card */}
-                <div className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-md hover:border-border/80 transition-all relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-50 dark:bg-yellow-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-50 dark:bg-yellow-500/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500"></div>
                     <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-yellow-100 dark:bg-yellow-500/10 rounded-xl text-yellow-600 dark:text-yellow-400">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="p-3.5 bg-yellow-100 dark:bg-yellow-500/20 rounded-2xl text-yellow-600 dark:text-yellow-400 shadow-sm group-hover:shadow-md transition-shadow">
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                 </svg>
                             </div>
-                            <span className="text-xs font-medium text-muted-foreground">Promedio</span>
+                            <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 px-3 py-1.5 rounded-full border border-yellow-100 dark:border-yellow-500/20">Promedio</span>
                         </div>
-                        <h3 className="text-muted-foreground text-sm font-medium">Calificación</h3>
-                        <div className="flex items-baseline gap-2 mt-1">
-                            <p className="text-3xl font-bold text-foreground">{stats?.rating?.toFixed(1) || 'N/A'}</p>
-                            <div className="flex text-yellow-400 text-sm">
+                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-semibold uppercase tracking-wider">Calificación</h3>
+                        <div className="flex items-baseline gap-3 mt-2">
+                            <p className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{stats?.rating?.toFixed(1) || 'N/A'}</p>
+                            <div className="flex text-yellow-400">
                                 {[...Array(5)].map((_, i) => (
-                                    <svg key={i} className={`w-4 h-4 ${i < Math.round(stats?.rating || 0) ? 'fill-current' : 'text-muted-foreground/30 fill-current'}`} viewBox="0 0 20 20">
+                                    <svg key={i} className={`w-5 h-5 ${i < Math.round(stats?.rating || 0) ? 'fill-current' : 'text-gray-200 dark:text-gray-700 fill-current'}`} viewBox="0 0 20 20">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                     </svg>
                                 ))}

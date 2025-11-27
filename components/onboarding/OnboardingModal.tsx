@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -72,37 +71,38 @@ export function OnboardingModal({ isOpen, onClose, role, userName }: OnboardingM
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
-                        <CheckCircle2 className="h-6 w-6 text-green-600" aria-hidden="true" />
+            <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900 border-0 rounded-3xl shadow-2xl overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-orange-500"></div>
+                <DialogHeader className="pt-8 px-6">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20 mb-6 shadow-sm animate-bounce-slow">
+                        <CheckCircle2 className="h-8 w-8 text-green-500" aria-hidden="true" />
                     </div>
-                    <DialogTitle className="text-center text-2xl font-bold text-gray-900">
+                    <DialogTitle className="text-center text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
                         {currentContent.title}
                     </DialogTitle>
-                    <DialogDescription className="text-center text-gray-500 mt-2">
+                    <DialogDescription className="text-center text-gray-500 dark:text-gray-400 mt-3 text-lg leading-relaxed">
                         {currentContent.description}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="mt-4 space-y-4">
+                <div className="mt-8 space-y-6 px-6">
                     {currentContent.steps.map((step, index) => (
-                        <div key={index} className="flex items-start">
-                            <div className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full border-2 border-[#e4007c] text-[#e4007c] font-bold text-xs mr-3">
+                        <div key={index} className="flex items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 transition-transform hover:scale-[1.02]">
+                            <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm mr-4">
                                 {index + 1}
                             </div>
-                            <p className="text-sm text-gray-700">{step}</p>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{step}</p>
                         </div>
                     ))}
                 </div>
 
-                <DialogFooter className="mt-6 sm:justify-center">
+                <DialogFooter className="mt-8 pb-8 px-6 sm:justify-center">
                     <Button
                         onClick={handleClose}
-                        className="w-full sm:w-auto bg-[#e4007c] hover:bg-[#c00068] text-white font-bold py-2 px-6 rounded-full shadow-lg transform transition hover:scale-105 flex items-center justify-center"
+                        className="w-full bg-gradient-to-r from-primary to-pink-600 hover:from-primary-hover hover:to-pink-700 text-white font-bold py-6 rounded-xl shadow-lg shadow-primary/25 transform transition-all duration-200 hover:-translate-y-1 hover:shadow-xl flex items-center justify-center text-lg"
                     >
                         Comenzar
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                 </DialogFooter>
             </DialogContent>

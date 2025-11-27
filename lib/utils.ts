@@ -65,5 +65,47 @@ export const ACCESSIBILITY = {
     close: "Cerrar",
     menu: "Menú",
     search: "Buscar",
+    required: "Requerido",
+    previous: "Anterior",
+    next: "Siguiente",
   }
 };
+
+export function generateResponsiveFontClasses(sizes: { base?: string; mobile?: string; tablet?: string; desktop?: string }) {
+  // Simple implementation mapping sizes to tailwind classes
+  const classes = [];
+  if (sizes.base) classes.push(`text-${sizes.base}`);
+  if (sizes.mobile) classes.push(`sm:text-${sizes.mobile}`);
+  if (sizes.tablet) classes.push(`md:text-${sizes.tablet}`);
+  if (sizes.desktop) classes.push(`lg:text-${sizes.desktop}`);
+  return classes.join(' ');
+}
+
+export function generateResponsiveSpacingClasses(property: 'p' | 'm' | 'gap', sizes: { base?: string; mobile?: string; tablet?: string; desktop?: string }) {
+  const classes = [];
+  if (sizes.base) classes.push(`${property}-${sizes.base}`);
+  if (sizes.mobile) classes.push(`sm:${property}-${sizes.mobile}`);
+  if (sizes.tablet) classes.push(`md:${property}-${sizes.tablet}`);
+  if (sizes.desktop) classes.push(`lg:${property}-${sizes.desktop}`);
+  return classes.join(' ');
+}
+
+export function trapFocus(element: HTMLElement) {
+  // Placeholder for focus trapping logic
+  // In a real implementation, this would restrict tab navigation to the element
+  console.log('Focus trapped in', element);
+}
+
+export function createFieldDescription(description: string, id: string) {
+  // Helper to create aria-describedby props
+  return {
+    id,
+    children: description
+  };
+}
+
+export function announceToScreenReader(message: string) {
+  // Simple implementation using a live region if it existed, or just logging for now
+  // In a real app, you'd append a hidden div with aria-live="polite"
+  console.log('Screen Reader Announcement:', message);
+}

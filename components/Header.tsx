@@ -58,47 +58,48 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm sticky top-0 z-50 transition-shadow duration-200 dark:border-b dark:border-gray-800" role="banner">
+    <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-sm sticky top-0 z-50 transition-all duration-300 border-b border-transparent dark:border-gray-800 hover:bg-white/95 dark:hover:bg-gray-900/95" role="banner">
       <div className="container mx-auto px-4 sm:px-6 h-16 lg:h-[72px] flex justify-between items-center">
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:ring-offset-2 rounded-lg px-2 py-1"
+          className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg px-2 py-1 group"
           onClick={closeMenu}
           aria-label="Doña Repartos - Ir a la página de inicio"
         >
-          <Image
-            src="/app_icon.png"
-            alt=""
-            width={40}
-            height={40}
-            className="rounded-full object-cover"
-            style={{ borderRadius: 'var(--radius-full)' }}
-            priority
-            aria-hidden="true"
-          />
-          <span className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white hidden sm:block">
+          <div className="relative overflow-hidden rounded-full transition-transform duration-300 group-hover:scale-110 shadow-md">
+            <Image
+              src="/app_icon.png"
+              alt=""
+              width={40}
+              height={40}
+              className="object-cover"
+              priority
+              aria-hidden="true"
+            />
+          </div>
+          <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white hidden sm:block tracking-tight group-hover:text-primary transition-colors">
             Doña Repartos
           </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center space-x-6" aria-label="Navegación principal" role="navigation">
-          <Link
+        <nav className="hidden lg:flex items-center space-x-1" aria-label="Navegación principal" role="navigation">
+          {/* <Link
             href="/clientes"
-            className="text-gray-600 dark:text-gray-300 hover:text-[#e4007c] dark:hover:text-[#e4007c] transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 rounded px-3 py-2"
+            className="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-primary-light/50 dark:hover:bg-primary/10 transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-4 py-2"
           >
             Para Clientes
-          </Link>
+          </Link> */}
           <Link
             href="/socios"
-            className="text-gray-600 dark:text-gray-300 hover:text-[#e4007c] dark:hover:text-[#e4007c] transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 rounded px-3 py-2"
+            className="text-gray-600 dark:text-gray-100 hover:text-primary dark:hover:text-primary hover:bg-primary-light/50 dark:hover:bg-primary/10 transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-4 py-2"
           >
             Para Restaurantes
           </Link>
           <Link
             href="/registro-repartidor"
-            className="text-gray-600 dark:text-gray-300 hover:text-[#e4007c] dark:hover:text-[#e4007c] transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 rounded px-3 py-2"
+            className="text-gray-600 dark:text-gray-100 hover:text-primary dark:hover:text-primary hover:bg-primary-light/50 dark:hover:bg-primary/10 transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-4 py-2"
           >
             Para Repartidores
           </Link>
@@ -186,7 +187,7 @@ export default function Header() {
             /* Login Button - Only when NOT logged in */
             <Link
               href="/login"
-              className="hidden lg:flex items-center text-[#e4007c] hover:text-white hover:bg-[#e4007c] px-4 py-2 text-sm font-medium border border-[#e4007c] rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2"
+              className="hidden lg:flex items-center text-white bg-[#e4007c] hover:bg-[#c00068] px-4 py-2 text-sm font-medium border border-transparent rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2"
               style={{ minHeight: '44px' }}
               aria-label="Iniciar sesión"
             >
@@ -220,13 +221,13 @@ export default function Header() {
       {isMenuOpen && (
         <div id="mobile-menu" className="lg:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-4 animate-slide-down">
           <nav className="flex flex-col items-stretch px-4 space-y-2" aria-label="Navegación móvil" role="navigation">
-            <Link
+            {/* <Link
               href="/clientes"
               className="text-gray-600 dark:text-gray-300 hover:text-[#e4007c] dark:hover:text-[#e4007c] hover:bg-[#fef2f9] dark:hover:bg-gray-800 transition-all duration-200 font-medium py-3 px-4 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 min-h-[48px] flex items-center"
               onClick={closeMenu}
             >
               Para Clientes
-            </Link>
+            </Link> */}
             <Link
               href="/socios"
               className="text-gray-600 dark:text-gray-300 hover:text-[#e4007c] dark:hover:text-[#e4007c] hover:bg-[#fef2f9] dark:hover:bg-gray-800 transition-all duration-200 font-medium py-3 px-4 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 min-h-[48px] flex items-center"

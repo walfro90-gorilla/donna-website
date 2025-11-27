@@ -70,58 +70,66 @@ export default function HomePage() {
     <>
       {/* Hero Section - Requirements: 6.1, 13.1, 13.3, 14.2, 14.3 */}
       <section
-        className="relative min-h-[60vh] lg:min-h-[70vh] flex items-center justify-center text-center text-white overflow-hidden"
+        className="relative min-h-screen flex items-center justify-center text-center text-white overflow-hidden"
         aria-labelledby="hero-title"
       >
         {/* Background Image with Next.js Image - Priority for above-the-fold */}
-        <Image
-          src={heroImage}
-          alt="Mesa con platos de comida variada y colorida"
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw"
-          quality={85}
-        />
-        {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black opacity-55 z-[1]"></div>
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={heroImage}
+            alt="Mesa con platos de comida variada y colorida"
+            fill
+            priority
+            className="object-cover"
+            sizes="100vw"
+            quality={85}
+          />
+          {/* Enhanced Gradient Overlay for better text readability and premium feel */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/30 z-[1]"></div>
+        </div>
 
-        <div className="relative z-[2] p-4 sm:p-6 max-w-4xl mx-auto">
+        <div className="relative z-[2] p-4 sm:p-6 max-w-5xl mx-auto animate-fade-in">
           <h1
             id="hero-title"
-            className="font-extrabold mb-4 md:mb-6"
+            className="font-extrabold mb-6 md:mb-8 tracking-tight drop-shadow-lg"
             style={{
-              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-              lineHeight: 'var(--leading-tight)',
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+              lineHeight: '1.1',
             }}
           >
-            El sabor de tu barrio, entregado con corazón.
+            El sabor de tu barrio, <br className="hidden sm:block" />
+            <span className="text-primary-light">entregado con corazón.</span>
           </h1>
           <p
-            className="max-w-2xl mx-auto mb-6 md:mb-8"
+            className="max-w-2xl mx-auto mb-8 md:mb-10 text-gray-100 font-medium drop-shadow-md"
             style={{
-              fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-              lineHeight: 'var(--leading-relaxed)',
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+              fontSize: 'clamp(1.125rem, 2vw, 1.5rem)',
+              lineHeight: '1.6',
             }}
           >
             Apoya a los restaurantes locales y recibe tu comida favorita más rápido que nunca.
           </p>
-          <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:gap-2 justify-center max-w-xl mx-auto" role="search">
+          <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto" role="search">
             <label htmlFor="address-search" className="sr-only">Ingresa tu dirección para buscar restaurantes</label>
-            <input
-              id="address-search"
-              type="text"
-              placeholder="Ingresa tu dirección"
-              className="w-full sm:w-2/3 px-5 py-3 rounded-full text-gray-800 bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2"
-              style={{ minHeight: '48px', fontSize: '16px' }}
-              aria-label="Ingresa tu dirección para buscar restaurantes"
-            />
+            <div className="relative flex-grow max-w-md w-full">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <input
+                id="address-search"
+                type="text"
+                placeholder="Ingresa tu dirección"
+                className="w-full pl-16 pr-5 py-4 rounded-full text-gray-900 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-shadow duration-300"
+                style={{ minHeight: '56px', fontSize: '1rem' }}
+                aria-label="Ingresa tu dirección para buscar restaurantes"
+              />
+            </div>
             <Link
               href="/clientes"
-              className="bg-[#e4007c] text-white font-semibold py-3 px-6 sm:px-8 rounded-full hover:bg-[#c6006b] transition-transform transform hover:scale-105 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 flex items-center justify-center"
-              style={{ minHeight: '48px', fontSize: '16px' }}
+              className="bg-[#e4007c] hover:bg-[#c20069] text-white font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 text-center flex items-center justify-center min-w-[200px]"
+              style={{ minHeight: '56px', fontSize: '1rem' }}
             >
               Ver Restaurantes
             </Link>
@@ -130,60 +138,59 @@ export default function HomePage() {
       </section>
 
       {/* Sección "Cómo Funciona" - Requirements: 1.2, 13.1, 13.2, 13.3, 13.4, 14.2, 14.3 */}
-      <section className="bg-gray-50 dark:bg-gray-900 transition-colors duration-300" style={{ paddingTop: 'clamp(3rem, 8vw, 5rem)', paddingBottom: 'clamp(3rem, 8vw, 5rem)' }} aria-labelledby="how-it-works-title">
-        <div className="container mx-auto text-center" style={{ paddingLeft: 'clamp(1rem, 4vw, 1.5rem)', paddingRight: 'clamp(1rem, 4vw, 1.5rem)' }}>
+      <section className="bg-gray-50 dark:bg-gray-900 transition-colors duration-300" style={{ paddingTop: 'clamp(4rem, 10vw, 6rem)', paddingBottom: 'clamp(4rem, 10vw, 6rem)' }} aria-labelledby="how-it-works-title">
+        <div className="container mx-auto text-center px-4 sm:px-6">
           <h2
             id="how-it-works-title"
-            className="font-bold text-gray-800 dark:text-white"
+            className="font-bold text-gray-900 dark:text-white mb-12 sm:mb-16"
             style={{
-              fontSize: 'clamp(1.5rem, 4vw, 2.25rem)',
-              marginBottom: 'clamp(2rem, 5vw, 3rem)'
+              fontSize: 'clamp(2rem, 4vw, 2.5rem)',
             }}
           >
-            Tu comida favorita en 3 simples pasos
+            Tu comida favorita en <span className="text-primary">3 simples pasos</span>
           </h2>
           {/* Grid responsive: 1 col mobile / 3 cols desktop con gap ajustado */}
-          <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 'clamp(2rem, 5vw, 3rem)' }}>
-            <div className="flex flex-col items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+            <div className="flex flex-col items-center group">
               {/* Contenedor circular de 80px con background primary-light y hover effect */}
               <div
-                className="bg-[#fce4f3] dark:bg-pink-900/30 rounded-full mb-4 flex items-center justify-center transition-transform duration-300 hover:scale-105"
-                style={{ width: '80px', height: '80px' }}
+                className="bg-white dark:bg-gray-800 rounded-full mb-6 flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border border-gray-100 dark:border-gray-700"
+                style={{ width: '100px', height: '100px' }}
               >
-                <svg className="w-10 h-10 text-[#e4007c]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               </div>
               {/* Tipografía mejorada con espaciado vertical ajustado */}
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">1. Elige tu antojo</h3>
-              <p className="text-gray-600 dark:text-gray-300" style={{ lineHeight: 'var(--leading-relaxed)' }}>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">1. Elige tu antojo</h3>
+              <p className="text-gray-600 dark:text-gray-300 max-w-xs mx-auto leading-relaxed">
                 Explora los mejores restaurantes locales cerca de ti y encuentra lo que se te antoja.
               </p>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center group">
               {/* Contenedor circular de 80px con background primary-light y hover effect */}
               <div
-                className="bg-[#fce4f3] dark:bg-pink-900/30 rounded-full mb-4 flex items-center justify-center transition-transform duration-300 hover:scale-105"
-                style={{ width: '80px', height: '80px' }}
+                className="bg-white dark:bg-gray-800 rounded-full mb-6 flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border border-gray-100 dark:border-gray-700"
+                style={{ width: '100px', height: '100px' }}
               >
-                <svg className="w-10 h-10 text-[#e4007c]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
               </div>
               {/* Tipografía mejorada con espaciado vertical ajustado */}
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">2. Haz tu pedido</h3>
-              <p className="text-gray-600 dark:text-gray-300" style={{ lineHeight: 'var(--leading-relaxed)' }}>
-                Añade tus platillos al carrito y paga en efectivo al recibir tu pedido.
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">2. Haz tu pedido</h3>
+              <p className="text-gray-600 dark:text-gray-300 max-w-xs mx-auto leading-relaxed">
+                Añade tus platillos al carrito y paga de forma segura o en efectivo.
               </p>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center group">
               {/* Contenedor circular de 80px con background primary-light y hover effect */}
               <div
-                className="bg-[#fce4f3] dark:bg-pink-900/30 rounded-full mb-4 flex items-center justify-center transition-transform duration-300 hover:scale-105"
-                style={{ width: '80px', height: '80px' }}
+                className="bg-white dark:bg-gray-800 rounded-full mb-6 flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border border-gray-100 dark:border-gray-700"
+                style={{ width: '100px', height: '100px' }}
               >
-                <svg className="w-10 h-10 text-[#e4007c]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8a1 1 0 001-1zM3 18h6" /></svg>
+                <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8a1 1 0 001-1zM3 18h6" /></svg>
               </div>
               {/* Tipografía mejorada con espaciado vertical ajustado */}
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">3. Disfruta en minutos</h3>
-              <p className="text-gray-600 dark:text-gray-300" style={{ lineHeight: 'var(--leading-relaxed)' }}>
-                Sigue tu orden en tiempo real y recíbela en la puerta de tu casa.
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">3. Disfruta en minutos</h3>
+              <p className="text-gray-600 dark:text-gray-300 max-w-xs mx-auto leading-relaxed">
+                Sigue tu orden en tiempo real y recíbela caliente en la puerta de tu casa.
               </p>
             </div>
           </div>
@@ -191,82 +198,74 @@ export default function HomePage() {
       </section>
 
       {/* Sección CTA para Socios y Repartidores - Requirements: 1.2, 13.1, 13.2, 13.3, 13.4, 14.2, 14.3 */}
-      <section className="bg-white dark:bg-gray-800 transition-colors duration-300" style={{ paddingTop: 'clamp(3rem, 8vw, 5rem)', paddingBottom: 'clamp(3rem, 8vw, 5rem)' }} aria-label="Únete a Doña Repartos">
-        <div className="container mx-auto" style={{ paddingLeft: 'clamp(1rem, 4vw, 1.5rem)', paddingRight: 'clamp(1rem, 4vw, 1.5rem)' }}>
+      <section className="bg-white dark:bg-gray-950 transition-colors duration-300" style={{ paddingTop: 'clamp(4rem, 10vw, 6rem)', paddingBottom: 'clamp(4rem, 10vw, 6rem)' }} aria-label="Únete a Doña Repartos">
+        <div className="container mx-auto px-4 sm:px-6">
           {/* Grid responsive: 1 col mobile / 2 cols desktop con gap ajustado */}
-          <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 'clamp(1.5rem, 4vw, 2rem)' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Tarjeta CTA Restaurantes con border-radius xl, padding responsive y hover effect */}
             <div
-              className="bg-gray-100 dark:bg-gray-700 text-center transition-transform duration-300 hover:-translate-y-1"
+              className="relative overflow-hidden bg-gray-50 dark:bg-gray-900 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl group border border-gray-100 dark:border-gray-800"
               style={{
-                borderRadius: '1rem',
-                padding: 'clamp(2rem, 4vw, 2.5rem)'
+                borderRadius: '1.5rem',
+                padding: 'clamp(3rem, 5vw, 4rem)'
               }}
             >
-              <h3
-                className="font-bold text-gray-800 dark:text-white mb-4"
-                style={{ fontSize: 'clamp(1.25rem, 3vw, 1.5rem)' }}
-              >
-                Haz crecer tu negocio
-              </h3>
-              <p
-                className="text-gray-600 dark:text-gray-300 mb-6"
-                style={{
-                  fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                  lineHeight: 'var(--leading-relaxed)'
-                }}
-              >
-                Llega a miles de nuevos clientes en tu comunidad y aumenta tus ventas. Únete a la familia Doña Repartos.
-              </p>
-              <Link
-                href="/socios"
-                className="bg-gray-800 dark:bg-gray-900 text-white font-semibold rounded-full hover:bg-black dark:hover:bg-gray-950 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-800 focus-visible:ring-offset-2"
-                style={{
-                  minHeight: '48px',
-                  padding: '0.75rem 2rem',
-                  fontSize: '1rem',
-                  transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              >
-                Registra tu Restaurante
-              </Link>
+              <div className="relative z-10">
+                <h3
+                  className="font-bold text-gray-900 dark:text-white mb-4 text-3xl"
+                >
+                  Haz crecer tu negocio
+                </h3>
+                <p
+                  className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto text-lg"
+                >
+                  Llega a miles de nuevos clientes en tu comunidad y aumenta tus ventas. Únete a la familia Doña Repartos.
+                </p>
+                <Link
+                  href="/socios"
+                  className="bg-[#e4007c] hover:bg-[#c20069] text-white font-bold rounded-full inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 shadow-lg hover:shadow-xl transition-all duration-300"
+                  style={{
+                    minHeight: '56px',
+                    padding: '0.75rem 2.5rem',
+                    fontSize: '1.125rem',
+                  }}
+                >
+                  Registra tu Restaurante
+                </Link>
+              </div>
             </div>
 
             {/* Tarjeta CTA Repartidores con border-radius xl, padding responsive y hover effect */}
             <div
-              className="bg-[#e4007c] text-center text-white transition-transform duration-300 hover:-translate-y-1"
+              className="relative overflow-hidden bg-[#e4007c] text-center text-white transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl group"
               style={{
-                borderRadius: '1rem',
-                padding: 'clamp(2rem, 4vw, 2.5rem)'
+                borderRadius: '1.5rem',
+                padding: 'clamp(3rem, 5vw, 4rem)'
               }}
             >
-              <h3
-                className="font-bold mb-4"
-                style={{ fontSize: 'clamp(1.25rem, 3vw, 1.5rem)' }}
-              >
-                Gana a tu ritmo
-              </h3>
-              <p
-                className="mb-6"
-                style={{
-                  fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                  lineHeight: 'var(--leading-relaxed)'
-                }}
-              >
-                Sé tu propio jefe. Conduce con Doña Repartos y obtén ganancias con horarios flexibles.
-              </p>
-              <Link
-                href="/registro-repartidor"
-                className="bg-white text-[#e4007c] font-semibold rounded-full hover:bg-gray-50 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
-                style={{
-                  minHeight: '48px',
-                  padding: '0.75rem 2rem',
-                  fontSize: '1rem',
-                  transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              >
-                Conviértete en Repartidor
-              </Link>
+              <div className="relative z-10">
+                <h3
+                  className="font-bold mb-4 text-3xl"
+                >
+                  Gana a tu ritmo
+                </h3>
+                <p
+                  className="mb-8 max-w-md mx-auto text-white/90 text-lg"
+                >
+                  Sé tu propio jefe. Conduce con Doña Repartos y obtén ganancias con horarios flexibles.
+                </p>
+                <Link
+                  href="/registro-repartidor"
+                  className="bg-white text-[#e4007c] font-bold rounded-full hover:bg-gray-50 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 shadow-lg hover:shadow-xl transition-all duration-300"
+                  style={{
+                    minHeight: '56px',
+                    padding: '0.75rem 2.5rem',
+                    fontSize: '1.125rem',
+                  }}
+                >
+                  Conviértete en Repartidor
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -309,19 +308,19 @@ export default function HomePage() {
                   <div key={index} className="w-full flex-shrink-0 px-4">
                     {/* Tarjeta de testimonio con background blanco, shadow-md, border-radius xl (1rem) y padding 2rem */}
                     <div
-                      className="bg-white dark:bg-gray-800 shadow-md"
+                      className="bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transition-shadow duration-300"
                       style={{
-                        borderRadius: 'var(--radius-xl)', /* 1rem */
-                        padding: 'var(--spacing-8)' /* 2rem */
+                        borderRadius: '2rem',
+                        padding: 'clamp(2rem, 5vw, 3rem)'
                       }}
                     >
                       {/* Avatar con border decorativo de 3px primary-light y tamaño 80x80px */}
                       <div
-                        className="relative mx-auto mb-4"
+                        className="relative mx-auto mb-6"
                         style={{
-                          width: '80px',
-                          height: '80px',
-                          border: '3px solid var(--color-primary-light)',
+                          width: '96px',
+                          height: '96px',
+                          border: '4px solid var(--color-primary-light)',
                           borderRadius: 'var(--radius-full)'
                         }}
                       >
@@ -330,13 +329,13 @@ export default function HomePage() {
                           alt={`Avatar de ${testimonial.name}`}
                           fill
                           className="rounded-full object-cover"
-                          sizes="80px"
+                          sizes="96px"
                         />
                       </div>
                       <StarRating rating={testimonial.rating} />
-                      <p className="text-gray-600 dark:text-gray-300 italic mb-4">&ldquo;{testimonial.comment}&rdquo;</p>
-                      <h4 className="font-bold text-lg text-gray-800 dark:text-white">{testimonial.name}</h4>
-                      <p className="text-[#e4007c] font-semibold">{testimonial.role}</p>
+                      <p className="text-gray-600 dark:text-gray-300 italic mb-6 text-lg leading-relaxed">&ldquo;{testimonial.comment}&rdquo;</p>
+                      <h4 className="font-bold text-xl text-gray-900 dark:text-white mb-1">{testimonial.name}</h4>
+                      <p className="text-primary font-semibold">{testimonial.role}</p>
                     </div>
                   </div>
                 ))}
@@ -413,17 +412,41 @@ export default function HomePage() {
               </p>
               <div className="flex justify-center lg:justify-start space-x-4 mt-8">
                 <a href="#" className="bg-black dark:bg-gray-800 text-white py-3 px-6 rounded-lg flex items-center hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors">
-                  <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M19.333 3.003c-2.22-2.213-5.32-2.61-7.836-1.04-2.523 1.573-4.52 4.14-4.52 7.233 0 2.22.9 4.673 2.303 6.41.97 1.203 2.11 2.323 3.51 3.253.07.043.15.063.22.063.07 0 .15-.02.21-.053 2.2-1.12 3.82-2.64 4.96-4.14 1.3-1.743 2.02-3.863 2.02-5.943 0-2.89-1.63-5.463-3.887-7.23zM12.003 15.683c-1.88 0-3.41-1.52-3.41-3.39s1.53-3.39 3.41-3.39c1.88 0 3.41 1.52 3.41 3.39s-1.53 3.39-3.41 3.39z" /></svg>
+                  <div className="relative w-8 h-8 mr-3">
+                    <Image
+                      src="/dona-app-icon.png"
+                      alt="Doña Repartos Icon"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                   <div>
-                    <span className="text-xs">Descargar en la</span>
-                    <span className="block font-semibold">App Store</span>
+                    <span className="text-xs block">Descárgalo en la</span>
+                    <div className="flex items-center">
+                      <span className="font-semibold text-lg leading-none">App Store</span>
+                      <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.45-1.62 3.75-1.44 3.92.55 4.87 3.36 4.66 4.29-.14.6-2.5 1.8-2.53 4.45.03 2.65 2.4 3.68 2.51 3.78-.15.45-1.45 3.3-2.47 4.15zm-3.52-11.7c-1.25-1.51-.55-3.87.66-4.58 1.45-.8 3.3.4 3.15 2.65-.1 1.7-1.9 3.1-3.81 1.93z" />
+                      </svg>
+                    </div>
                   </div>
                 </a>
                 <a href="#" className="bg-black dark:bg-gray-800 text-white py-3 px-6 rounded-lg flex items-center hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors">
-                  <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M3 2v20l18-10L3 2zm4.82 8.42L15.36 12l-7.54 1.58.01-3.16z" /></svg>
+                  <div className="relative w-8 h-8 mr-3">
+                    <Image
+                      src="/dona-play-icon.png"
+                      alt="Doña Repartos Play Store Icon"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                   <div>
-                    <span className="text-xs">DISPONIBLE EN</span>
-                    <span className="block font-semibold">Google Play</span>
+                    <span className="text-xs block">DISPONIBLE EN</span>
+                    <div className="flex items-center">
+                      <span className="font-semibold text-lg leading-none">Google Play</span>
+                      <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 2v20l18-10L3 2zm4.82 8.42L15.36 12l-7.54 1.58.01-3.16z" />
+                      </svg>
+                    </div>
                   </div>
                 </a>
               </div>

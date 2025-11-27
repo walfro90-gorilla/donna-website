@@ -3,82 +3,114 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CookieSettingsButton } from '@/components/CookieSettings';
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 text-white" role="contentinfo">
-      {/* Main footer content with improved spacing: 2rem mobile / 3rem desktop */}
-      <div className="container mx-auto px-6 py-8 lg:py-12">
-        {/* Improved responsive layout: stack mobile / row desktop */}
-        <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start text-center lg:text-left gap-8 lg:gap-12">
+    <footer className="bg-gray-900 text-white border-t border-gray-800" role="contentinfo">
+      <div className="container mx-auto px-6 py-12 lg:py-16">
+        <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start gap-10 lg:gap-16">
+
           {/* Brand section */}
-          <div className="mb-0">
-            <h3 className="text-lg font-bold mb-2 text-white">Doña Repartos</h3>
-            <p className="text-gray-400 text-sm">
-              El sabor de tu barrio, entregado con corazón.
-            </p>
-          </div>
-          
-          {/* Navigation links with improved spacing between groups - Requirements: 14.2, 14.3 */}
-          <nav className="flex flex-wrap justify-center lg:justify-end gap-4 lg:gap-6" aria-label="Enlaces del pie de página" role="navigation">
+          <div className="flex flex-col items-center lg:items-start space-y-4 max-w-sm text-center lg:text-left">
             <Link
               href="/"
-              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded px-2 py-1"
+              className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded-lg p-1"
+              aria-label="Doña Repartos - Ir a inicio"
+            >
+              <div className="relative overflow-hidden rounded-full transition-transform duration-300 group-hover:scale-110 shadow-lg ring-2 ring-transparent group-hover:ring-[#e4007c]/50">
+                <Image
+                  src="/app_icon.png"
+                  alt="Doña Repartos Logo"
+                  width={48}
+                  height={48}
+                  className="object-cover"
+                />
+              </div>
+              <span className="text-xl font-bold text-white tracking-tight group-hover:text-[#e4007c] transition-colors">
+                Doña Repartos
+              </span>
+            </Link>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              El sabor de tu barrio, entregado con corazón. Conectamos a los mejores restaurantes locales con clientes apasionados por la buena comida.
+            </p>
+          </div>
+
+          {/* Navigation links */}
+          <nav className="flex flex-wrap justify-center lg:justify-end gap-x-8 gap-y-4" aria-label="Enlaces del pie de página">
+            <Link
+              href="/"
+              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded px-2 py-1"
             >
               Inicio
             </Link>
             <Link
-              href="/clientes"
-              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded px-2 py-1"
-            >
-              Clientes
-            </Link>
-            <Link
               href="/socios"
-              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded px-2 py-1"
+              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded px-2 py-1"
             >
               Restaurantes
             </Link>
             <Link
               href="/registro-repartidor"
-              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded px-2 py-1"
+              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded px-2 py-1"
             >
               Repartidores
             </Link>
             <Link
               href="/legal"
-              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded px-2 py-1"
+              className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded px-2 py-1"
             >
               Legal
             </Link>
           </nav>
         </div>
-        
-        {/* Copyright section with subtle border-top (gray-700) and improved responsive layout */}
-        <div className="mt-8 border-t border-gray-700 pt-4">
-          <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
-            <p className="text-gray-400 text-sm text-center lg:text-left">
-              &copy; {new Date().getFullYear()} Doña Repartos. Todos los derechos reservados.
-            </p>
-            
-            {/* Legal links with improved hover states and transitions */}
-            <div className="flex flex-wrap justify-center gap-4 text-sm">
-              <Link
-                href="/legal/privacidad"
-                className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded px-2 py-1"
-              >
-                Privacidad
-              </Link>
-              <Link
-                href="/legal/terminos"
-                className="text-gray-400 hover:text-[#e4007c] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded px-2 py-1"
-              >
-                Términos
-              </Link>
-              <CookieSettingsButton />
+
+        {/* Divider */}
+        <div className="my-8 border-t border-gray-800"></div>
+
+        {/* Bottom section */}
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
+
+          {/* Copyright */}
+          <p className="text-gray-500 text-sm text-center lg:text-left">
+            &copy; {new Date().getFullYear()} Doña Repartos. Todos los derechos reservados.
+          </p>
+
+          {/* Legal & Settings */}
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
+            <Link
+              href="/legal/privacidad"
+              className="text-gray-500 hover:text-[#e4007c] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded px-2 py-1"
+            >
+              Privacidad
+            </Link>
+            <Link
+              href="/legal/terminos"
+              className="text-gray-500 hover:text-[#e4007c] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded px-2 py-1"
+            >
+              Términos
+            </Link>
+            <div className="flex items-center">
+              <CookieSettingsButton variant="icon" />
             </div>
           </div>
+        </div>
+
+        {/* Gorilla Labs Credit */}
+        <div className="mt-8 pt-6 border-t border-gray-800/50 flex justify-center">
+          <a
+            href="https://gorillabs.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-600 hover:text-[#e4007c] transition-colors duration-300 flex items-center gap-1 group"
+          >
+            <span>Desarrollado con</span>
+            <span className="animate-pulse">💚</span>
+            <span>por</span>
+            <span className="font-bold group-hover:underline decoration-[#e4007c] decoration-2 underline-offset-2">Gorilla Labs</span>
+            <span className="text-base">🦍</span>
+          </a>
         </div>
       </div>
     </footer>

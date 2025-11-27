@@ -9,10 +9,10 @@ import { LazyRegistrationComponents, preloadUserTypeComponents } from '@/compone
 import { TimeoutHandler } from '@/components/ui';
 import { retryWithBackoff, handleError } from '@/lib/utils/errorHandler';
 import { registerRestaurantClient } from '@/lib/utils/registerRestaurant';
-import { 
-  createEmptyRegistration, 
+import {
+  createEmptyRegistration,
   convertToLegacyFormat,
-  type CompleteRestaurantRegistration 
+  type CompleteRestaurantRegistration
 } from '@/types/registration';
 import { Alert } from '@/components/ui';
 import AddressAutocompleteFixed from '@/components/AddressAutocompleteFixed';
@@ -33,7 +33,7 @@ export default function SociosPage() {
   const [error, setError] = useState('');
   const [showMultiStep, setShowMultiStep] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     restaurantName: '',
@@ -47,9 +47,9 @@ export default function SociosPage() {
     password: '',
     confirmPassword: ''
   });
-  
+
   const [showLocationMap, setShowLocationMap] = useState(false);
-  
+
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const supabase = useSupabase();
@@ -73,7 +73,7 @@ export default function SociosPage() {
       validation: async (data: CompleteRestaurantRegistration) => {
         const businessInfo = data.businessInfo || {};
         const errors: Record<string, string> = {};
-        
+
         if (!businessInfo.businessName?.trim()) {
           errors.businessName = 'El nombre del negocio es requerido';
         }
@@ -92,7 +92,7 @@ export default function SociosPage() {
         if (!businessInfo.password?.trim()) {
           errors.password = 'La contraseña es requerida';
         }
-        
+
         return {
           isValid: Object.keys(errors).length === 0,
           errors: Object.keys(errors).length > 0 ? errors : undefined,
@@ -107,14 +107,14 @@ export default function SociosPage() {
       validation: async (data: CompleteRestaurantRegistration) => {
         const locationAddress = data.locationAddress || {};
         const errors: Record<string, string> = {};
-        
+
         if (!locationAddress.formattedAddress?.trim()) {
           errors.fullAddress = 'La dirección es requerida';
         }
         if (!locationAddress.coordinates?.lat || !locationAddress.coordinates?.lng) {
           errors.coordinates = 'Las coordenadas son requeridas';
         }
-        
+
         return {
           isValid: Object.keys(errors).length === 0,
           errors: Object.keys(errors).length > 0 ? errors : undefined,
@@ -129,24 +129,24 @@ export default function SociosPage() {
       validation: async (data: CompleteRestaurantRegistration) => {
         const legalDocs = data.legalDocumentation || {};
         const errors: Record<string, string> = {};
-        
+
         const requiredDocs = ['rfc', 'identificacion', 'certificado_bancario'];
         const uploadedDocs = (legalDocs.documents || []).map((doc) => doc.type);
-        
+
         for (const docType of requiredDocs) {
           if (!uploadedDocs.includes(docType as never)) {
             errors[docType] = `El documento ${docType} es requerido`;
           }
         }
-        
+
         if (!legalDocs.businessLegalName?.trim()) {
           errors.businessLegalName = 'La razón social es requerida';
         }
-        
+
         if (!legalDocs.taxId?.trim()) {
           errors.taxId = 'El RFC es requerido';
         }
-        
+
         return {
           isValid: Object.keys(errors).length === 0,
           errors: Object.keys(errors).length > 0 ? errors : undefined,
@@ -161,14 +161,14 @@ export default function SociosPage() {
       validation: async (data: CompleteRestaurantRegistration) => {
         const branding = data.brandingMedia || {};
         const errors: Record<string, string> = {};
-        
+
         if (!branding.logo) {
           errors.logo = 'El logo es requerido';
         }
         if (!branding.coverImage) {
           errors.coverImage = 'La imagen de portada es requerida';
         }
-        
+
         return {
           isValid: Object.keys(errors).length === 0,
           errors: Object.keys(errors).length > 0 ? errors : undefined,
@@ -183,12 +183,12 @@ export default function SociosPage() {
       validation: async (data: CompleteRestaurantRegistration) => {
         const menu = data.menuCreation || {};
         const errors: Record<string, string> = {};
-        
+
         const totalItems = (menu.menuItems || []).length;
         if (totalItems < 15) {
           errors.minItems = `Necesitas al menos 15 platillos. Tienes ${totalItems}`;
         }
-        
+
         return {
           isValid: Object.keys(errors).length === 0,
           errors: Object.keys(errors).length > 0 ? errors : undefined,
@@ -248,14 +248,14 @@ export default function SociosPage() {
           submissionNotes: '',
         };
         const errors: Record<string, string> = {};
-        
+
         if (!reviewData.termsAccepted) {
           errors.termsAccepted = 'Debes aceptar los términos y condiciones';
         }
         if (!reviewData.privacyAccepted) {
           errors.privacyAccepted = 'Debes aceptar la política de privacidad';
         }
-        
+
         return {
           isValid: Object.keys(errors).length === 0,
           errors: Object.keys(errors).length > 0 ? errors : undefined,
@@ -267,13 +267,13 @@ export default function SociosPage() {
   const handleRegistrationComplete = useCallback(async (registrationData: CompleteRestaurantRegistration) => {
     setError('');
     setIsLoading(true);
-    
+
     try {
       // Use retry mechanism for registration
       await retryWithBackoff(async () => {
         // Convert the multi-step data to the legacy format for the existing registration function
         const legacyData = convertToLegacyFormat(registrationData);
-        
+
         const result = await registerRestaurantClient(supabase, {
           owner_name: legacyData.owner_name,
           email: legacyData.email,
@@ -313,30 +313,30 @@ export default function SociosPage() {
   const handleAddressChange = (address: string, placeData?: any) => {
     console.log('📍 Address changed:', { address, placeData });
     console.log('📍 Coordinates in placeData:', placeData?.coordinates);
-    
-    setFormData(prev => ({ 
-      ...prev, 
+
+    setFormData(prev => ({
+      ...prev,
       address,
-      addressPlaceData: placeData 
+      addressPlaceData: placeData
     }));
-    
+
     // If we have coordinates from place details, set them and show map for confirmation
     if (placeData?.coordinates) {
       const newLat = placeData.coordinates.lat;
       const newLng = placeData.coordinates.lng;
-      
+
       console.log('✅ Setting coordinates:', { lat: newLat, lng: newLng });
-      
+
       setFormData(prev => ({
         ...prev,
         lat: newLat,
         lon: newLng
       }));
-      
+
       // Always show map for confirmation (like mobile app)
       console.log('🗺️ Opening map with coordinates:', { lat: newLat, lng: newLng });
       setShowLocationMap(true);
-    } 
+    }
     // If we have place data but no coordinates, show map for confirmation (like mobile app)
     else if (placeData && placeData.placeId) {
       console.log('🗺️ Showing map for location confirmation (no coordinates yet)');
@@ -359,27 +359,27 @@ export default function SociosPage() {
   };
 
   const isFormValid = () => {
-    const basicFieldsValid = formData.restaurantName.trim() && 
-                            formData.phone.trim() && 
-                            formData.address.trim() && 
-                            formData.ownerName?.trim() && 
-                            formData.email.trim() && 
-                            formData.password.trim() &&
-                            formData.confirmPassword?.trim() &&
-                            formData.password === formData.confirmPassword &&
-                            formData.password.length >= 6 &&
-                            formData.lat !== null &&
-                            formData.lon !== null; // Coordinates required like mobile app
-    
-    const validationsValid = emailValidation !== 'invalid' && 
-                           restaurantNameValidation !== 'invalid';
-    
+    const basicFieldsValid = formData.restaurantName.trim() &&
+      formData.phone.trim() &&
+      formData.address.trim() &&
+      formData.ownerName?.trim() &&
+      formData.email.trim() &&
+      formData.password.trim() &&
+      formData.confirmPassword?.trim() &&
+      formData.password === formData.confirmPassword &&
+      formData.password.length >= 6 &&
+      formData.lat !== null &&
+      formData.lon !== null; // Coordinates required like mobile app
+
+    const validationsValid = emailValidation !== 'invalid' &&
+      restaurantNameValidation !== 'invalid';
+
     return basicFieldsValid && validationsValid && termsAccepted;
   };
 
   const handleStartRegistration = async () => {
     if (!isFormValid()) return;
-    
+
     setIsLoading(true);
     setError('');
 
@@ -420,65 +420,82 @@ export default function SociosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Main Content */}
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen flex-col lg:flex-row">
         {/* Left side - Hero content */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-hidden min-h-[40vh] lg:min-h-screen">
           {/* Background image */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105"
             style={{
-              backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZmY2YjM1O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjk1MDA7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgLz4KPC9zdmc+')"
+              backgroundImage: "url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1974&q=80')"
             }}
           >
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+            {/* Gradient Overlay for better text readability */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/40"></div>
           </div>
 
           {/* Content */}
-          <div className="relative z-10 p-8 lg:p-12 text-white h-full flex flex-col justify-center">
+          <div className="relative z-10 p-8 lg:p-16 text-white h-full flex flex-col justify-center lg:justify-start lg:pt-12 animate-fade-in">
             {/* Breadcrumb */}
-            <div className="mb-8">
-              <nav className="flex items-center space-x-2 text-sm">
-                <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full">Partners Rappi</span>
-                <span className="text-white text-opacity-70">&gt;</span>
-                <span className="text-white text-opacity-70">Restaurants</span>
+            <div className="mb-8 hidden lg:block">
+              <nav className="flex items-center space-x-2 text-sm font-medium">
+                <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 hover:bg-white/30 transition-colors cursor-pointer">Partners Doña</span>
+                <span className="text-white/60">&gt;</span>
+                <span className="text-white/90">Restaurantes</span>
               </nav>
             </div>
 
             {/* Main content */}
-            <div className="max-w-lg">
-              <h1 className="text-4xl lg:text-5xl font-bold mb-4">
-                0% TARIFAS POR 30 DÍAS
-              </h1>
-              
-              <p className="text-lg mb-6 text-white text-opacity-90">
-                Aplica un 30% de descuento en tu menú y <strong>no pagues por el uso de la plataforma</strong> en tus primeros 30 días.
-              </p>
+            <div className="max-w-xl space-y-8">
+              <div className="space-y-4">
+                <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight leading-tight drop-shadow-lg">
+                  0% COMISIÓN <br />
+                  <span className="text-primary-light">POR 30 DÍAS</span>
+                </h1>
 
-              <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-                Únete a Rappi y accede a miles de usuarios cerca de ti
-              </h2>
-
-              <p className="text-sm mb-6 text-white text-opacity-80">
-                ¡Es por tiempo limitado!
-              </p>
-
-              <div className="border-t border-white border-opacity-30 pt-4">
-                <p className="text-sm text-white text-opacity-80 underline">
-                  ¿Ya eres aliado y quieres registrar otras marcas o sucursales?
+                <p className="text-lg lg:text-xl text-gray-200 leading-relaxed max-w-lg">
+                  Impulsa tu negocio con nuestra plataforma. Sin costos ocultos y con el soporte que necesitas para crecer.
                 </p>
-                <p className="text-sm text-white text-opacity-80 underline">
-                  Haz clic aquí &gt;&gt;
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
+                  <div className="p-2 bg-green-500/20 rounded-full">
+                    <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <div>
+                    <p className="font-bold">Más Ventas</p>
+                    <p className="text-sm text-gray-300">Llega a nuevos clientes</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
+                  <div className="p-2 bg-blue-500/20 rounded-full">
+                    <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <div>
+                    <p className="font-bold">Entrega Rápida</p>
+                    <p className="text-sm text-gray-300">Flota de repartidores lista</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-white/20 pt-8 mt-8">
+                <p className="text-sm text-gray-300 mb-2">
+                  ¿Ya eres aliado y quieres registrar otras marcas?
                 </p>
+                <button className="text-white font-semibold hover:text-primary-light transition-colors flex items-center gap-2 group">
+                  Gestionar mis marcas
+                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </button>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right side - Registration form */}
-        <div className="w-full max-w-md bg-white p-8 shadow-xl">
+        <div className="w-full lg:max-w-xl bg-white dark:bg-gray-800 p-6 lg:p-12 shadow-2xl overflow-y-auto relative z-20 lg:-ml-10 lg:my-10 lg:rounded-l-3xl border-l border-gray-100 dark:border-gray-700">
           {isSubmitted ? (
             <div className="text-center py-8">
               <div className="mb-4">
@@ -532,11 +549,11 @@ export default function SociosPage() {
             </div>
           ) : (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 Registra tu restaurante
               </h2>
-              <p className="text-sm text-gray-600 mb-6">
-                ¿Ya comenzaste tu registro? <span className="text-green-600 underline cursor-pointer">continúa aquí.</span>
+              <p className="text-sm text-gray-600 dark:text-gray-100 mb-6">
+                ¿Ya comenzaste tu registro? <span className="text-green-600 dark:text-green-400 underline cursor-pointer">continúa aquí.</span>
               </p>
 
               <form className="space-y-6">
@@ -544,14 +561,13 @@ export default function SociosPage() {
                 <div className="space-y-4">
                   {/* Restaurant name with validation */}
                   <div className="relative">
-                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${
-                      restaurantNameValidation === 'invalid' 
-                        ? 'border-red-300 bg-red-50 focus-within:ring-red-200' 
-                        : restaurantNameValidation === 'valid' 
-                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200' 
+                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${restaurantNameValidation === 'invalid'
+                      ? 'border-red-300 bg-red-50 focus-within:ring-red-200'
+                      : restaurantNameValidation === 'valid'
+                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200'
                         : 'border-gray-300 focus-within:ring-[#e4007c] focus-within:border-[#e4007c]'
-                    }`}>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      }`}>
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                       <input
@@ -559,7 +575,7 @@ export default function SociosPage() {
                         placeholder="Nombre del restaurante"
                         value={formData.restaurantName}
                         onChange={(e) => handleInputChange('restaurantName', e.target.value)}
-                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                        className="flex-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
                       {restaurantNameValidation === 'checking' && (
                         <div className="w-5 h-5 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin"></div>
@@ -576,7 +592,7 @@ export default function SociosPage() {
                       )}
                     </div>
                     <div className="flex items-center justify-between mt-1 px-1">
-                      <p className="text-xs text-gray-500">Ingresa el nombre del restaurante</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Ingresa el nombre del restaurante</p>
                       {restaurantNameValidation === 'invalid' && (
                         <p className="text-xs text-red-600">Este nombre ya está en uso</p>
                       )}
@@ -588,8 +604,8 @@ export default function SociosPage() {
 
                   {/* Phone number */}
                   <div className="relative">
-                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                       <input
@@ -597,16 +613,16 @@ export default function SociosPage() {
                         placeholder="Teléfono"
                         value={formData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                        className="flex-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 px-1">Ingresa el teléfono</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">Ingresa el teléfono</p>
                   </div>
 
                   {/* Restaurant address with Google Places */}
                   <div className="relative">
-                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
@@ -616,7 +632,7 @@ export default function SociosPage() {
                         placeholder="Dirección del restaurante"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 px-1">Busca y confirma tu dirección</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">Busca y confirma tu dirección</p>
                     {formData.lat && formData.lon && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                         <div className="flex items-center space-x-2">
@@ -635,14 +651,14 @@ export default function SociosPage() {
 
                 {/* Responsible Person Information Section */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-700 border-b border-gray-200 pb-2">
+                  <h3 className="text-lg font-semibold text-gray-700 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
                     Información del responsable
                   </h3>
 
                   {/* Full name */}
                   <div className="relative">
-                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       <input
@@ -650,21 +666,20 @@ export default function SociosPage() {
                         placeholder="Nombre completo"
                         value={formData.ownerName || ''}
                         onChange={(e) => handleInputChange('ownerName', e.target.value)}
-                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                        className="flex-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
                     </div>
                   </div>
 
                   {/* Email with validation */}
                   <div className="relative">
-                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${
-                      emailValidation === 'invalid' 
-                        ? 'border-red-300 bg-red-50 focus-within:ring-red-200' 
-                        : emailValidation === 'valid' 
-                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200' 
+                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${emailValidation === 'invalid'
+                      ? 'border-red-300 bg-red-50 focus-within:ring-red-200'
+                      : emailValidation === 'valid'
+                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200'
                         : 'border-gray-300 focus-within:ring-[#e4007c] focus-within:border-[#e4007c]'
-                    }`}>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      }`}>
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                       <input
@@ -672,7 +687,7 @@ export default function SociosPage() {
                         placeholder="Correo electrónico"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                        className="flex-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
                       {emailValidation === 'checking' && (
                         <div className="w-5 h-5 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin"></div>
@@ -689,7 +704,7 @@ export default function SociosPage() {
                       )}
                     </div>
                     <div className="flex items-center justify-between mt-1 px-1">
-                      <p className="text-xs text-gray-500">Ingresa tu correo</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Ingresa tu correo</p>
                       {emailValidation === 'invalid' && (
                         <p className="text-xs text-red-600">Este correo ya está registrado</p>
                       )}
@@ -701,8 +716,8 @@ export default function SociosPage() {
 
                   {/* Password */}
                   <div className="relative">
-                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                       <input
@@ -710,9 +725,9 @@ export default function SociosPage() {
                         placeholder="Contraseña"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                        className="flex-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
-                      <svg className="w-5 h-5 text-gray-400 cursor-pointer hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
@@ -721,14 +736,13 @@ export default function SociosPage() {
 
                   {/* Confirm Password */}
                   <div className="relative">
-                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${
-                      formData.confirmPassword && formData.password !== formData.confirmPassword
-                        ? 'border-red-300 bg-red-50 focus-within:ring-red-200' 
-                        : formData.confirmPassword && formData.password === formData.confirmPassword && formData.password.length >= 6
-                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200' 
+                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${formData.confirmPassword && formData.password !== formData.confirmPassword
+                      ? 'border-red-300 bg-red-50 focus-within:ring-red-200'
+                      : formData.confirmPassword && formData.password === formData.confirmPassword && formData.password.length >= 6
+                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200'
                         : 'border-gray-300 focus-within:ring-[#e4007c] focus-within:border-[#e4007c]'
-                    }`}>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      }`}>
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                       <input
@@ -736,7 +750,7 @@ export default function SociosPage() {
                         placeholder="Confirmar contraseña"
                         value={formData.confirmPassword || ''}
                         onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        className="flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                        className="flex-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
                       {formData.confirmPassword && formData.password === formData.confirmPassword && formData.password.length >= 6 && (
                         <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -777,18 +791,18 @@ export default function SociosPage() {
                       onChange={(e) => setTermsAccepted(e.target.checked)}
                       className="mt-1 h-4 w-4 text-[#e4007c] focus:ring-[#e4007c] border-gray-300 rounded"
                     />
-                    <span className="text-sm text-gray-700 leading-relaxed">
+                    <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                       Acepto los{' '}
-                      <a 
-                        href="/legal/terminos-restaurantes" 
+                      <a
+                        href="/legal/terminos-restaurantes"
                         target="_blank"
                         className="text-[#e4007c] hover:text-[#c6006b] underline font-medium"
                       >
                         Términos y Condiciones para Restaurantes
                       </a>
                       {' '}y la{' '}
-                      <a 
-                        href="/legal/privacidad-restaurantes" 
+                      <a
+                        href="/legal/privacidad-restaurantes"
                         target="_blank"
                         className="text-[#e4007c] hover:text-[#c6006b] underline font-medium"
                       >
@@ -803,11 +817,10 @@ export default function SociosPage() {
                   type="button"
                   onClick={handleStartRegistration}
                   disabled={!isFormValid() || isLoading}
-                  className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${
-                    isFormValid() && !isLoading
-                      ? 'bg-gradient-to-r from-[#e4007c] to-pink-500 hover:from-[#c6006b] hover:to-pink-600 text-white hover:shadow-xl transform hover:-translate-y-1 hover:scale-[1.02]'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-sm'
-                  }`}
+                  className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${isFormValid() && !isLoading
+                    ? 'bg-gradient-to-r from-[#e4007c] to-pink-500 hover:from-[#c6006b] hover:to-pink-600 text-white hover:shadow-xl transform hover:-translate-y-1 hover:scale-[1.02]'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-sm'
+                    }`}
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center space-x-3">

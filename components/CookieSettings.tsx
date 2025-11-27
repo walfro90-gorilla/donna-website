@@ -36,7 +36,7 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
 
   const handlePreferenceChange = (type: keyof typeof preferences, value: boolean) => {
     if (type === 'necessary') return; // Cannot disable necessary cookies
-    
+
     setPreferences(prev => ({
       ...prev,
       [type]: value
@@ -69,7 +69,7 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
           {/* Content */}
           <div className="p-6 space-y-6">
             <p className="text-gray-700">
-              Gestiona tus preferencias de cookies. Puedes habilitar o deshabilitar diferentes 
+              Gestiona tus preferencias de cookies. Puedes habilitar o deshabilitar diferentes
               tipos de cookies según tus preferencias de privacidad.
             </p>
 
@@ -130,9 +130,8 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
                       onChange={(e) => handlePreferenceChange('analytics', e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                      preferences.analytics ? 'bg-[#e4007c] justify-end' : 'bg-gray-300 justify-start'
-                    }`}>
+                    <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${preferences.analytics ? 'bg-[#e4007c] justify-end' : 'bg-gray-300 justify-start'
+                      }`}>
                       <div className="w-4 h-4 bg-white rounded-full transition-transform"></div>
                     </div>
                   </label>
@@ -160,9 +159,8 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
                       onChange={(e) => handlePreferenceChange('marketing', e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                      preferences.marketing ? 'bg-[#e4007c] justify-end' : 'bg-gray-300 justify-start'
-                    }`}>
+                    <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${preferences.marketing ? 'bg-[#e4007c] justify-end' : 'bg-gray-300 justify-start'
+                      }`}>
                       <div className="w-4 h-4 bg-white rounded-full transition-transform"></div>
                     </div>
                   </label>
@@ -190,9 +188,8 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
                       onChange={(e) => handlePreferenceChange('functional', e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                      preferences.functional ? 'bg-[#e4007c] justify-end' : 'bg-gray-300 justify-start'
-                    }`}>
+                    <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${preferences.functional ? 'bg-[#e4007c] justify-end' : 'bg-gray-300 justify-start'
+                      }`}>
                       <div className="w-4 h-4 bg-white rounded-full transition-transform"></div>
                     </div>
                   </label>
@@ -227,7 +224,7 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
               >
                 Revocar Todo
               </button>
-              
+
               <button
                 onClick={onClose}
                 className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
@@ -235,7 +232,7 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
               >
                 Cancelar
               </button>
-              
+
               <button
                 onClick={handleSave}
                 className="flex-1 px-4 py-3 bg-[#e4007c] text-white rounded-lg hover:bg-[#c6006b] transition-colors font-medium"
@@ -252,7 +249,12 @@ export default function CookieSettings({ isOpen, onClose }: CookieSettingsProps)
 }
 
 // Cookie Settings Button Component
-export function CookieSettingsButton() {
+interface CookieSettingsButtonProps {
+  variant?: 'text' | 'icon';
+  className?: string;
+}
+
+export function CookieSettingsButton({ variant = 'text', className = '' }: CookieSettingsButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { isConsentGiven } = useCookieConsent();
 
@@ -263,11 +265,24 @@ export function CookieSettingsButton() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="text-sm text-gray-600 hover:text-[#e4007c] transition-colors"
+        className={`text-sm text-gray-400 hover:text-[#e4007c] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 rounded p-1 ${className}`}
+        aria-label="Configuración de Cookies"
+        title="Configuración de Cookies"
       >
-        Configuración de Cookies
+        {variant === 'icon' ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" />
+            <path d="M8.5 8.5v.01" />
+            <path d="M16 15.5v.01" />
+            <path d="M12 12v.01" />
+            <path d="M11 17v.01" />
+            <path d="M7 14v.01" />
+          </svg>
+        ) : (
+          "Configuración de Cookies"
+        )}
       </button>
-      
+
       <CookieSettings isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>
   );
