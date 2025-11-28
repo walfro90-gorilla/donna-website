@@ -64,7 +64,7 @@ export default function HomePage() {
     setCurrentIndex(newIndex);
   };
 
-  const heroImage = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto.format&fit=crop";
+
 
   return (
     <>
@@ -75,12 +75,23 @@ export default function HomePage() {
       >
         {/* Background Image with Next.js Image - Priority for above-the-fold */}
         <div className="absolute inset-0 z-0">
+          {/* Mobile Image */}
           <Image
-            src={heroImage}
+            src="/images/home-hero-mobile.jpg"
             alt="Mesa con platos de comida variada y colorida"
             fill
             priority
-            className="object-cover"
+            className="object-cover md:hidden"
+            sizes="100vw"
+            quality={85}
+          />
+          {/* Desktop Image */}
+          <Image
+            src="/images/home-hero-desktop.jpg"
+            alt="Mesa con platos de comida variada y colorida"
+            fill
+            priority
+            className="object-cover hidden md:block"
             sizes="100vw"
             quality={85}
           />

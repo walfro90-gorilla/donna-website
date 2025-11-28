@@ -76,32 +76,32 @@ export default function RecentOrdersWidget() {
     return (
         <div className="bg-card shadow rounded-lg border border-border">
             <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium leading-6 text-foreground mb-4">
+                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">
                     Pedidos Recientes
                 </h3>
                 {loading ? (
-                    <div className="text-center py-4 text-muted-foreground">Cargando...</div>
+                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">Cargando...</div>
                 ) : orders.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">No hay pedidos recientes</div>
+                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">No hay pedidos recientes</div>
                 ) : (
                     <div className="flow-root">
-                        <ul className="-my-5 divide-y divide-border">
+                        <ul className="-my-5 divide-y divide-gray-200 dark:divide-gray-700">
                             {orders.map((order) => (
                                 <li key={order.id} className="py-4">
                                     <div className="flex items-center space-x-4">
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-foreground truncate">
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                                 {order.restaurants?.name || 'Restaurante desconocido'}
                                             </p>
-                                            <p className="text-sm text-muted-foreground truncate">
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                                                 Cliente: {order.client?.name || 'Desconocido'}
                                             </p>
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-xs text-gray-400 dark:text-gray-500">
                                                 {new Date(order.created_at).toLocaleString('es-MX')}
                                             </p>
                                         </div>
                                         <div className="flex flex-col items-end">
-                                            <p className="text-sm font-medium text-foreground">
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
                                                 {formatCurrency(order.total_amount)}
                                             </p>
                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(order.status)}`}>

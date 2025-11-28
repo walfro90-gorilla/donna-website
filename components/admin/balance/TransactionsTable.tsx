@@ -105,11 +105,11 @@ export default function TransactionsTable({
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
             {/* Header & Filters */}
-            <div className="p-5 border-b border-gray-200 bg-gray-50">
+            <div className="p-5 border-b border-border bg-muted/50">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <h3 className="text-lg font-medium text-gray-900">Transacciones</h3>
+                    <h3 className="text-lg font-medium text-foreground">Transacciones</h3>
 
                     <div className="flex flex-wrap gap-3">
                         {/* Type Filter */}
@@ -120,7 +120,7 @@ export default function TransactionsTable({
                                     setTypeFilter(e.target.value);
                                     updateFilters('type', e.target.value);
                                 }}
-                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                className="block w-full pl-3 pr-10 py-2 text-base border-input bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                             >
                                 <option value="all">Todos los Tipos</option>
                                 {TRANSACTION_TYPES.map(type => (
@@ -137,7 +137,7 @@ export default function TransactionsTable({
                                     setAccountTypeFilter(e.target.value);
                                     updateFilters('accountType', e.target.value);
                                 }}
-                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                className="block w-full pl-3 pr-10 py-2 text-base border-input bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                             >
                                 <option value="all">Todas las Cuentas</option>
                                 {ACCOUNT_TYPES.map(type => (
@@ -146,7 +146,7 @@ export default function TransactionsTable({
                             </select>
                         </div>
 
-                        <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button className="inline-flex items-center px-3 py-2 border border-input shadow-sm text-sm leading-4 font-medium rounded-md text-foreground bg-background hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             <Download className="h-4 w-4 mr-2" />
                             Exportar
                         </button>
@@ -156,48 +156,48 @@ export default function TransactionsTable({
 
             {/* Table */}
             <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted/50">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Fecha
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Tipo
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Cuenta
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Monto
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Detalles
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                         {transactions.length > 0 ? (
                             transactions.map((transaction) => (
-                                <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <tr key={transaction.id} className="hover:bg-muted/50 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {formatDate(transaction.created_at)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
                                             {transaction.type.replace(/_/g, ' ')}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                         <div className="flex flex-col">
                                             <span className="font-medium">{getAccountName(transaction)}</span>
-                                            <span className="text-xs text-gray-500 capitalize">
+                                            <span className="text-xs text-muted-foreground capitalize">
                                                 {transaction.account?.account_type.replace(/_/g, ' ')}
                                             </span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className={`flex items-center ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        <div className={`flex items-center ${transaction.amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                             {transaction.amount >= 0 ? (
                                                 <ArrowUpRight className="h-4 w-4 mr-1" />
                                             ) : (
@@ -206,14 +206,14 @@ export default function TransactionsTable({
                                             {formatCurrency(transaction.amount)}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {transaction.order_id && (
-                                            <span className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                                            <span className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 cursor-pointer">
                                                 Orden #{transaction.order_id.slice(0, 8)}
                                             </span>
                                         )}
                                         {transaction.description && (
-                                            <p className="text-xs text-gray-400 mt-1 truncate max-w-xs">
+                                            <p className="text-xs text-muted-foreground mt-1 truncate max-w-xs">
                                                 {transaction.description}
                                             </p>
                                         )}
@@ -222,7 +222,7 @@ export default function TransactionsTable({
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-500">
+                                <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
                                     No se encontraron transacciones con los filtros seleccionados.
                                 </td>
                             </tr>
@@ -232,11 +232,11 @@ export default function TransactionsTable({
             </div>
 
             {/* Pagination */}
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="bg-card px-4 py-3 flex items-center justify-between border-t border-border sm:px-6">
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                     <div>
-                        <p className="text-sm text-gray-700">
-                            Página <span className="font-medium">{currentPage}</span> de <span className="font-medium">{totalPages}</span>
+                        <p className="text-sm text-muted-foreground">
+                            Página <span className="font-medium text-foreground">{currentPage}</span> de <span className="font-medium text-foreground">{totalPages}</span>
                         </p>
                     </div>
                     <div>
@@ -244,7 +244,7 @@ export default function TransactionsTable({
                             <button
                                 onClick={() => changePage(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
-                                className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
+                                className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-input bg-card text-sm font-medium ${currentPage === 1 ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:bg-muted'
                                     }`}
                             >
                                 <span className="sr-only">Anterior</span>
@@ -253,7 +253,7 @@ export default function TransactionsTable({
                             <button
                                 onClick={() => changePage(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
-                                className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
+                                className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-input bg-card text-sm font-medium ${currentPage === totalPages ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:bg-muted'
                                     }`}
                             >
                                 <span className="sr-only">Siguiente</span>

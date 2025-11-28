@@ -41,8 +41,8 @@ export default function AdminUsersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="sm:flex sm:items-center">
                 <div className="sm:flex-auto">
-                    <h1 className="text-2xl font-semibold text-gray-900">Usuarios (Clientes)</h1>
-                    <p className="mt-2 text-sm text-gray-700">
+                    <h1 className="text-2xl font-semibold text-foreground">Usuarios (Clientes)</h1>
+                    <p className="mt-2 text-sm text-muted-foreground">
                         Lista de todos los clientes registrados en la plataforma.
                     </p>
                 </div>
@@ -52,11 +52,11 @@ export default function AdminUsersPage() {
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between">
                 <div className="relative rounded-md shadow-sm max-w-xs">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-gray-400" />
+                        <Search className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                         type="text"
-                        className="focus:ring-[#e4007c] focus:border-[#e4007c] block w-full pl-10 sm:text-sm border-gray-300 rounded-md p-2 border"
+                        className="focus:ring-[#e4007c] focus:border-[#e4007c] block w-full pl-10 sm:text-sm border-input rounded-md p-2 border bg-background text-foreground"
                         placeholder="Buscar usuario..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -68,26 +68,26 @@ export default function AdminUsersPage() {
             <div className="mt-8 flex flex-col">
                 <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                            <table className="min-w-full divide-y divide-gray-300">
-                                <thead className="bg-gray-50">
+                        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg border border-border">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-muted/50">
                                     <tr>
-                                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Usuario</th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Contacto</th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Fecha Registro</th>
+                                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">Usuario</th>
+                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Contacto</th>
+                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Fecha Registro</th>
                                         <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                             <span className="sr-only">Acciones</span>
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200 bg-white">
+                                <tbody className="divide-y divide-border bg-card">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={4} className="text-center py-4">Cargando...</td>
+                                            <td colSpan={4} className="text-center py-4 text-muted-foreground">Cargando...</td>
                                         </tr>
                                     ) : filteredUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="text-center py-4">No se encontraron usuarios</td>
+                                            <td colSpan={4} className="text-center py-4 text-muted-foreground">No se encontraron usuarios</td>
                                         </tr>
                                     ) : (
                                         filteredUsers.map((user) => (
@@ -95,21 +95,21 @@ export default function AdminUsersPage() {
                                                 <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
                                                     <div className="flex items-center">
                                                         <div className="h-10 w-10 flex-shrink-0">
-                                                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                                                <User className="h-6 w-6 text-gray-400" />
+                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                                <User className="h-6 w-6 text-muted-foreground" />
                                                             </div>
                                                         </div>
                                                         <div className="ml-4">
-                                                            <div className="font-medium text-gray-900">{user.name || 'Sin nombre'}</div>
-                                                            <div className="text-gray-500 text-xs">ID: {user.id.slice(0, 8)}</div>
+                                                            <div className="font-medium text-foreground">{user.name || 'Sin nombre'}</div>
+                                                            <div className="text-muted-foreground text-xs">ID: {user.id.slice(0, 8)}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    <div className="text-gray-900">{user.email}</div>
-                                                    <div className="text-gray-500">{user.phone || '-'}</div>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
+                                                    <div className="text-foreground">{user.email}</div>
+                                                    <div className="text-muted-foreground">{user.phone || '-'}</div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
                                                     {new Date(user.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">

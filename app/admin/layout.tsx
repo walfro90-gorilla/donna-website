@@ -25,14 +25,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     if (loading || !isAuthorized) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                <LoadingSpinner />
+            <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950">
+                <LoadingSpinner isLoading={true} />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
             <AdminSidebar />
             <div className="md:pl-64 flex flex-col flex-1">
                 <main className="flex-1 pb-8">

@@ -11,7 +11,7 @@ export const RPC_FUNCTIONS = {
       'is_email_available',       // Alternativa
       'email_exists'              // Otra alternativa
     ],
-    
+
     // Opciones para validar teléfono (si existe)
     checkPhoneAvailability: [
       'check_phone_availability',
@@ -80,9 +80,9 @@ export async function tryRpcFunctions(
       }
     }
   }
-  
-  return { 
-    data: null, 
+
+  return {
+    data: null,
     error: { message: `None of the functions worked: ${functionNames.join(', ')}` }
   };
 }
@@ -92,10 +92,10 @@ export async function tryRpcFunctions(
 export const PROJECT_RPC_FUNCTIONS = {
   // Reemplaza con los nombres exactos de tus funciones de Flutter
   emailValidation: 'check_email_availability',  // ← Cambia este nombre
-  phoneValidation: null,                        // ← null si no tienes validación de teléfono
+  phoneValidation: 'check_phone_availability',  // ← Validacion de telefono habilitada
   userProfileEnsure: 'ensure_user_profile_v2',  // ← Cambia este nombre
   deliveryAgentRegister: 'register_delivery_agent_v2', // ← Cambia este nombre
-  
+
   // Parámetros que espera cada función (actualiza según tu Flutter app)
   params: {
     emailValidation: { p_email: 'email' },           // ← Ajusta los nombres de parámetros

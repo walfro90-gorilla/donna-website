@@ -21,6 +21,8 @@ import { registerRestaurantAtomic } from '@/lib/utils/registerRestaurantAtomic';
 
 
 // Icono para la sección de beneficios
+import { CountryCodeSelector } from '@/components/ui/CountryCodeSelector';
+
 const CheckCircleIcon = () => (
   <svg className="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -51,12 +53,17 @@ export default function SociosPage() {
   const [showLocationMap, setShowLocationMap] = useState(false);
 
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [lada, setLada] = useState('+52');
 
   const supabase = useSupabase();
+
+  // Construct full phone for validation
+  const fullPhone = lada + formData.phone;
 
   // Field validations
   const emailValidation = useRestaurantValidation('email', formData.email);
   const restaurantNameValidation = useRestaurantValidation('restaurantName', formData.restaurantName);
+  const phoneValidation = useRestaurantValidation('phone', fullPhone);
 
   // Preload restaurant components when component mounts
   useEffect(() => {
@@ -372,7 +379,8 @@ export default function SociosPage() {
       formData.lon !== null; // Coordinates required like mobile app
 
     const validationsValid = emailValidation !== 'invalid' &&
-      restaurantNameValidation !== 'invalid';
+      restaurantNameValidation !== 'invalid' &&
+      phoneValidation !== 'invalid';
 
     return basicFieldsValid && validationsValid && termsAccepted;
   };
@@ -390,7 +398,7 @@ export default function SociosPage() {
         ownerName: formData.ownerName!,
         email: formData.email,
         password: formData.password,
-        phone: formData.phone,
+        phone: fullPhone, // Send full phone with LADA
         address: formData.address,
         lat: formData.lat!,
         lon: formData.lon!,
@@ -604,19 +612,51 @@ export default function SociosPage() {
 
                   {/* Phone number */}
                   <div className="relative">
-                    <div className="flex items-center space-x-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-[#e4007c] focus-within:border-[#e4007c] transition-all">
-                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
+                    <div className={`flex items-center space-x-3 px-4 py-3 border rounded-lg focus-within:ring-2 transition-all ${phoneValidation === 'invalid'
+                      ? 'border-red-300 bg-red-50 focus-within:ring-red-200'
+                      : phoneValidation === 'valid'
+                        ? 'border-green-300 bg-green-50 focus-within:ring-green-200'
+                        : 'border-gray-300 dark:border-gray-600 focus-within:ring-[#e4007c] focus-within:border-[#e4007c]'
+                      }`}>
+
+                      {/* Lada Selector */}
+                      <div className="border-r border-gray-300 dark:border-gray-600">
+                        <CountryCodeSelector
+                          value={lada}
+                          onChange={setLada}
+                        />
+                      </div>
+
                       <input
                         type="tel"
                         placeholder="Teléfono"
                         value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, ''))}
                         className="flex-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
+                      {phoneValidation === 'checking' && (
+                        <div className="w-5 h-5 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin"></div>
+                      )}
+                      {phoneValidation === 'valid' && (
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {phoneValidation === 'invalid' && (
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">Ingresa el teléfono</p>
+                    <div className="flex items-center justify-between mt-1 px-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Ingresa el teléfono</p>
+                      {phoneValidation === 'invalid' && (
+                        <p className="text-xs text-red-600">Este teléfono ya está registrado</p>
+                      )}
+                      {phoneValidation === 'valid' && (
+                        <p className="text-xs text-green-600">Teléfono disponible</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Restaurant address with Google Places */}

@@ -27,11 +27,12 @@ export default function AdminSidebar() {
         { name: 'Usuarios', href: '/admin/users', icon: Users },
         { name: 'Pedidos', href: '/admin/orders', icon: ShoppingBag },
         { name: 'Balance', href: '/admin/balance', icon: DollarSign },
+        { name: 'Crear Perfil', href: '/admin/create-profile', icon: Users },
         { name: 'Configuración', href: '/admin/settings', icon: Settings },
     ];
 
     return (
-        <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:top-16 lg:md:top-[72px] md:bottom-0 bg-sidebar border-r border-sidebar-border">
+        <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:top-16 lg:md:top-[72px] md:bottom-0 bg-sidebar dark:bg-gray-950 border-r border-sidebar-border dark:border-gray-800">
             <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between h-16 flex-shrink-0 px-4 border-b border-sidebar-border">
                     <span className="text-sidebar-foreground font-bold text-xl">Donna Admin</span>
@@ -46,12 +47,12 @@ export default function AdminSidebar() {
                                     key={item.name}
                                     href={item.href}
                                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${isActive
-                                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                                        ? 'bg-gray-100 dark:bg-gray-800 text-[#e4007c]'
+                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                                         }`}
                                 >
                                     <item.icon
-                                        className={`mr-3 flex-shrink-0 h-6 w-6 ${isActive ? 'text-[#e4007c]' : 'text-gray-400 dark:text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300'
+                                        className={`mr-3 flex-shrink-0 h-6 w-6 ${isActive ? 'text-[#e4007c]' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300'
                                             }`}
                                         aria-hidden="true"
                                     />
@@ -67,9 +68,9 @@ export default function AdminSidebar() {
                         className="flex-shrink-0 w-full group block"
                     >
                         <div className="flex items-center">
-                            <LogOut className="inline-block h-5 w-5 text-gray-400 dark:text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300" />
+                            <LogOut className="inline-block h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300" />
                             <div className="ml-3">
-                                <p className="text-sm font-medium text-muted-foreground group-hover:text-sidebar-foreground">
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">
                                     Cerrar Sesión
                                 </p>
                             </div>

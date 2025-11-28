@@ -5,6 +5,8 @@ import { useSupabase } from '@/lib/hooks/useSupabase';
 import { registerDeliveryAgentClient } from '@/lib/utils/registerDeliveryAgent';
 import { useFieldValidation } from '@/lib/hooks/useFieldValidation';
 import Image from 'next/image';
+import Link from 'next/link';
+import { CountryCodeSelector } from '@/components/ui/CountryCodeSelector';
 
 // Icons as SVG components
 const EyeIcon = () => (
@@ -17,12 +19,6 @@ const EyeIcon = () => (
 const EyeOffIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
 );
 
@@ -39,33 +35,34 @@ export default function RegistroRepartidorPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lada, setLada] = useState('+52');
 
   const supabase = useSupabase();
 
-  // Field validations
-  const emailValidation = useFieldValidation('email', formData.email, 'repartidor');
-  // Nota: No validamos teléfono porque no hay constraint UNIQUE en la BD
+  // Construct full phone for validation
+  const fullPhone = lada + formData.phone;
 
-  // Validación de contraseña
-  const passwordValid = formData.password.length >= 6;
+  const emailValidation = useFieldValidation('email', formData.email, 'repartidor');
+  const phoneValidation = useFieldValidation('phone', fullPhone, 'repartidor');
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    if (error) setError(null);
   };
 
   const isFormValid = () => {
-    const allFieldsFilled = formData.name.trim() !== '' &&
-      formData.email.trim() !== '' &&
-      formData.phone.trim() !== '' &&
-      formData.password.trim() !== '';
-    const termsAccepted = acceptedTerms;
-    const emailValid = emailValidation === 'valid';
-    const passwordsValid = passwordValid;
-
-    return allFieldsFilled && termsAccepted && emailValid && passwordsValid;
+    return (
+      formData.name.length >= 3 &&
+      formData.email.length > 0 &&
+      emailValidation === 'valid' &&
+      formData.phone.length >= 10 &&
+      phoneValidation === 'valid' &&
+      formData.password.length >= 6 &&
+      acceptedTerms
+    );
   };
 
   const handleSubmit = async () => {
@@ -79,7 +76,7 @@ export default function RegistroRepartidorPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        phone: formData.phone
+        phone: fullPhone
       });
 
       if (result.ok) {
@@ -324,13 +321,70 @@ export default function RegistroRepartidorPage() {
                 {/* Phone */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">Teléfono</label>
-                  <input
-                    type="tel"
-                    placeholder="Número de teléfono"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-4 py-3.5 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all duration-200 bg-gray-50 dark:bg-gray-700/50 focus:bg-white dark:focus:bg-gray-700 text-gray-900 dark:text-white shadow-sm text-base"
-                  />
+                  <div className="relative">
+                    <div className={`flex items-center border rounded-xl transition-all duration-200 bg-gray-50 dark:bg-gray-700/50 ${phoneValidation === 'invalid'
+                      ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/10'
+                      : phoneValidation === 'valid'
+                        ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/10'
+                        : 'border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent'
+                      }`}>
+                      {/* Lada Selector */}
+                      <div className="border-r border-gray-200 dark:border-gray-600">
+                        <CountryCodeSelector
+                          value={lada}
+                          onChange={setLada}
+                        />
+                      </div>
+
+                      {/* Phone Input */}
+                      <input
+                        type="tel"
+                        placeholder="Tu número de teléfono"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, ''))}
+                        className="w-full px-4 py-3.5 bg-transparent outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-base"
+                      />
+
+                      {/* Validation Status Icon */}
+                      <div className="pr-4 flex items-center">
+                        {phoneValidation === 'checking' && (
+                          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        )}
+                        {phoneValidation === 'valid' && (
+                          <div className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                        {phoneValidation === 'invalid' && (
+                          <div className="w-6 h-6 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Validation Messages */}
+                  {phoneValidation === 'invalid' && (
+                    <p className="text-red-600 dark:text-red-400 text-xs flex items-center mt-1 ml-1">
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Este teléfono ya está registrado
+                    </p>
+                  )}
+                  {phoneValidation === 'valid' && (
+                    <p className="text-green-600 dark:text-green-400 text-xs flex items-center mt-1 ml-1">
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Teléfono disponible
+                    </p>
+                  )}
                 </div>
 
                 {/* Password */}
@@ -370,21 +424,21 @@ export default function RegistroRepartidorPage() {
                     />
                     <label htmlFor="terms" className="text-xs lg:text-sm text-gray-600 dark:text-gray-300 cursor-pointer leading-relaxed">
                       Al marcar esta casilla, aceptas nuestros{' '}
-                      <a
+                      <Link
                         href="/legal/terminos-repartidores"
                         target="_blank"
                         className="text-primary hover:text-primary-hover underline font-medium"
                       >
                         Términos y Condiciones
-                      </a>
+                      </Link>
                       {' '}y{' '}
-                      <a
+                      <Link
                         href="/legal/privacidad"
                         target="_blank"
                         className="text-primary hover:text-primary-hover underline font-medium"
                       >
                         Política de Privacidad
-                      </a>
+                      </Link>
                       .
                     </label>
                   </div>
@@ -442,9 +496,9 @@ export default function RegistroRepartidorPage() {
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     ¿Ya tienes cuenta?{' '}
-                    <a href="/login" className="text-primary hover:text-primary-hover font-semibold underline">
+                    <Link href="/login" className="text-primary hover:text-primary-hover font-semibold underline">
                       Inicia sesión
-                    </a>
+                    </Link>
                   </p>
                 </div>
               </div>

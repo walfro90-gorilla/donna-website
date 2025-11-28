@@ -157,7 +157,7 @@ export default function NotificationsPanel() {
             {/* Bell Icon */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c] rounded-full transition-colors"
+                className="relative p-2 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-[#e4007c] rounded-full transition-colors"
                 aria-label="Notificaciones"
             >
                 <Bell className="h-6 w-6" />
@@ -175,10 +175,10 @@ export default function NotificationsPanel() {
                         className="fixed inset-0 z-40 cursor-default"
                         onClick={() => setIsOpen(false)}
                     />
-                    <div className="absolute left-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 z-50 max-h-[80vh] overflow-hidden flex flex-col origin-top-left">
+                    <div className="absolute left-0 mt-2 w-80 sm:w-96 bg-card rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 z-50 max-h-[80vh] overflow-hidden flex flex-col origin-top-left border border-border">
                         {/* Header */}
-                        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                            <h3 className="text-sm font-semibold text-gray-900">Notificaciones</h3>
+                        <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-muted/50">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notificaciones</h3>
                             <div className="flex items-center gap-2">
                                 {unreadCount > 0 && (
                                     <button
@@ -190,7 +190,7 @@ export default function NotificationsPanel() {
                                 )}
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="text-gray-400 hover:text-gray-500"
+                                    className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                                 >
                                     <X className="h-4 w-4" />
                                 </button>
@@ -202,15 +202,15 @@ export default function NotificationsPanel() {
                             {loading ? (
                                 <div className="p-8 text-center">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e4007c] mx-auto"></div>
-                                    <p className="mt-2 text-sm text-gray-500">Cargando...</p>
+                                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Cargando...</p>
                                 </div>
                             ) : notifications.length === 0 ? (
-                                <div className="p-8 text-center text-gray-500">
-                                    <Bell className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                                    <Bell className="h-12 w-12 mx-auto mb-2 text-gray-400 dark:text-gray-600" />
                                     <p className="text-sm">No hay notificaciones</p>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100">
+                                <div className="divide-y divide-border">
                                     {notifications.map((notification) => (
                                         <Link
                                             key={notification.id}
@@ -219,7 +219,7 @@ export default function NotificationsPanel() {
                                                 markAsRead(notification.id);
                                                 setIsOpen(false);
                                             }}
-                                            className={`block px-4 py-3 hover:bg-gray-50 transition-colors ${!notification.is_read ? 'bg-blue-50/50' : ''
+                                            className={`block px-4 py-3 hover:bg-muted/50 transition-colors ${!notification.is_read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
                                                 }`}
                                         >
                                             <div className="flex items-start gap-3">
@@ -227,13 +227,13 @@ export default function NotificationsPanel() {
                                                     {getCategoryIcon(notification.category)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`text-sm ${!notification.is_read ? 'font-semibold' : 'font-medium'} text-gray-900`}>
+                                                    <p className={`text-sm ${!notification.is_read ? 'font-semibold' : 'font-medium'} text-gray-900 dark:text-white`}>
                                                         {notification.title}
                                                     </p>
-                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                                                         {notification.message}
                                                     </p>
-                                                    <p className="text-xs text-gray-400 mt-1">
+                                                    <p className="text-xs text-muted-foreground/70 mt-1">
                                                         {formatTimeAgo(notification.created_at)}
                                                     </p>
                                                 </div>

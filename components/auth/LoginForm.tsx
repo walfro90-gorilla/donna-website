@@ -171,7 +171,7 @@ export default function LoginForm() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={formState.isLoading}
-            className="w-full py-4 px-6 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-white font-semibold rounded-full hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 flex justify-center items-center gap-3 shadow-sm hover:shadow-md"
+            className="w-full py-4 px-6 bg-white border border-gray-300 text-gray-700 font-semibold rounded-full hover:bg-gray-50 transition-all duration-200 flex justify-center items-center gap-3 shadow-sm hover:shadow-md"
           >
             <svg className="h-6 w-6" viewBox="0 0 24 24">
               <path

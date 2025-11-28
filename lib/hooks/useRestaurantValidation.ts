@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 export type ValidationStatus = 'idle' | 'checking' | 'valid' | 'invalid';
 
 export function useRestaurantValidation(
-  field: 'email' | 'restaurantName',
+  field: 'email' | 'restaurantName' | 'phone',
   value: string
 ) {
   const [status, setStatus] = useState<ValidationStatus>('idle');
@@ -30,6 +30,12 @@ export function useRestaurantValidation(
       return;
     }
 
+    // Validacion de telefono
+    if (field === 'phone' && !/^[0-9()+\-\s]{7,20}$/.test(value)) {
+      setStatus('idle');
+      return;
+    }
+
     setStatus('checking');
 
     let cancelled = false;
@@ -44,6 +50,9 @@ export function useRestaurantValidation(
         } else if (field === 'restaurantName') {
           rpcName = 'check_restaurant_name_availability';
           params = { p_name: value };
+        } else if (field === 'phone') {
+          rpcName = 'check_phone_availability';
+          params = { p_phone: value };
         } else {
           return;
         }

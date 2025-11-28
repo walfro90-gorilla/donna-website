@@ -109,3 +109,19 @@ export function announceToScreenReader(message: string) {
   // In a real app, you'd append a hidden div with aria-live="polite"
   console.log('Screen Reader Announcement:', message);
 }
+
+export function createFocusManager() {
+  let savedElement: HTMLElement | null = null;
+  return {
+    saveFocus: () => {
+      if (typeof document !== 'undefined') {
+        savedElement = document.activeElement as HTMLElement;
+      }
+    },
+    restoreFocus: () => {
+      if (savedElement && typeof savedElement.focus === 'function') {
+        savedElement.focus();
+      }
+    }
+  };
+}

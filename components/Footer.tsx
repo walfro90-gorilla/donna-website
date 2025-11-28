@@ -19,18 +19,15 @@ const Footer = () => {
               className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4007c] rounded-lg p-1"
               aria-label="Doña Repartos - Ir a inicio"
             >
-              <div className="relative overflow-hidden rounded-full transition-transform duration-300 group-hover:scale-110 shadow-lg ring-2 ring-transparent group-hover:ring-[#e4007c]/50">
+              <div className="relative transition-transform duration-300 group-hover:scale-105">
                 <Image
-                  src="/app_icon.png"
+                  src="/dona-logo-pro.png"
                   alt="Doña Repartos Logo"
-                  width={48}
-                  height={48}
-                  className="object-cover"
+                  width={160}
+                  height={160}
+                  className="object-contain"
                 />
               </div>
-              <span className="text-xl font-bold text-white tracking-tight group-hover:text-[#e4007c] transition-colors">
-                Doña Repartos
-              </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
               El sabor de tu barrio, entregado con corazón. Conectamos a los mejores restaurantes locales con clientes apasionados por la buena comida.

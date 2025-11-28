@@ -82,17 +82,17 @@ export default function BalanceStats({ stats }: BalanceStatsProps) {
             </div>
 
             {/* Zero Balance Check Widget */}
-            <div className="rounded-lg bg-white p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+            <div className="rounded-lg bg-card p-4 shadow-sm border border-border flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-full ${Math.abs(totalSystemBalance) < 1 ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                    <div className={`p-2 rounded-full ${Math.abs(totalSystemBalance) < 1 ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
                         <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                        <h4 className="text-sm font-medium text-gray-900">Comprobación de Balance Cero</h4>
-                        <p className="text-xs text-gray-500">Suma total de todas las cuentas del sistema</p>
+                        <h4 className="text-sm font-medium text-foreground">Comprobación de Balance Cero</h4>
+                        <p className="text-xs text-muted-foreground">Suma total de todas las cuentas del sistema</p>
                     </div>
                 </div>
-                <div className={`text-lg font-bold ${Math.abs(totalSystemBalance) < 1 ? 'text-green-600' : 'text-yellow-600'}`}>
+                <div className={`text-lg font-bold ${Math.abs(totalSystemBalance) < 1 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                     {formatCurrency(totalSystemBalance)}
                 </div>
             </div>
