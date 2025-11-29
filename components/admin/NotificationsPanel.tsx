@@ -157,7 +157,7 @@ export default function NotificationsPanel() {
             {/* Bell Icon */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-[#e4007c] rounded-full transition-colors"
+                className="relative p-2 text-muted-foreground dark:text-gray-300 hover:text-foreground dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c] rounded-full transition-colors"
                 aria-label="Notificaciones"
             >
                 <Bell className="h-6 w-6" />

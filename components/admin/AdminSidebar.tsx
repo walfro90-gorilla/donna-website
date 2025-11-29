@@ -35,7 +35,7 @@ export default function AdminSidebar() {
         <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:top-16 lg:md:top-[72px] md:bottom-0 bg-sidebar dark:bg-gray-950 border-r border-sidebar-border dark:border-gray-800">
             <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between h-16 flex-shrink-0 px-4 border-b border-sidebar-border">
-                    <span className="text-sidebar-foreground font-bold text-xl">Donna Admin</span>
+                    <span className="text-sidebar-foreground dark:text-white font-bold text-xl">Donna Admin</span>
                     <NotificationsPanel />
                 </div>
                 <div className="flex-1 flex flex-col overflow-y-auto">

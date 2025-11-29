@@ -331,48 +331,6 @@ BEGIN
   DELETE FROM public.client_profiles WHERE user_id = p_user_id;
 
   -- 3. Create or update user record with role='delivery_agent'
-  INSERT INTO public.users (
-    id,
-    email,
-    name,
-    phone,
-    address,
-    lat,
-    lon,
-    address_structured,
-    role,
-    email_confirm,
-    created_at,
-    updated_at
-  )
-  VALUES (
-    p_user_id,
-    p_email,
-    p_name,
-    p_phone,
-    p_address,
-    p_lat,
-    p_lon,
-    p_address_structured,
-    'delivery_agent',
-    false,
-    now(),
-    now()
-  )
-  ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    name = EXCLUDED.name,
-    phone = EXCLUDED.phone,
-    address = EXCLUDED.address,
-    lat = EXCLUDED.lat,
-    lon = EXCLUDED.lon,
-    address_structured = EXCLUDED.address_structured,
-    role = 'delivery_agent',
-    updated_at = now();
-
-  -- 4. Create delivery_agent_profile
-  INSERT INTO public.delivery_agent_profiles (
-    user_id,
     profile_image_url,
     id_document_front_url,
     id_document_back_url,
@@ -428,7 +386,6 @@ BEGIN
 
   -- 5. Create account for delivery agent
   INSERT INTO public.accounts (
-    id,
     user_id,
     account_type,
     balance,
@@ -436,7 +393,6 @@ BEGIN
     updated_at
   )
   VALUES (
-    gen_random_uuid(),
     p_user_id,
     'delivery_agent',
     0.00,
