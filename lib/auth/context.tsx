@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          Y 'state' aquí es el estado inicial.
       */
 
-      const user = await AuthService.getCurrentUser();
+      const user = await AuthService.getCurrentUser(userId);
 
       console.log('🔐 AuthContext: Usuario obtenido del servicio:', {
         exists: !!user,

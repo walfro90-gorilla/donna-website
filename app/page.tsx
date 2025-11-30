@@ -100,6 +100,9 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-[2] p-4 sm:p-6 max-w-5xl mx-auto animate-fade-in">
+          <div className="inline-flex items-center px-4 py-2 rounded-full border border-white/20 bg-white/10 text-white text-sm font-medium mb-6 backdrop-blur-sm animate-fade-in-up">
+            <span className="mr-2">❤️</span> Somos una app 100% juarense
+          </div>
           <h1
             id="hero-title"
             className="font-extrabold mb-6 md:mb-8 tracking-tight drop-shadow-lg"

@@ -458,6 +458,9 @@ export default function SociosPage() {
             {/* Main content */}
             <div className="max-w-xl space-y-8">
               <div className="space-y-6">
+                <div className="inline-flex items-center px-3 py-1 rounded-full border border-white/20 bg-white/10 text-white text-sm font-medium backdrop-blur-sm w-fit">
+                  <span className="mr-2">❤️</span> Somos una app 100% juarense
+                </div>
                 <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight leading-tight drop-shadow-lg">
                   15% de comisión <br />
                   <span className="text-primary-light text-3xl lg:text-5xl">¡La más baja del mercado!</span>
@@ -905,6 +908,6 @@ export default function SociosPage() {
         onCancel={handleLocationCancel}
         isOpen={showLocationMap}
       />
-    </div>
+    </div >
   );
 }

@@ -103,10 +103,16 @@ export class AuthService {
   /**
    * Obtener perfil del usuario actual
    */
-  static async getCurrentUser(): Promise<User | null> {
+  static async getCurrentUser(userId?: string): Promise<User | null> {
     try {
-      console.log('🔐 AuthService: Obteniendo usuario actual...');
+      console.log('🔐 AuthService: Obteniendo usuario actual...', userId ? `(ID proporcionado: ${userId})` : '(Sin ID)');
 
+      if (userId) {
+        console.log('🔐 AuthService: Usando ID proporcionado, saltando getSession...');
+        return this.getUserProfile(userId);
+      }
+
+      console.log('🔐 AuthService: Consultando sesión en Supabase...');
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       console.log('🔐 AuthService: Session check:', {

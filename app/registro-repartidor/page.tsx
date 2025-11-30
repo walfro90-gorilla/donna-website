@@ -124,6 +124,9 @@ export default function RegistroRepartidorPage() {
 
           {/* Content */}
           <div className="relative z-10 p-8 lg:p-16 text-white h-full flex flex-col justify-center lg:justify-start lg:pt-20 animate-fade-in">
+            <div className="inline-flex items-center px-3 py-1 rounded-full border border-white/20 bg-white/10 text-white text-sm font-medium mb-4 backdrop-blur-sm w-fit">
+              <span className="mr-2">❤️</span> Somos una app 100% juarense
+            </div>
             {/* Hero Badge */}
             <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-xs lg:text-sm font-semibold border border-white/20 transform hover:scale-105 transition-transform cursor-default w-fit mb-8">
               <span className="relative flex h-2.5 w-2.5 mr-2.5">

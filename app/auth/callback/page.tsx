@@ -32,7 +32,7 @@ export default function AuthCallback() {
         console.log('🔐 AuthCallback: Sesión encontrada, obteniendo perfil...');
 
         // Obtener perfil del usuario
-        let user = await AuthService.getCurrentUser();
+        let user = await AuthService.getCurrentUser(session.user.id);
 
         if (!user) {
           console.log('🔐 AuthCallback: Usuario no encontrado, creando perfil...');
