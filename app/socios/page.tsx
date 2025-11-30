@@ -445,7 +445,7 @@ export default function SociosPage() {
           </div>
 
           {/* Content */}
-          <div className="relative z-10 p-8 lg:p-16 text-white h-full flex flex-col justify-center lg:justify-start lg:pt-12 animate-fade-in">
+          <div className="relative z-10 p-8 lg:p-16 text-white h-full flex flex-col justify-center lg:justify-start lg:pt-4 animate-fade-in">
             {/* Breadcrumb */}
             <div className="mb-8 hidden lg:block">
               <nav className="flex items-center space-x-2 text-sm font-medium">
@@ -457,15 +457,22 @@ export default function SociosPage() {
 
             {/* Main content */}
             <div className="max-w-xl space-y-8">
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight leading-tight drop-shadow-lg">
-                  0% COMISIÓN <br />
-                  <span className="text-primary-light">POR 30 DÍAS</span>
+                  15% de comisión <br />
+                  <span className="text-primary-light text-3xl lg:text-5xl">¡La más baja del mercado!</span>
                 </h1>
 
-                <p className="text-lg lg:text-xl text-gray-200 leading-relaxed max-w-lg">
-                  Impulsa tu negocio con nuestra plataforma. Sin costos ocultos y con el soporte que necesitas para crecer.
-                </p>
+                <div className="space-y-4">
+                  <div className="flex items-center text-lg lg:text-xl text-gray-200">
+                    <CheckCircleIcon />
+                    <span>Pagos dentro de las 48 hrs en efectivo.</span>
+                  </div>
+                  <div className="flex items-center text-lg lg:text-xl text-gray-200">
+                    <CheckCircleIcon />
+                    <span>Repartidores más cercanos.</span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
