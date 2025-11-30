@@ -52,17 +52,14 @@ export default function LoginForm() {
         password: formState.password,
       });
 
-      if (result.success && result.user) {
-        const redirectPath = AuthService.getRedirectPath(result.user.role);
-        console.log('🔐 LoginForm: Redirigiendo a:', redirectPath);
-        router.push(redirectPath);
-      } else {
+      if (!result.success) {
         setFormState(prev => ({
           ...prev,
           isLoading: false,
           error: result.error || 'Error de autenticación',
         }));
       }
+      // Si es exitoso, el useEffect se encargará de la redirección
     } catch (error) {
       console.error('🔐 LoginForm: Error inesperado:', error);
       setFormState(prev => ({
@@ -86,7 +83,7 @@ export default function LoginForm() {
           error: result.error || 'Error con Google Auth',
         }));
       }
-      // Si es exitoso, se redirige automáticamente a Google
+      // Si es exitoso, se redirige automáticamente a Google (OAuth)
     } catch (error) {
       console.error('🔐 LoginForm: Error con Google:', error);
       setFormState(prev => ({
