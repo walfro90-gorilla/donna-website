@@ -9,6 +9,8 @@ import { useAuth } from "@/lib/auth/context";
 import { AuthService } from "@/lib/auth/service";
 import { useTheme } from "@/components/ThemeProvider";
 
+const navLinkClasses = "text-gray-600 dark:text-gray-100 hover:text-primary dark:hover:text-primary hover:bg-primary-light/50 dark:hover:bg-primary/10 transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-4 py-2";
+
 export default function Header() {
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -87,19 +89,22 @@ export default function Header() {
         <nav className="hidden lg:flex items-center space-x-1" aria-label="Navegación principal" role="navigation">
           {/* <Link
             href="/clientes"
-            className="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-primary-light/50 dark:hover:bg-primary/10 transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-4 py-2"
+            className={navLinkClasses}
+            prefetch={false}
           >
             Para Clientes
           </Link> */}
           <Link
             href="/socios"
-            className="text-gray-600 dark:text-gray-100 hover:text-primary dark:hover:text-primary hover:bg-primary-light/50 dark:hover:bg-primary/10 transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-4 py-2"
+            className={navLinkClasses}
+            prefetch={false}
           >
             Para Restaurantes
           </Link>
           <Link
             href="/registro-repartidor"
-            className="text-gray-600 dark:text-gray-100 hover:text-primary dark:hover:text-primary hover:bg-primary-light/50 dark:hover:bg-primary/10 transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-4 py-2"
+            className={navLinkClasses}
+            prefetch={false}
           >
             Para Repartidores
           </Link>

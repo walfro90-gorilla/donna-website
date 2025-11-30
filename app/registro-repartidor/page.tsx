@@ -142,12 +142,12 @@ export default function RegistroRepartidorPage() {
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
                 Gana hasta{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-500 relative whitespace-nowrap">
-                  $9,000
+                  $1,000
                   <svg className="absolute w-full h-2 -bottom-1 left-0 text-primary opacity-30" viewBox="0 0 100 10" preserveAspectRatio="none">
                     <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
                   </svg>
                 </span>
-                {' '}semanales
+                {' '}diarios
               </h1>
               <p className="text-lg lg:text-xl text-gray-200 leading-relaxed font-light max-w-2xl">
                 Sé tu propio jefe. Genera ingresos flexibles con horarios que se adaptan a tu estilo de vida.
@@ -158,18 +158,26 @@ export default function RegistroRepartidorPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
               <div className="p-4 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 hover:bg-white/20 transition-colors group">
                 <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
                 </div>
-                <h3 className="font-bold text-lg mb-1 text-white">Horarios Flexibles</h3>
-                <p className="text-sm text-gray-300">Tú decides cuándo conectarte</p>
+                <h3 className="font-bold text-lg mb-1 text-white">Flujo de efectivo diario</h3>
+                <p className="text-sm text-gray-300">Dinero en tu bolsa todos los días</p>
               </div>
 
               <div className="p-4 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 hover:bg-white/20 transition-colors group">
                 <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
-                <h3 className="font-bold text-lg mb-1 text-white">Pagos Semanales</h3>
-                <p className="text-sm text-gray-300">Dinero seguro cada semana</p>
+                <h3 className="font-bold text-lg mb-1 text-white">Flexibilidad de horarios</h3>
+                <p className="text-sm text-gray-300">Tú decides cuándo conectarte</p>
+              </div>
+
+              <div className="p-4 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 hover:bg-white/20 transition-colors group sm:col-span-2">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <h3 className="font-bold text-lg mb-1 text-white">Entregas cortas y en el área</h3>
+                <p className="text-sm text-gray-300">Reparte cerca de ti sin recorrer largas distancias</p>
               </div>
             </div>
           </div>
