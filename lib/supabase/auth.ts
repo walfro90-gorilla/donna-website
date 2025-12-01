@@ -16,30 +16,30 @@ export async function signInWithEmail(
   try {
     console.log('🔑 signInWithEmail: Iniciando autenticación...');
     console.log('🔑 signInWithEmail: Email:', email);
-    
+
     const supabase = createClient();
-    
+
     // Authenticate with Supabase - sin timeout para ver si funciona
     console.log('🔑 signInWithEmail: Llamando a signInWithPassword...');
-    
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email, 
-      password 
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
     });
-    
+
     console.log('🔑 signInWithEmail: Respuesta recibida');
 
-    console.log('🔑 signInWithEmail: Respuesta de Supabase:', { 
-      hasData: !!data, 
+    console.log('🔑 signInWithEmail: Respuesta de Supabase:', {
+      hasData: !!data,
       hasError: !!error,
-      errorMessage: error?.message 
+      errorMessage: error?.message
     });
 
     if (error) {
       console.error('🔑 signInWithEmail: Error de autenticación:', error.message);
       // Map Supabase error codes to user-friendly Spanish messages
       let errorMessage = 'Email o contraseña incorrectos';
-      
+
       if (error.message.includes('Invalid login credentials')) {
         errorMessage = 'Email o contraseña incorrectos';
       } else if (error.message.includes('Email not confirmed')) {
@@ -51,7 +51,7 @@ export async function signInWithEmail(
       } else if (error.status === 400) {
         errorMessage = 'Email o contraseña incorrectos';
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -68,11 +68,11 @@ export async function signInWithEmail(
     // Fetch user role from database
     console.log('🔑 signInWithEmail: Obteniendo rol del usuario...');
     console.log('🔑 signInWithEmail: User ID:', data.user.id);
-    
+
     try {
       const role = await getUserRole(data.user.id);
       console.log('🔑 signInWithEmail: Rol obtenido:', role);
-      
+
       if (!role) {
         console.error('🔑 signInWithEmail: Usuario sin rol en la base de datos');
         return {
@@ -80,10 +80,10 @@ export async function signInWithEmail(
           error: 'Usuario no encontrado en la base de datos. Contacta al administrador.',
         };
       }
-      
+
       const authRole = mapDatabaseRoleToAuthRole(role);
       console.log('🔑 signInWithEmail: Rol mapeado:', authRole);
-      
+
       return {
         success: true,
         user: {
@@ -107,7 +107,7 @@ export async function signInWithEmail(
         error: 'Error de conexión. Por favor, verifica tu internet',
       };
     }
-    
+
     return {
       success: false,
       error: 'Ocurrió un error inesperado. Intenta nuevamente',
@@ -122,19 +122,19 @@ export async function signInWithEmail(
 export async function signInWithGoogle(): Promise<AuthResult> {
   try {
     const supabase = createClient();
-    
+
     // Initiate Google OAuth flow
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
     if (error) {
       // Map OAuth errors to user-friendly Spanish messages
       let errorMessage = 'Error al iniciar sesión con Google';
-      
+
       if (error.message.includes('popup')) {
         errorMessage = 'Por favor permite las ventanas emergentes para continuar';
       } else if (error.message.includes('cancelled') || error.message.includes('canceled')) {
@@ -142,7 +142,7 @@ export async function signInWithGoogle(): Promise<AuthResult> {
       } else if (error.message.includes('network')) {
         errorMessage = 'Error de conexión. Por favor, verifica tu internet';
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -162,7 +162,7 @@ export async function signInWithGoogle(): Promise<AuthResult> {
         error: 'Error de conexión. Por favor, verifica tu internet',
       };
     }
-    
+
     return {
       success: false,
       error: 'Ocurrió un error inesperado. Intenta nuevamente',
@@ -179,7 +179,7 @@ export async function getUserRole(userId: string): Promise<string | null> {
   try {
     console.log('👤 getUserRole: Consultando rol para user ID:', userId);
     const supabase = createClient();
-    
+
     // Query sin timeout primero para ver el error real
     console.log('👤 getUserRole: Ejecutando query...');
     const { data, error } = await supabase

@@ -1,4 +1,3 @@
-// app/layout.tsx
 import './globals.css';
 import Script from 'next/script';
 import type { Metadata } from 'next';
@@ -7,6 +6,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import { AuthProvider } from '@/lib/auth/context';
+import { AuthCodeRedirector } from '@/components/auth/AuthCodeRedirector';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -49,10 +50,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { ThemeProvider } from '@/components/ThemeProvider';
-
-// ... (imports)
-
 export default function RootLayout({
   children,
 }: {
@@ -78,6 +75,7 @@ export default function RootLayout({
 
         <ThemeProvider>
           <AuthProvider>
+            <AuthCodeRedirector />
             {/* Skip to main content link - Requirement 14.3 */}
             <a href="#main-content" className="skip-to-main">
               Saltar al contenido principal
@@ -97,4 +95,3 @@ export default function RootLayout({
     </html>
   );
 }
-

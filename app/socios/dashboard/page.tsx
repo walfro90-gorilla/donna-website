@@ -14,7 +14,7 @@ async function getRestaurantData() {
 
   // Get session
   const { data: { session } } = await supabase.auth.getSession();
-  
+
   if (!session) {
     redirect('/login');
   }
@@ -30,8 +30,16 @@ async function getRestaurantData() {
     redirect('/login');
   }
 
+  // Get user preferences for tour status
+  const { data: userPrefs } = await supabase
+    .from('user_preferences')
+    .select('has_seen_tour')
+    .eq('user_id', session.user.id)
+    .single();
+
   return {
     user: userData,
+    hasSeenTour: userPrefs?.has_seen_tour ?? false,
     stats: {
       todayOrders: 0,
       monthOrders: 0,
@@ -41,8 +49,10 @@ async function getRestaurantData() {
   };
 }
 
+import DashboardTour from '@/components/tour/DashboardTour';
+
 export default async function RestaurantDashboard() {
-  const { user, stats } = await getRestaurantData();
+  const { user, stats, hasSeenTour } = await getRestaurantData();
 
   return (
     <DashboardLayout
@@ -50,9 +60,10 @@ export default async function RestaurantDashboard() {
       userRole="restaurant"
       userName={user.full_name}
     >
+      <DashboardTour hasSeenTour={hasSeenTour} userName={user.full_name || user.email} />
       <div className="space-y-6">
         {/* Welcome Section */}
-        <div>
+        <div id="dashboard-welcome">
           <h2 className="text-3xl font-bold text-gray-900">
             Panel de Restaurante
           </h2>
@@ -62,7 +73,7 @@ export default async function RestaurantDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div id="dashboard-stats" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Pedidos Hoy"
             value={stats.todayOrders}
@@ -106,7 +117,7 @@ export default async function RestaurantDashboard() {
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div id="dashboard-orders" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Pedidos Recientes
           </h3>
