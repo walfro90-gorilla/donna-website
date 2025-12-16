@@ -442,3 +442,131 @@ GRANT EXECUTE ON FUNCTION register_delivery_agent_atomic TO anon, authenticated,
 
 -- Add comment
 COMMENT ON FUNCTION register_delivery_agent_atomic IS 'Atomically registers a delivery agent with all required tables (users, delivery_agent_profiles, accounts, user_preferences)';
+
+-- Function to register restaurant (v2) matching client call
+CREATE OR REPLACE FUNCTION register_restaurant_v2(
+  p_user_id uuid,
+  p_email text,
+  p_restaurant_name text,
+  p_phone text,
+  p_address text,
+  p_location_lat double precision,
+  p_location_lon double precision,
+  p_location_place_id text DEFAULT NULL,
+  p_address_structured jsonb DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_restaurant_id uuid;
+  v_account_id uuid;
+BEGIN
+  -- 1. Validate user exists
+  -- This check might fail if replication is slow. 
+  -- We'll return error so client can retry.
+  IF NOT EXISTS(SELECT 1 FROM auth.users WHERE id = p_user_id) THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'User not found in auth.users (likely replication lag)'
+    );
+  END IF;
+
+  -- 2. Create/update user profile (MUST be before referencing tables)
+  -- We explicitly use p_email if provided, otherwise fetch from auth
+  INSERT INTO public.users (
+    id,
+    email,
+    name,
+    phone,
+    role,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    p_user_id,
+    p_email,
+    p_restaurant_name, -- Use restaurant name as user name for the profile initially
+    p_phone,
+    'restaurant',
+    now(),
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    role = 'restaurant',
+    phone = EXCLUDED.phone,
+    updated_at = now();
+
+  -- 3. Create restaurant record
+  INSERT INTO public.restaurants (
+    user_id,
+    name,
+    phone,
+    address,
+    location_lat,
+    location_lon,
+    location_place_id,
+    address_structured,
+    status,
+    online,
+    created_at,
+    updated_at
+  ) VALUES (
+    p_user_id,
+    p_restaurant_name,
+    p_phone,
+    p_address,
+    p_location_lat,
+    p_location_lon,
+    p_location_place_id,
+    p_address_structured,
+    'pending',
+    false,
+    now(),
+    now()
+  )
+  RETURNING id INTO v_restaurant_id;
+
+  -- 4. Create financial account
+  INSERT INTO public.accounts (
+    user_id,
+    account_type,
+    balance,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    p_user_id,
+    'restaurant',
+    0.00,
+    now(),
+    now()
+  )
+  ON CONFLICT (user_id) DO UPDATE SET
+    account_type = EXCLUDED.account_type,
+    updated_at = now()
+  RETURNING id INTO v_account_id;
+
+  -- 5. Create user preferences
+  INSERT INTO public.user_preferences (user_id, created_at, updated_at)
+  VALUES (p_user_id, now(), now())
+  ON CONFLICT (user_id) DO NOTHING;
+
+  -- 6. Return success
+  RETURN jsonb_build_object(
+    'success', true,
+    'restaurant_id', v_restaurant_id,
+    'account_id', v_account_id
+  );
+
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object(
+    'success', false,
+    'error', SQLERRM
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION register_restaurant_v2(uuid, text, text, text, text, double precision, double precision, text, jsonb) TO anon, authenticated;

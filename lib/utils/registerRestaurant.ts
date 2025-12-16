@@ -152,9 +152,11 @@ export async function registerRestaurantClient(
           }
         }
 
-        // Si el error es "does not exist in auth.users", reintentar
-        if (msg.includes('does not exist in auth.users') && attempt < 10) {
-          await new Promise((r) => setTimeout(r, 300));
+        // Si el error es "does not exist in auth.users" o violación de foreign key, reintentar
+        // Postgres error 23503 is foreign_key_violation
+        if ((msg.includes('does not exist in auth.users') || msg.includes('foreign key constraint') || msg.includes('users_id_fkey') || code === '23503') && attempt < 10) {
+          console.warn(`Intento ${attempt} fallido por sincronización de usuario. Reintentando...`);
+          await new Promise((r) => setTimeout(r, 500)); // Increased wait time slightly
           continue;
         }
 
@@ -178,12 +180,17 @@ export async function registerRestaurantClient(
 
     let reg = await supabase.rpc('register_restaurant_v2', regParams);
 
-    if (reg.error) {
-      const errMsg = `${reg.error.message || ''}`.toLowerCase();
+    // 4.1) Verificar error (ya sea por excepción RPC o por success:false en JSON)
+    let errorMsg = reg.error
+      ? reg.error.message
+      : (reg.data && reg.data.success === false ? reg.data.error : null);
+
+    if (errorMsg) {
+      const lowerMsg = errorMsg.toLowerCase();
 
       // Si el error es de foreign key (usuario no existe en profiles), reintentar ensure + register
-      if (errMsg.includes('restaurants_user_id_fkey') || errMsg.includes('foreign key')) {
-        await new Promise((r) => setTimeout(r, 350));
+      if (lowerMsg.includes('restaurants_user_id_fkey') || lowerMsg.includes('foreign key') || lowerMsg.includes('users_id_fkey')) {
+        await new Promise((r) => setTimeout(r, 500));
         try {
           await supabase.rpc('ensure_user_profile_v2', ensureParams);
         } catch {
@@ -195,15 +202,20 @@ export async function registerRestaurantClient(
           }
         }
         reg = await supabase.rpc('register_restaurant_v2', regParams);
+
+        // Actualizar mensaje de error tras reintento
+        errorMsg = reg.error
+          ? reg.error.message
+          : (reg.data && reg.data.success === false ? reg.data.error : null);
       }
     }
 
-    if (reg.error) {
+    if (errorMsg) {
       // Fallback si la orquestadora no existe
-      const code = reg.error.code;
-      const msg = `${reg.error.message || ''}`.toLowerCase();
+      const code = reg.error ? reg.error.code : '';
+      const lowerMsg = errorMsg.toLowerCase();
 
-      if (code === 'PGRST202' || code === '42883' || msg.includes('could not find the function')) {
+      if (code === 'PGRST202' || code === '42883' || lowerMsg.includes('could not find the function')) {
         // Usar funciones alternativas
         const r1 = await supabase.rpc('create_restaurant_public', {
           p_user_id: userId,
@@ -232,7 +244,7 @@ export async function registerRestaurantClient(
           console.warn('No se pudo crear la cuenta financiera');
         });
       } else {
-        return { ok: false, error: reg.error.message };
+        return { ok: false, error: errorMsg };
       }
     }
 
