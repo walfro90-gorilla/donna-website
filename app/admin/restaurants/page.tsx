@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { Search, Filter, CheckCircle, XCircle, MoreVertical } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, Eye } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AdminRestaurantsPage() {
     const [restaurants, setRestaurants] = useState<any[]>([]);
@@ -168,29 +169,33 @@ export default function AdminRestaurantsPage() {
                                                     </div>
                                                 </td>
                                                 <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                                    {restaurant.status === 'pending' && (
-                                                        <div className="flex justify-end gap-2">
-                                                            <button
-                                                                onClick={() => handleStatusUpdate(restaurant.id, 'approved')}
-                                                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                                                                title="Aprobar"
-                                                            >
-                                                                <CheckCircle className="h-5 w-5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleStatusUpdate(restaurant.id, 'rejected')}
-                                                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                                                title="Rechazar"
-                                                            >
-                                                                <XCircle className="h-5 w-5" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                    {restaurant.status !== 'pending' && (
-                                                        <button className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                                                            <MoreVertical className="h-5 w-5" />
-                                                        </button>
-                                                    )}
+                                                    <div className="flex justify-end gap-2 items-center">
+                                                        <Link
+                                                            href={`/admin/restaurants/${restaurant.id}`}
+                                                            className="text-gray-400 hover:text-[#e4007c] dark:hover:text-[#e4007c] transition-colors"
+                                                            title="Ver Detalles"
+                                                        >
+                                                            <Eye className="h-5 w-5" />
+                                                        </Link>
+                                                        {restaurant.status === 'pending' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleStatusUpdate(restaurant.id, 'approved')}
+                                                                    className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                                                    title="Aprobar"
+                                                                >
+                                                                    <CheckCircle className="h-5 w-5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleStatusUpdate(restaurant.id, 'rejected')}
+                                                                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                                                    title="Rechazar"
+                                                                >
+                                                                    <XCircle className="h-5 w-5" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
