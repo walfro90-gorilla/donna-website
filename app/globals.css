@@ -1758,3 +1758,58 @@ nav.vertical button+button,
     @apply bg-background text-foreground;
   }
 }
+
+/* ===== DARK MODE GLOBAL OVERRIDES ===== */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="tel"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="url"],
+.dark input[type="search"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark textarea,
+.dark select {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+  color: var(--color-white);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--color-gray-400);
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-primary);
+}
+
+.dark label {
+  color: var(--color-gray-300);
+}
+
+.dark .help-text,
+.dark .field-help {
+  color: var(--color-gray-400);
+}
+
+/* Ensure text contrast on dark backgrounds globally if not overridden */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: var(--color-white);
+}
+
+.dark p,
+.dark li,
+.dark dd,
+.dark dt {
+  color: var(--color-gray-300);
+}

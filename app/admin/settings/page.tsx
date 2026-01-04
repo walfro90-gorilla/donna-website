@@ -29,15 +29,15 @@ export default function AdminSettingsPage() {
 
             <div className="mt-8 space-y-6">
                 {/* Commission Settings */}
-                <div className="bg-card shadow sm:rounded-lg border border-border">
+                <div className="bg-white dark:bg-gray-800 shadow sm:rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="px-4 py-5 sm:p-6">
                         <div className="flex items-center mb-4">
-                            <Percent className="h-5 w-5 text-muted-foreground mr-2" />
-                            <h3 className="text-lg font-medium leading-6 text-foreground">
+                            <Percent className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-2" />
+                            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
                                 Comisión de la Plataforma
                             </h3>
                         </div>
-                        <div className="mt-2 max-w-xl text-sm text-muted-foreground">
+                        <div className="mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400">
                             <p>Porcentaje de comisión cobrado a los restaurantes por cada pedido.</p>
                         </div>
                         <div className="mt-5 sm:flex sm:items-center">
@@ -50,12 +50,12 @@ export default function AdminSettingsPage() {
                                         type="number"
                                         name="commission"
                                         id="commission"
-                                        className="block w-full rounded-md border-input pr-12 focus:border-[#e4007c] focus:ring-[#e4007c] sm:text-sm p-2 border bg-background text-foreground"
+                                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 pr-12 focus:border-[#e4007c] focus:ring-[#e4007c] sm:text-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         value={settings.platformCommission}
                                         onChange={(e) => setSettings({ ...settings, platformCommission: Number(e.target.value) })}
                                     />
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <span className="text-muted-foreground sm:text-sm">%</span>
+                                        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">%</span>
                                     </div>
                                 </div>
                             </div>
@@ -64,15 +64,15 @@ export default function AdminSettingsPage() {
                 </div>
 
                 {/* Delivery Fee */}
-                <div className="bg-card shadow sm:rounded-lg border border-border">
+                <div className="bg-white dark:bg-gray-800 shadow sm:rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="px-4 py-5 sm:p-6">
                         <div className="flex items-center mb-4">
-                            <DollarSign className="h-5 w-5 text-muted-foreground mr-2" />
-                            <h3 className="text-lg font-medium leading-6 text-foreground">
+                            <DollarSign className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-2" />
+                            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
                                 Tarifa de Envío
                             </h3>
                         </div>
-                        <div className="mt-2 max-w-xl text-sm text-muted-foreground">
+                        <div className="mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400">
                             <p>Costo de envío por defecto para los pedidos.</p>
                         </div>
                         <div className="mt-5 sm:flex sm:items-center">
@@ -82,18 +82,18 @@ export default function AdminSettingsPage() {
                                 </label>
                                 <div className="relative rounded-md shadow-sm">
                                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                        <span className="text-muted-foreground sm:text-sm">$</span>
+                                        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
                                     </div>
                                     <input
                                         type="number"
                                         name="deliveryFee"
                                         id="deliveryFee"
-                                        className="block w-full rounded-md border-input pl-7 pr-12 focus:border-[#e4007c] focus:ring-[#e4007c] sm:text-sm p-2 border bg-background text-foreground"
+                                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 pl-7 pr-12 focus:border-[#e4007c] focus:ring-[#e4007c] sm:text-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         value={settings.deliveryFee}
                                         onChange={(e) => setSettings({ ...settings, deliveryFee: Number(e.target.value) })}
                                     />
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <span className="text-muted-foreground sm:text-sm">MXN</span>
+                                        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">MXN</span>
                                     </div>
                                 </div>
                             </div>
@@ -102,15 +102,15 @@ export default function AdminSettingsPage() {
                 </div>
 
                 {/* Min Order Amount */}
-                <div className="bg-card shadow sm:rounded-lg border border-border">
+                <div className="bg-white dark:bg-gray-800 shadow sm:rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="px-4 py-5 sm:p-6">
                         <div className="flex items-center mb-4">
-                            <DollarSign className="h-5 w-5 text-muted-foreground mr-2" />
-                            <h3 className="text-lg font-medium leading-6 text-foreground">
+                            <DollarSign className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-2" />
+                            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
                                 Monto Mínimo de Pedido
                             </h3>
                         </div>
-                        <div className="mt-2 max-w-xl text-sm text-muted-foreground">
+                        <div className="mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400">
                             <p>Monto mínimo requerido para realizar un pedido.</p>
                         </div>
                         <div className="mt-5 sm:flex sm:items-center">
@@ -120,18 +120,18 @@ export default function AdminSettingsPage() {
                                 </label>
                                 <div className="relative rounded-md shadow-sm">
                                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                        <span className="text-muted-foreground sm:text-sm">$</span>
+                                        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
                                     </div>
                                     <input
                                         type="number"
                                         name="minOrder"
                                         id="minOrder"
-                                        className="block w-full rounded-md border-input pl-7 pr-12 focus:border-[#e4007c] focus:ring-[#e4007c] sm:text-sm p-2 border bg-background text-foreground"
+                                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 pl-7 pr-12 focus:border-[#e4007c] focus:ring-[#e4007c] sm:text-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         value={settings.minOrderAmount}
                                         onChange={(e) => setSettings({ ...settings, minOrderAmount: Number(e.target.value) })}
                                     />
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <span className="text-muted-foreground sm:text-sm">MXN</span>
+                                        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">MXN</span>
                                     </div>
                                 </div>
                             </div>

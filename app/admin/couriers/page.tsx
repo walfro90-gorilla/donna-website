@@ -64,8 +64,8 @@ export default function AdminCouriersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="sm:flex sm:items-center">
                 <div className="sm:flex-auto">
-                    <h1 className="text-2xl font-semibold text-foreground">Repartidores</h1>
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Repartidores</h1>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                         Lista de todos los repartidores registrados en la plataforma.
                     </p>
                 </div>
@@ -75,11 +75,11 @@ export default function AdminCouriersPage() {
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between">
                 <div className="relative rounded-md shadow-sm max-w-xs">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-muted-foreground" />
+                        <Search className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                         type="text"
-                        className="focus:ring-[#e4007c] focus:border-[#e4007c] block w-full pl-10 sm:text-sm border-input rounded-md p-2 border bg-background text-foreground"
+                        className="focus:ring-[#e4007c] focus:border-[#e4007c] block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-700 rounded-md p-2 border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                         placeholder="Buscar repartidor..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -89,7 +89,7 @@ export default function AdminCouriersPage() {
                     <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        className="block w-full pl-3 pr-10 py-2 text-base border-input bg-background text-foreground focus:outline-none focus:ring-[#e4007c] focus:border-[#e4007c] sm:text-sm rounded-md border"
+                        className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-[#e4007c] focus:border-[#e4007c] sm:text-sm rounded-md border"
                     >
                         <option value="all">Todos los estados</option>
                         <option value="pending">Pendientes</option>
@@ -103,27 +103,27 @@ export default function AdminCouriersPage() {
             <div className="mt-8 flex flex-col">
                 <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg border border-border">
-                            <table className="min-w-full divide-y divide-border">
-                                <thead className="bg-muted/50">
+                        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg border border-gray-200 dark:border-gray-700">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead className="bg-gray-50 dark:bg-gray-800">
                                     <tr>
-                                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">Nombre</th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Vehículo</th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Contacto</th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Estado</th>
+                                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white sm:pl-6">Nombre</th>
+                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Vehículo</th>
+                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Contacto</th>
+                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Estado</th>
                                         <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                             <span className="sr-only">Acciones</span>
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-border bg-card">
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={5} className="text-center py-4 text-muted-foreground">Cargando...</td>
+                                            <td colSpan={5} className="text-center py-4 text-gray-500 dark:text-gray-400">Cargando...</td>
                                         </tr>
                                     ) : filteredCouriers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="text-center py-4 text-muted-foreground">No se encontraron repartidores</td>
+                                            <td colSpan={5} className="text-center py-4 text-gray-500 dark:text-gray-400">No se encontraron repartidores</td>
                                         </tr>
                                     ) : (
                                         filteredCouriers.map((courier) => (
@@ -134,26 +134,26 @@ export default function AdminCouriersPage() {
                                                             {courier.profile_image_url ? (
                                                                 <img className="h-10 w-10 rounded-full object-cover" src={courier.profile_image_url} alt="" />
                                                             ) : (
-                                                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                    <Bike className="h-6 w-6 text-muted-foreground" />
+                                                                <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                                                                    <Bike className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                                                                 </div>
                                                             )}
                                                         </div>
                                                         <div className="ml-4">
-                                                            <div className="font-medium text-foreground">{courier.users?.name || 'Sin nombre'}</div>
-                                                            <div className="text-muted-foreground text-xs">ID: {courier.user_id.slice(0, 8)}</div>
+                                                            <div className="font-medium text-gray-900 dark:text-white">{courier.users?.name || 'Sin nombre'}</div>
+                                                            <div className="text-gray-500 dark:text-gray-400 text-xs">ID: {courier.user_id.slice(0, 8)}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
-                                                    <div className="text-foreground capitalize">{courier.vehicle_type || 'No especificado'}</div>
-                                                    <div className="text-muted-foreground">{courier.vehicle_plate}</div>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                                    <div className="text-gray-900 dark:text-white capitalize">{courier.vehicle_type || 'No especificado'}</div>
+                                                    <div className="text-gray-500 dark:text-gray-400">{courier.vehicle_plate}</div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
-                                                    <div className="text-foreground">{courier.users?.email}</div>
-                                                    <div className="text-muted-foreground">{courier.users?.phone}</div>
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                                    <div className="text-gray-900 dark:text-white">{courier.users?.email}</div>
+                                                    <div className="text-gray-500 dark:text-gray-400">{courier.users?.phone}</div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
+                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                                                     <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${courier.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                                                         courier.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
                                                             'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
@@ -182,7 +182,7 @@ export default function AdminCouriersPage() {
                                                         </div>
                                                     )}
                                                     {courier.status !== 'pending' && (
-                                                        <button className="text-muted-foreground hover:text-foreground">
+                                                        <button className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
                                                             <MoreVertical className="h-5 w-5" />
                                                         </button>
                                                     )}
