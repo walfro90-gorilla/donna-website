@@ -7,6 +7,8 @@ export type CreateUserState = {
     message: string;
     error?: string;
     success?: boolean;
+    email?: string;
+    password?: string;
 };
 
 export async function createUserProfile(prevState: CreateUserState, formData: FormData): Promise<CreateUserState> {
@@ -189,7 +191,12 @@ export async function createUserProfile(prevState: CreateUserState, formData: Fo
         revalidatePath('/admin/restaurants');
         revalidatePath('/admin/couriers');
 
-        return { message: 'Usuario creado exitosamente', success: true };
+        return {
+            message: 'Usuario creado exitosamente',
+            success: true,
+            email: email,
+            password: password
+        };
 
     } catch (error: any) {
         console.error('Unexpected Error:', error);

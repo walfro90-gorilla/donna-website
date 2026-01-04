@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useActionState, useEffect, useRef } from 'react';
+import { useState, useActionState, useEffect, useRef, useTransition } from 'react';
 import { createUserProfile, CreateUserState } from '@/actions/admin/create-user';
 import { LoadingSpinner } from '@/components/ui';
 import { CountryCodeSelector } from '@/components/ui/CountryCodeSelector';
 import AddressAutocompleteRestaurant from '@/components/AddressAutocompleteRestaurant';
-import { User, Store, Bike, CheckCircle, AlertCircle, XCircle, Loader2, MapPin } from 'lucide-react';
+import { User, Store, Bike, CheckCircle, AlertCircle, XCircle, Loader2, MapPin, Copy, X, Eye, EyeOff } from 'lucide-react';
 import { useRestaurantValidation, ValidationStatus } from '@/lib/hooks/useRestaurantValidation';
 
 const initialState: CreateUserState = {
@@ -14,12 +14,21 @@ const initialState: CreateUserState = {
 
 export default function CreateProfilePage() {
     const [state, formAction, isPending] = useActionState(createUserProfile, initialState);
-    const [role, setRole] = useState<'client' | 'restaurant' | 'delivery_agent'>('client');
+    const [isPendingTransition, startTransition] = useTransition();
 
-    // Controlled inputs for validation
+    // UI States
+    const [role, setRole] = useState<'client' | 'restaurant' | 'delivery_agent'>('client');
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const formRef = useRef<HTMLFormElement>(null);
+
+    // Controlled inputs for validation & reset
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [countryCode, setCountryCode] = useState('+52');
+    const [password, setPassword] = useState('');
     const [restaurantName, setRestaurantName] = useState('');
 
     // Address state
@@ -37,16 +46,44 @@ export default function CreateProfilePage() {
     const phoneStatus = useRestaurantValidation('phone', fullPhone);
     const restaurantNameStatus = useRestaurantValidation('restaurantName', role === 'restaurant' ? restaurantName : '');
 
+    // Reset form on success
+    useEffect(() => {
+        if (state.success) {
+            setShowSuccessModal(true);
+            setShowConfirmation(false);
+
+            // Reset form fields
+            setName('');
+            setEmail('');
+            setPhoneNumber('');
+            setPassword('');
+            setRestaurantName('');
+            setAddress('');
+            setCoordinates(null);
+            setPlaceId('');
+            setStructuredAddress(null);
+            if (formRef.current) formRef.current.reset();
+        }
+    }, [state.success]);
+
     // Initialize map when coordinates change
     useEffect(() => {
+        if (!coordinates) {
+            // Reset refs if coordinates are cleared so we create a new map instance
+            // when the map div is re-rendered
+            mapInstanceRef.current = null;
+            markerInstanceRef.current = null;
+            return;
+        }
+
         if (coordinates && mapRef.current && window.google && window.google.maps) {
             if (!mapInstanceRef.current) {
                 mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
                     center: coordinates,
                     zoom: 15,
-                    disableDefaultUI: true,
-                    gestureHandling: 'none',
-                    zoomControl: false,
+                    disableDefaultUI: false, // Enable default UI to allow controls
+                    gestureHandling: 'cooperative',
+                    zoomControl: true,
                     streetViewControl: false,
                     mapTypeControl: false,
                     fullscreenControl: false,
@@ -55,6 +92,15 @@ export default function CreateProfilePage() {
                 markerInstanceRef.current = new window.google.maps.Marker({
                     position: coordinates,
                     map: mapInstanceRef.current,
+                    draggable: true,
+                    animation: window.google.maps.Animation.DROP,
+                });
+
+                // Listener for drag end to update coordinates
+                markerInstanceRef.current.addListener('dragend', (event: any) => {
+                    const newLat = event.latLng.lat();
+                    const newLng = event.latLng.lng();
+                    setCoordinates({ lat: newLat, lng: newLng });
                 });
             } else {
                 mapInstanceRef.current.setCenter(coordinates);
@@ -65,11 +111,12 @@ export default function CreateProfilePage() {
 
     // Form validity
     const isFormValid = () => {
+        if (!name || !email || !password || password.length < 6) return false;
         if (emailStatus === 'invalid' || emailStatus === 'checking') return false;
         if (phoneStatus === 'invalid' || phoneStatus === 'checking') return false;
         if (role === 'restaurant') {
             if (restaurantNameStatus === 'invalid' || restaurantNameStatus === 'checking') return false;
-            if (!address || !coordinates) return false;
+            // if (!address || !coordinates) return false; // Optional: Enforce address validation
         }
         return true;
     };
@@ -106,13 +153,39 @@ export default function CreateProfilePage() {
         }
     };
 
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isFormValid()) {
+            setShowConfirmation(true);
+        }
+    };
+
+    const confirmAndSubmit = () => {
+        if (formRef.current) {
+            const formData = new FormData(formRef.current);
+            // Ensure controlled values are current (explicit override for safety)
+            // Especially coordinate updates from drag events which might not propagate to hidden inputs automatically if not re-rendered 
+            if (coordinates) {
+                formData.set('latitude', coordinates.lat.toString());
+                formData.set('longitude', coordinates.lng.toString());
+            }
+            startTransition(() => {
+                formAction(formData);
+            });
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+    };
+
     return (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Crear Nuevo Perfil</h1>
 
             <div className="bg-card border border-border shadow rounded-lg overflow-hidden">
                 <div className="p-6">
-                    <form action={formAction} className="space-y-6">
+                    <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-6">
 
                         {/* Role Selection */}
                         <div>
@@ -163,6 +236,8 @@ export default function CreateProfilePage() {
                                     type="text"
                                     name="name"
                                     required
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
                                 />
                             </div>
@@ -177,8 +252,8 @@ export default function CreateProfilePage() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         className={`block w-full rounded-md shadow-sm sm:text-sm p-2 border ${emailStatus === 'invalid'
-                                                ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
-                                                : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white'
+                                            ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
+                                            : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white'
                                             }`}
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -201,8 +276,8 @@ export default function CreateProfilePage() {
                                         value={phoneNumber}
                                         onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
                                         className={`block w-full rounded-none rounded-r-md sm:text-sm p-2 border ${phoneStatus === 'invalid'
-                                                ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
-                                                : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white'
+                                            ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
+                                            : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white'
                                             }`}
                                         placeholder="1234567890"
                                     />
@@ -216,13 +291,28 @@ export default function CreateProfilePage() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    required
-                                    minLength={6}
-                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
-                                />
+                                <div className="relative mt-1">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        required
+                                        minLength={6}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 pr-10 border"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-5 w-5" aria-hidden="true" />
+                                        ) : (
+                                            <Eye className="h-5 w-5" aria-hidden="true" />
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -240,8 +330,8 @@ export default function CreateProfilePage() {
                                             value={restaurantName}
                                             onChange={(e) => setRestaurantName(e.target.value)}
                                             className={`block w-full rounded-md shadow-sm sm:text-sm p-2 border ${restaurantNameStatus === 'invalid'
-                                                    ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
-                                                    : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white'
+                                                ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
+                                                : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white'
                                                 }`}
                                         />
                                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -253,12 +343,23 @@ export default function CreateProfilePage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dirección del Restaurante</label>
-                                    <AddressAutocompleteRestaurant
-                                        value={address}
-                                        onChange={handleAddressChange}
-                                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
-                                        placeholder="Busca la dirección..."
-                                    />
+                                    <div className="relative">
+                                        <AddressAutocompleteRestaurant
+                                            value={address}
+                                            onChange={handleAddressChange}
+                                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 pr-10 border"
+                                            placeholder="Busca la dirección..."
+                                        />
+                                        {address && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAddressChange('')}
+                                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 z-10"
+                                            >
+                                                <X className="h-5 w-5" aria-hidden="true" />
+                                            </button>
+                                        )}
+                                    </div>
                                     <input type="hidden" name="address" value={address} />
                                     <input type="hidden" name="latitude" value={coordinates?.lat || ''} />
                                     <input type="hidden" name="longitude" value={coordinates?.lng || ''} />
@@ -267,10 +368,10 @@ export default function CreateProfilePage() {
                                 </div>
 
                                 {coordinates && (
-                                    <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 h-48 relative">
+                                    <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 h-64 relative"> {/* Increased height */}
                                         <div ref={mapRef} className="w-full h-full" />
-                                        <div className="absolute top-2 right-2 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded text-xs font-medium shadow-sm z-10 pointer-events-none">
-                                            Ubicación Exacta
+                                        <div className="absolute top-2 right-2 bg-white/90 dark:bg-gray-800/90 px-3 py-1 rounded text-xs font-medium shadow-md z-10 text-gray-700 dark:text-gray-200 pointer-events-none">
+                                            Arrastra el pin para ajustar
                                         </div>
                                     </div>
                                 )}
@@ -294,19 +395,15 @@ export default function CreateProfilePage() {
                             </div>
                         )}
 
-                        {/* Feedback Messages */}
-                        {state.message && (
-                            <div className={`rounded-md p-4 ${state.success ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+                        {/* Error Message */}
+                        {state.message && !state.success && (
+                            <div className="rounded-md p-4 bg-red-50 dark:bg-red-900/20">
                                 <div className="flex">
                                     <div className="flex-shrink-0">
-                                        {state.success ? (
-                                            <CheckCircle className="h-5 w-5 text-green-400" aria-hidden="true" />
-                                        ) : (
-                                            <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
-                                        )}
+                                        <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
                                     </div>
                                     <div className="ml-3">
-                                        <p className={`text-sm font-medium ${state.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
+                                        <p className="text-sm font-medium text-red-800 dark:text-red-200">
                                             {state.message}
                                         </p>
                                     </div>
@@ -314,17 +411,17 @@ export default function CreateProfilePage() {
                             </div>
                         )}
 
-                        {/* Submit Button */}
+                        {/* Submit Button Trigger */}
                         <div className="flex justify-end">
                             <button
                                 type="submit"
-                                disabled={isPending || !isFormValid()}
-                                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isPending || isPendingTransition || !isFormValid()}
+                                className="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                                {isPending ? (
+                                {isPending || isPendingTransition ? (
                                     <>
                                         <LoadingSpinner isLoading={true} className="h-4 w-4 mr-2" />
-                                        Creando...
+                                        Procesando...
                                     </>
                                 ) : (
                                     'Crear Perfil'
@@ -334,6 +431,94 @@ export default function CreateProfilePage() {
                     </form>
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            {showConfirmation && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center space-x-3 text-amber-600 dark:text-amber-500">
+                            <AlertCircle className="h-6 w-6" />
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Confirmar Creación</h3>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300">
+                            ¿Estás seguro de que deseas crear este perfil? Verifica que todos los datos sean correctos.
+                        </p>
+
+                        <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md text-sm space-y-1">
+                            <p><span className="font-semibold">Nombre:</span> {name}</p>
+                            <p><span className="font-semibold">Email:</span> {email}</p>
+                            <p><span className="font-semibold">Rol:</span> {role === 'client' ? 'Cliente' : role === 'restaurant' ? 'Restaurante' : 'Repartidor'}</p>
+                            {role === 'restaurant' && <p><span className="font-semibold">Restaurante:</span> {restaurantName}</p>}
+                        </div>
+
+                        <div className="flex justify-end space-x-3 pt-2">
+                            <button
+                                onClick={() => setShowConfirmation(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmAndSubmit}
+                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition-colors"
+                            >
+                                Confirmar y Crear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6 space-y-6 animate-in fade-in zoom-in duration-300 border-t-4 border-green-500">
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center space-x-2 text-green-600 dark:text-green-500">
+                                <CheckCircle className="h-7 w-7" />
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">¡Usuario Creado!</h3>
+                            </div>
+                            <button onClick={() => setShowSuccessModal(false)} className="text-gray-400 hover:text-gray-500">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <p className="text-gray-600 dark:text-gray-300">
+                            El perfil se ha creado exitosamente. Comparte las siguientes credenciales con el usuario:
+                        </p>
+
+                        <div className="space-y-3">
+                            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-4 space-y-3">
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</label>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <code className="text-sm font-mono text-gray-900 dark:text-gray-100">{state.email}</code>
+                                        <button onClick={() => copyToClipboard(state.email || '')} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500">
+                                            <Copy className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contraseña</label>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <code className="text-sm font-mono text-indigo-600 dark:text-indigo-400">{state.password}</code>
+                                        <button onClick={() => copyToClipboard(state.password || '')} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500">
+                                            <Copy className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setShowSuccessModal(false)}
+                            className="w-full py-2.5 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-md hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
