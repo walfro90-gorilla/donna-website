@@ -12,15 +12,32 @@ export type CreateUserState = {
 export async function createUserProfile(prevState: CreateUserState, formData: FormData): Promise<CreateUserState> {
     const supabase = createAdminClient();
 
+    // Extract core fields
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('name') as string;
     const phone = formData.get('phone') as string;
     const role = formData.get('role') as 'client' | 'restaurant' | 'delivery_agent';
 
-    // Role specific fields
+    // Extract restaurant specific fields
     const restaurantName = formData.get('restaurantName') as string;
+    const address = formData.get('address') as string;
+    const latitudeStr = formData.get('latitude') as string;
+    const longitudeStr = formData.get('longitude') as string;
+    const placeId = formData.get('placeId') as string;
+    const addressStructuredStr = formData.get('address_structured') as string;
+
+    // Extract delivery specific fields
     const vehicleType = formData.get('vehicleType') as string;
+
+    console.log(' Creating User Profile:', {
+        email,
+        role,
+        phone,
+        restaurantName,
+        address,
+        coordinates: `${latitudeStr}, ${longitudeStr}`
+    });
 
     if (!email || !password || !name || !role) {
         return { message: 'Faltan campos requeridos', error: 'Missing fields' };
@@ -54,7 +71,6 @@ export async function createUserProfile(prevState: CreateUserState, formData: Fo
 
         if (usersError) {
             console.error('Users Error:', usersError);
-            // Cleanup auth user if possible? For now just return error
             return { message: 'Error al crear registro de usuario: ' + usersError.message, error: usersError.message };
         }
 
@@ -86,16 +102,67 @@ export async function createUserProfile(prevState: CreateUserState, formData: Fo
             if (!restaurantName) {
                 return { message: 'Nombre del restaurante es requerido', error: 'Missing restaurant name' };
             }
-            const { error: restError } = await supabase.from('restaurants').insert({
+
+            // Parse numeric coordinates
+            const lat = parseFloat(latitudeStr);
+            const lon = parseFloat(longitudeStr);
+            const hasLocation = !isNaN(lat) && !isNaN(lon);
+
+            // Parse structured address safely
+            let addressStructured = null;
+            try {
+                if (addressStructuredStr && addressStructuredStr !== 'null') {
+                    addressStructured = JSON.parse(addressStructuredStr);
+                }
+            } catch (e) {
+                console.error('Error parsing address_structured:', e);
+            }
+
+            // Fallback: Manually construct if missing but we have coordinates
+            if (!addressStructured && hasLocation && address) {
+                addressStructured = {
+                    types: ['geocode'], // Default type
+                    placeId: placeId || '',
+                    coordinates: {
+                        lat: lat,
+                        lng: lon
+                    },
+                    description: address
+                };
+            }
+
+            const { data: restData, error: restError } = await supabase.from('restaurants').insert({
                 user_id: userId,
                 name: restaurantName,
+                address: address || null,
+                phone: phone || null,
+                location_lat: hasLocation ? lat : null,
+                location_lon: hasLocation ? lon : null,
+                location_place_id: placeId || null,
+                address_structured: addressStructured,
+                location: hasLocation ? `POINT(${lon} ${lat})` : null,
                 status: 'approved', // Auto approve if created by admin
                 commission_bps: 1500,
-            });
+            }).select().single();
+
             if (restError) {
                 console.error('Restaurant Error:', restError);
                 return { message: 'Error al crear restaurante: ' + restError.message, error: restError.message };
             }
+
+            if (restData) {
+                const { error: updatePrefsError } = await supabase
+                    .from('user_preferences')
+                    .update({ restaurant_id: restData.id })
+                    .eq('user_id', userId);
+
+                if (updatePrefsError) {
+                    console.error('Error linking restaurant to preferences:', updatePrefsError);
+                    // Do not fail the whole process, but log it
+                }
+            }
+
+
         } else if (role === 'delivery_agent') {
             const { error: deliveryError } = await supabase.from('delivery_agent_profiles').insert({
                 user_id: userId,
