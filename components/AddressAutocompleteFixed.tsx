@@ -33,7 +33,7 @@ export default function AddressAutocompleteFixed({
 
     try {
       console.log('🔍 Searching places:', query);
-      
+
       const response = await fetch('https://cncvxfjsyrntilcbbcfi.supabase.co/functions/v1/google-maps-proxy', {
         method: 'POST',
         headers: {
@@ -90,11 +90,11 @@ export default function AddressAutocompleteFixed({
 
   const handleSuggestionClick = async (suggestion: any) => {
     console.log('📍 Selected suggestion:', suggestion);
-    
+
     try {
       // Get place details with coordinates
       console.log('🔍 Getting place details for:', suggestion.place_id);
-      
+
       const response = await fetch('https://cncvxfjsyrntilcbbcfi.supabase.co/functions/v1/google-maps-proxy', {
         method: 'POST',
         headers: {
@@ -124,7 +124,7 @@ export default function AddressAutocompleteFixed({
         };
         formattedAddress = result.formatted_address || formattedAddress;
         console.log('✅ Extracted coordinates from response:', coordinates);
-      } 
+      }
       // Fallback: Try standard Google Maps structure
       else if (result.result?.geometry?.location) {
         coordinates = {
@@ -145,7 +145,7 @@ export default function AddressAutocompleteFixed({
       if (coordinates) {
         console.log('✅ Final coordinates:', coordinates);
         console.log('✅ Final address:', formattedAddress);
-        
+
         onChange(formattedAddress, {
           placeId: suggestion.place_id,
           description: formattedAddress,
@@ -165,7 +165,7 @@ export default function AddressAutocompleteFixed({
 
     } catch (error) {
       console.error('❌ Error getting place details:', error);
-      
+
       // Fallback
       onChange(suggestion.description, {
         placeId: suggestion.place_id,
@@ -186,7 +186,7 @@ export default function AddressAutocompleteFixed({
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         type="text"
         placeholder={placeholder}
@@ -194,7 +194,7 @@ export default function AddressAutocompleteFixed({
         onChange={handleInputChange}
         onBlur={handleBlur}
         onFocus={() => value && suggestions.length > 0 && setShowSuggestions(true)}
-        className={`flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500 ${className}`}
+        className={`flex-1 outline-none bg-transparent dark:text-gray-100 text-gray-900 placeholder-gray-500 ${className}`}
       />
 
       {isLoading && (
@@ -204,24 +204,30 @@ export default function AddressAutocompleteFixed({
       )}
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-[9999] left-0 w-full mt-2 bg-white dark:bg-[#1f2937] border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto ring-1 ring-black ring-opacity-5 focus:outline-none">
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.place_id || index}
-              onClick={() => handleSuggestionClick(suggestion)}
-              className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+              onMouseDown={(e) => {
+                // Prevent input blur before click is registered
+                e.preventDefault();
+                handleSuggestionClick(suggestion);
+              }}
+              className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors duration-150 ease-in-out"
             >
               <div className="flex items-start space-x-3">
-                <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <div className="flex-shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white break-words">
                     {suggestion.structured_formatting?.main_text || suggestion.description}
                   </p>
                   {suggestion.structured_formatting?.secondary_text && (
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 break-words mt-0.5">
                       {suggestion.structured_formatting.secondary_text}
                     </p>
                   )}

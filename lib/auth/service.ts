@@ -205,31 +205,58 @@ export class AuthService {
     try {
       console.log('👤 AuthService: Obteniendo perfil para:', userId);
 
+      // Intentar primero con RPC (más seguro/rápido si está configurado)
       const { data, error } = await supabase.rpc('get_user_profile', {
         user_uuid: userId
       });
 
+      if (!error && data && data.length > 0) {
+        const profile = data[0];
+        console.log('👤 AuthService: Perfil obtenido vía RPC:', profile.role);
+        return {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.role as UserRole,
+          phone: profile.phone,
+          email_confirm: profile.email_confirm,
+          created_at: profile.created_at,
+        };
+      }
+
       if (error) {
-        console.error('👤 AuthService: Error en RPC:', error);
+        console.warn('👤 AuthService: Error en RPC, intentando fallback directo:', error.message);
+      } else {
+        console.warn('👤 AuthService: RPC no devolvió datos, intentando fallback directo');
+      }
+
+      // Fallback: Consulta directa a la tabla users
+      const { data: directData, error: directError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (directError) {
+        console.error('👤 AuthService: Error en fallback directo:', directError);
         return null;
       }
 
-      if (!data || data.length === 0) {
-        console.error('👤 AuthService: Usuario no encontrado');
+      if (!directData) {
+        console.error('👤 AuthService: Usuario no encontrado en tabla users');
         return null;
       }
 
-      const profile = data[0];
-      console.log('👤 AuthService: Perfil obtenido:', profile.role);
+      console.log('👤 AuthService: Perfil obtenido vía fallback:', directData.role);
 
       return {
-        id: profile.id,
-        email: profile.email,
-        name: profile.name,
-        role: profile.role as UserRole,
-        phone: profile.phone,
-        email_confirm: profile.email_confirm,
-        created_at: profile.created_at,
+        id: directData.id,
+        email: directData.email,
+        name: directData.name,
+        role: directData.role as UserRole,
+        phone: directData.phone,
+        email_confirm: directData.email_confirm,
+        created_at: directData.created_at,
       };
     } catch (error) {
       console.error('👤 AuthService: Error obteniendo perfil:', error);
