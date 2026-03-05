@@ -210,10 +210,10 @@ export default function RestaurantDashboard() {
 
   if (!mounted || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#e4007c] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando dashboard...</p>
+          <p className="text-gray-400">Cargando dashboard...</p>
         </div>
       </div>
     );
@@ -224,7 +224,7 @@ export default function RestaurantDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0f172a]">
       <OnboardingModal
         isOpen={!hasSeenWelcome}
         onClose={handleWelcomeClose}
@@ -232,11 +232,11 @@ export default function RestaurantDashboard() {
         userName={user.name || 'Socio'}
       />
 
-      <div className="bg-white shadow">
+      <div className="bg-[#1e293b] border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-white">
                 Dashboard Restaurante
               </h1>
             </div>
@@ -248,7 +248,7 @@ export default function RestaurantDashboard() {
               onClick={() => setActiveTab('home')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'home'
                 ? 'border-[#e4007c] text-[#e4007c]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                 }`}
             >
               Resumen
@@ -257,7 +257,7 @@ export default function RestaurantDashboard() {
               onClick={() => setActiveTab('profile')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'profile'
                 ? 'border-[#e4007c] text-[#e4007c]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                 }`}
             >
               Perfil del Negocio
@@ -266,7 +266,7 @@ export default function RestaurantDashboard() {
               onClick={() => setActiveTab('menu')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'menu'
                 ? 'border-[#e4007c] text-[#e4007c]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                 }`}
             >
               Menú Digital
@@ -275,7 +275,7 @@ export default function RestaurantDashboard() {
               onClick={() => setActiveTab('documents')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'documents'
                 ? 'border-[#e4007c] text-[#e4007c]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                 }`}
             >
               Documentación
@@ -284,7 +284,7 @@ export default function RestaurantDashboard() {
               onClick={() => setActiveTab('settings')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'settings'
                 ? 'border-[#e4007c] text-[#e4007c]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                 }`}
             >
               Configuración
@@ -307,7 +307,7 @@ export default function RestaurantDashboard() {
 
         {activeTab === 'profile' && (
           <div className="space-y-6">
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+            <div className="bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -315,7 +315,7 @@ export default function RestaurantDashboard() {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-blue-300">
                     Completa la información de tu perfil para que los clientes puedan encontrarte.
                   </p>
                 </div>
@@ -340,7 +340,7 @@ export default function RestaurantDashboard() {
 
         {activeTab === 'documents' && (
           <div className="space-y-6">
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded-r-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -348,7 +348,7 @@ export default function RestaurantDashboard() {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
+                  <p className="text-sm text-yellow-300">
                     Es necesario subir estos documentos para verificar tu cuenta y comenzar a vender.
                   </p>
                 </div>

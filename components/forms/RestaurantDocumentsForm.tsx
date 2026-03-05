@@ -103,9 +103,9 @@ export default function RestaurantDocumentsForm() {
                 </Alert>
             )}
 
-            <div className="bg-white shadow rounded-lg p-6">
-                <div className="border-b border-gray-200 pb-4 mb-6">
-                    <h2 className="text-lg font-medium leading-6 text-gray-900">Documentación Legal</h2>
+            <div className="bg-[#1e293b] border border-gray-700 rounded-lg p-6">
+                <div className="border-b border-gray-700 pb-4 mb-6">
+                    <h2 className="text-lg font-medium leading-6 text-white">Documentación Legal</h2>
                     <p className="mt-1 text-sm text-gray-500">
                         Sube los documentos requeridos para verificar tu negocio.
                     </p>
@@ -120,7 +120,7 @@ export default function RestaurantDocumentsForm() {
                             onUploadComplete={(path) => setFormData(prev => ({ ...prev, business_permit_url: path }))}
                         />
                         {formData.business_permit_url && (
-                            <p className="mt-2 text-sm text-green-600">
+                            <p className="mt-2 text-sm text-green-400">
                                 ✓ Documento subido: {formData.business_permit_url.split('/').pop()}
                             </p>
                         )}
@@ -134,7 +134,7 @@ export default function RestaurantDocumentsForm() {
                             onUploadComplete={(path) => setFormData(prev => ({ ...prev, health_permit_url: path }))}
                         />
                         {formData.health_permit_url && (
-                            <p className="mt-2 text-sm text-green-600">
+                            <p className="mt-2 text-sm text-green-400">
                                 ✓ Documento subido: {formData.health_permit_url.split('/').pop()}
                             </p>
                         )}

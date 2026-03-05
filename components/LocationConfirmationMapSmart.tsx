@@ -45,11 +45,11 @@ export default function LocationConfirmationMapSmart(props: LocationConfirmation
 
   if (isChecking) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6">
+      <div className="fixed inset-0 bg-black/75 z-50 flex items-end sm:items-center justify-center sm:p-4">
+        <div className="bg-[#111827] w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl p-8">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Inicializando mapa...</p>
+            <p className="text-gray-400 text-sm">Inicializando mapa...</p>
           </div>
         </div>
       </div>

@@ -183,16 +183,16 @@ export default function RestaurantProfileForm() {
             )}
 
             {/* Basic Info Section */}
-            <div className="bg-white shadow rounded-lg p-6">
-                <div className="border-b border-gray-200 pb-4 mb-6">
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">Información Básica</h3>
+            <div className="bg-[#1e293b] border border-gray-700 rounded-lg p-6">
+                <div className="border-b border-gray-700 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-white">Información Básica</h3>
                     <p className="mt-1 text-sm text-gray-500">
                         Detalles generales de tu restaurante.
                     </p>
                 </div>
                 <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <div className="sm:col-span-4">
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-300">
                             Nombre del Restaurante
                         </label>
                         <div className="mt-1">
@@ -203,13 +203,13 @@ export default function RestaurantProfileForm() {
                                 required
                                 value={formData.name}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                             />
                         </div>
                     </div>
 
                     <div className="sm:col-span-2">
-                        <label htmlFor="cuisine_type" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="cuisine_type" className="block text-sm font-medium text-gray-300">
                             Tipo de Cocina
                         </label>
                         <div className="mt-1">
@@ -219,7 +219,7 @@ export default function RestaurantProfileForm() {
                                 required
                                 value={formData.cuisine_type}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                             >
                                 <option value="">Selecciona...</option>
                                 <option value="mexicana">Mexicana</option>
@@ -235,7 +235,7 @@ export default function RestaurantProfileForm() {
                     </div>
 
                     <div className="sm:col-span-6">
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-300">
                             Descripción
                         </label>
                         <div className="mt-1">
@@ -245,7 +245,7 @@ export default function RestaurantProfileForm() {
                                 rows={3}
                                 value={formData.description}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                                 placeholder="Describe tu restaurante, especialidades, etc."
                             />
                         </div>
@@ -254,16 +254,16 @@ export default function RestaurantProfileForm() {
             </div>
 
             {/* Contact & Location Section */}
-            <div className="bg-white shadow rounded-lg p-6">
-                <div className="border-b border-gray-200 pb-4 mb-6">
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">Contacto y Ubicación</h3>
+            <div className="bg-[#1e293b] border border-gray-700 rounded-lg p-6">
+                <div className="border-b border-gray-700 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-white">Contacto y Ubicación</h3>
                     <p className="mt-1 text-sm text-gray-500">
                         ¿Dónde pueden encontrarte tus clientes?
                     </p>
                 </div>
                 <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <div className="sm:col-span-3">
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-300">
                             Teléfono de Contacto
                         </label>
                         <div className="mt-1">
@@ -273,20 +273,20 @@ export default function RestaurantProfileForm() {
                                 id="phone"
                                 value={formData.phone}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                             />
                         </div>
                     </div>
 
                     <div className="sm:col-span-6">
-                        <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="address" className="block text-sm font-medium text-gray-300">
                             Dirección
                         </label>
                         <div className="mt-1 relative rounded-md shadow-sm">
                             <AddressAutocompleteRestaurant
                                 value={formData.address}
                                 onChange={handleAddressChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                                 placeholder="Busca tu dirección..."
                             />
                         </div>
@@ -295,9 +295,9 @@ export default function RestaurantProfileForm() {
             </div>
 
             {/* Images Section */}
-            <div className="bg-white shadow rounded-lg p-6">
-                <div className="border-b border-gray-200 pb-4 mb-6">
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">Imágenes del Negocio</h3>
+            <div className="bg-[#1e293b] border border-gray-700 rounded-lg p-6">
+                <div className="border-b border-gray-700 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-white">Imágenes del Negocio</h3>
                     <p className="mt-1 text-sm text-gray-500">
                         Las fotos atractivas aumentan tus ventas.
                     </p>

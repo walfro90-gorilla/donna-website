@@ -37,10 +37,10 @@ export default function Card({
   const baseClasses = 'rounded-lg transition-all duration-200';
   
   const variantClasses = {
-    default: 'bg-white border border-gray-200',
-    elevated: 'bg-white shadow-lg border border-gray-100',
-    outlined: 'bg-transparent border-2 border-gray-300',
-    filled: 'bg-gray-50 border border-gray-200',
+    default: 'bg-[#1e293b] border border-gray-700',
+    elevated: 'bg-[#1e293b] shadow-lg border border-gray-700',
+    outlined: 'bg-transparent border-2 border-gray-600',
+    filled: 'bg-gray-800/50 border border-gray-700',
   };
 
   // Responsive size classes
@@ -55,8 +55,8 @@ export default function Card({
     lg: 'p-6 sm:p-8',
   };
 
-  const hoverClasses = hover 
-    ? 'hover:shadow-md hover:border-gray-300 cursor-pointer transform hover:-translate-y-1 focus-within:shadow-md' 
+  const hoverClasses = hover
+    ? 'hover:shadow-md hover:border-gray-600 cursor-pointer transform hover:-translate-y-1 focus-within:shadow-md'
     : '';
 
   const clickableClasses = onClick ? 'cursor-pointer' : '';
@@ -110,7 +110,7 @@ export function CardHeader({
   className?: string; 
 }) {
   return (
-    <div className={`border-b border-gray-200 pb-4 mb-4 ${className}`}>
+    <div className={`border-b border-gray-700 pb-4 mb-4 ${className}`}>
       {children}
     </div>
   );
@@ -124,7 +124,7 @@ export function CardTitle({
   className?: string; 
 }) {
   return (
-    <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
+    <h3 className={`text-lg font-semibold text-white ${className}`}>
       {children}
     </h3>
   );
@@ -138,7 +138,7 @@ export function CardDescription({
   className?: string; 
 }) {
   return (
-    <p className={`text-sm text-gray-600 mt-1 ${className}`}>
+    <p className={`text-sm text-gray-400 mt-1 ${className}`}>
       {children}
     </p>
   );
@@ -166,7 +166,7 @@ export function CardFooter({
   className?: string; 
 }) {
   return (
-    <div className={`border-t border-gray-200 pt-4 mt-4 ${className}`}>
+    <div className={`border-t border-gray-700 pt-4 mt-4 ${className}`}>
       {children}
     </div>
   );

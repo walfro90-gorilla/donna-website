@@ -1,9 +1,10 @@
 // components/LocationConfirmationMapEdgeFunction.tsx
-// Mapa de confirmación que usa solo la edge function (sin Google Maps API key)
+// Mapa interactivo dark-theme con Leaflet + CartoDB Dark Matter tiles
+// Sin dependencia de Google Maps API key — marker draggable actualiza coordenadas
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleMapsProxy } from '@/lib/utils/googleMapsProxy';
 
 interface LocationConfirmationMapProps {
@@ -27,94 +28,148 @@ export default function LocationConfirmationMapEdgeFunction({
   const [currentLng, setCurrentLng] = useState(initialLng || -99.1332);
   const [confirmedAddress, setConfirmedAddress] = useState(address);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [mapKey, setMapKey] = useState(0); // Force map refresh
-  const [showStaticMap, setShowStaticMap] = useState(true);
-  
-  const apiKey = typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY : '';
-  
-  useEffect(() => {
-    console.log('🔑 API Key available:', !!apiKey);
-    if (apiKey) {
-      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${currentLat},${currentLng}&zoom=16&size=800x400&scale=2&markers=color:red%7Clabel:R%7C${currentLat},${currentLng}&key=${apiKey}`;
-      console.log('🗺️ Full Map URL:', mapUrl);
-      console.log('💡 If map fails to load, you may need to enable "Maps Static API" in Google Cloud Console');
-    }
-  }, [apiKey, currentLat, currentLng]);
+  const [leafletReady, setLeafletReady] = useState(false);
 
-  // Get coordinates from address using edge function
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+
+  // Load Leaflet CSS + JS from CDN once
   useEffect(() => {
     if (!isOpen) return;
+    if (typeof window === 'undefined') return;
 
-    const getCoordinatesFromAddress = async () => {
-      // If we have initial coordinates, use them
-      if (initialLat && initialLng) {
-        console.log('✅ Using provided coordinates:', { lat: initialLat, lng: initialLng, address });
-        setCurrentLat(initialLat);
-        setCurrentLng(initialLng);
-        setConfirmedAddress(address);
-        setMapKey(prev => prev + 1); // Force map refresh
-        return;
-      } else {
-        console.log('⚠️ No initial coordinates provided, will geocode address');
-      }
-
-      // Otherwise, geocode the address
-      if (!address) return;
-
-      try {
-        console.log('🔍 Getting coordinates for address:', address);
-        
-        const result = await GoogleMapsProxy.geocode({ address });
-        
-        if (result.results && result.results.length > 0) {
-          const location = result.results[0].geometry?.location;
-          if (location) {
-            console.log('✅ Got coordinates from edge function:', location);
-            setCurrentLat(location.lat);
-            setCurrentLng(location.lng);
-            setConfirmedAddress(result.results[0].formatted_address || address);
-            setMapKey(prev => prev + 1); // Force map refresh
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error getting coordinates:', error);
-        // Keep the initial coordinates if geocoding fails
-      }
-    };
-
-    getCoordinatesFromAddress();
-  }, [isOpen, address, initialLat, initialLng]);
-
-  const handleCoordinateChange = async (field: 'lat' | 'lng', value: string) => {
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return;
-
-    const newLat = field === 'lat' ? numValue : currentLat;
-    const newLng = field === 'lng' ? numValue : currentLng;
-
-    if (field === 'lat') {
-      setCurrentLat(numValue);
-    } else {
-      setCurrentLng(numValue);
+    const L = (window as any).L;
+    if (L) {
+      setLeafletReady(true);
+      return;
     }
 
-    // Force map refresh
-    setMapKey(prev => prev + 1);
+    if (!document.querySelector('link[href*="leaflet"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
 
-    // Update address based on new coordinates
+    if (!document.querySelector('script[src*="leaflet"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.async = true;
+      script.onload = () => setLeafletReady(true);
+      document.head.appendChild(script);
+    } else {
+      const interval = setInterval(() => {
+        if ((window as any).L) {
+          setLeafletReady(true);
+          clearInterval(interval);
+        }
+      }, 100);
+    }
+  }, [isOpen]);
+
+  // Sync coordinates when modal opens with new props
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialLat) setCurrentLat(initialLat);
+    if (initialLng) setCurrentLng(initialLng);
+    setConfirmedAddress(address);
+  }, [isOpen, initialLat, initialLng, address]);
+
+  const updateAddressFromCoords = useCallback(async (lat: number, lng: number) => {
     setIsLoadingAddress(true);
     try {
-      const result = await GoogleMapsProxy.reverseGeocode(newLat, newLng);
-      
-      if (result.results && result.results.length > 0) {
+      const result = await GoogleMapsProxy.reverseGeocode(lat, lng);
+      if (result.results?.[0]?.formatted_address) {
         setConfirmedAddress(result.results[0].formatted_address);
       }
-    } catch (error) {
-      console.error('Error updating address:', error);
+    } catch {
+      // keep current address if reverse geocode fails
     } finally {
       setIsLoadingAddress(false);
     }
-  };
+  }, []);
+
+  // Initialize Leaflet map once ready
+  useEffect(() => {
+    if (!leafletReady || !mapContainerRef.current || !isOpen) return;
+
+    // Destroy previous instance if any
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    }
+
+    const L = (window as any).L;
+    const lat = initialLat || currentLat;
+    const lng = initialLng || currentLng;
+
+    // Init map
+    const map = L.map(mapContainerRef.current, {
+      center: [lat, lng],
+      zoom: 17,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    // Dark tile layer — CartoDB Dark Matter
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+    }).addTo(map);
+
+    // Custom pink circle marker
+    const pinkIcon = L.divIcon({
+      html: `
+        <div style="
+          width:22px;height:22px;
+          background:#e4007c;
+          border:3px solid #fff;
+          border-radius:50%;
+          box-shadow:0 0 0 3px rgba(228,0,124,0.35), 0 2px 8px rgba(0,0,0,0.5);
+        "></div>
+      `,
+      className: '',
+      iconSize: [22, 22],
+      iconAnchor: [11, 11],
+    });
+
+    const marker = L.marker([lat, lng], {
+      draggable: true,
+      icon: pinkIcon,
+    }).addTo(map);
+
+    // Drag end → update coords + address
+    marker.on('dragend', async (e: any) => {
+      const { lat: newLat, lng: newLng } = e.target.getLatLng();
+      setCurrentLat(newLat);
+      setCurrentLng(newLng);
+      await updateAddressFromCoords(newLat, newLng);
+    });
+
+    // Click on map → move marker + update coords
+    map.on('click', async (e: any) => {
+      const { lat: newLat, lng: newLng } = e.latlng;
+      marker.setLatLng([newLat, newLng]);
+      setCurrentLat(newLat);
+      setCurrentLng(newLng);
+      await updateAddressFromCoords(newLat, newLng);
+    });
+
+    // Fix tiles not rendering on first open
+    setTimeout(() => map.invalidateSize(), 100);
+
+    mapInstanceRef.current = map;
+    markerRef.current = marker;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    };
+  // Only re-init when leaflet becomes ready or modal opens
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leafletReady, isOpen]);
 
   const handleConfirm = () => {
     onLocationConfirm(currentLat, currentLng, confirmedAddress);
@@ -123,182 +178,126 @@ export default function LocationConfirmationMapEdgeFunction({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/75 z-50 flex items-end sm:items-center justify-center sm:p-4">
+      <div className="bg-[#111827] w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden">
+
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Confirma tu ubicación</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Ajusta las coordenadas para obtener la ubicación exacta
-              </p>
-            </div>
-            <button
-              onClick={onCancel}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
+          <div>
+            <h3 className="text-base font-semibold text-white">Confirma la ubicación</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Arrastra el pin o toca el mapa para ajustar
+            </p>
           </div>
+          <button
+            onClick={onCancel}
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-label="Cerrar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        {/* Map Alternative - Coordinate Input */}
-        <div className="p-6 space-y-6">
-          {/* Static Map Visualization */}
-          <div className="bg-gray-100 rounded-xl overflow-hidden">
-            <div className="relative h-80 bg-gradient-to-br from-blue-50 to-indigo-100">
-              {showStaticMap && apiKey ? (
-                <img
-                  key={mapKey}
-                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${currentLat},${currentLng}&zoom=16&size=800x400&scale=2&markers=color:red%7Clabel:R%7C${currentLat},${currentLng}&key=${apiKey}`}
-                  alt="Mapa de ubicación"
-                  className="w-full h-full object-cover"
-                  onLoad={() => {
-                    console.log('✅ Static map loaded successfully');
-                  }}
-                  onError={(e) => {
-                    console.error('❌ Failed to load static map');
-                    console.error('Map URL:', e.currentTarget.src);
-                    setShowStaticMap(false);
-                  }}
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-                  <div className="text-center relative">
-                    {/* Decorative circles */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-12 w-32 h-32 bg-[#e4007c] opacity-10 rounded-full blur-2xl"></div>
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-12 w-40 h-40 bg-pink-500 opacity-10 rounded-full blur-2xl"></div>
-                    
-                    {/* Main icon */}
-                    <div className="relative w-24 h-24 bg-gradient-to-r from-[#e4007c] to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse">
-                      <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    
-                    {/* Text content */}
-                    <h4 className="text-2xl font-bold text-gray-800 mb-3">Ubicación del Restaurante</h4>
-                    <p className="text-sm text-gray-600 max-w-md mx-auto mb-6">
-                      Las coordenadas se han calculado automáticamente desde la dirección proporcionada.
-                    </p>
-                    
-                    {/* Coordinates display */}
-                    <div className="inline-flex items-center px-6 py-3 bg-white rounded-xl shadow-lg mb-4">
-                      <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <div className="text-left">
-                        <p className="text-xs text-gray-500 font-medium">Coordenadas GPS</p>
-                        <p className="text-sm font-bold text-gray-800">{currentLat.toFixed(6)}, {currentLng.toFixed(6)}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Info message */}
-                    <div className="mt-4 max-w-sm mx-auto">
-                      <p className="text-xs text-gray-500 mb-2">
-                        Puedes ajustar las coordenadas manualmente si necesitas mayor precisión
-                      </p>
-                      {!apiKey && (
-                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                          <p className="text-xs text-yellow-800">
-                            💡 Para ver el mapa visual, habilita "Maps Static API" en Google Cloud Console
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+        {/* Map */}
+        <div className="relative bg-gray-800 h-56 sm:h-72 flex-shrink-0">
+          {!leafletReady && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+              <div className="w-8 h-8 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-400 text-sm">Cargando mapa...</p>
             </div>
-          </div>
+          )}
+          {/* Leaflet mounts here */}
+          <div
+            ref={mapContainerRef}
+            className="w-full h-full"
+            style={{ opacity: leafletReady ? 1 : 0 }}
+          />
 
-          {/* Coordinate inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Latitud</label>
-              <input
-                type="number"
-                step="0.000001"
-                value={currentLat}
-                onChange={(e) => handleCoordinateChange('lat', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all"
-                placeholder="19.432608"
-              />
+          {/* Coordinates badge over map */}
+          {leafletReady && (
+            <div className="absolute bottom-3 left-3 z-[1000] bg-black/65 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-2 pointer-events-none">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#e4007c] animate-pulse" />
+              <span className="text-white text-xs font-mono tabular-nums">
+                {currentLat.toFixed(6)},&nbsp;{currentLng.toFixed(6)}
+              </span>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Longitud</label>
-              <input
-                type="number"
-                step="0.000001"
-                value={currentLng}
-                onChange={(e) => handleCoordinateChange('lng', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] outline-none transition-all"
-                placeholder="-99.133209"
-              />
-            </div>
-          </div>
+          )}
+        </div>
 
-          {/* Address display */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-            <div className="flex items-start space-x-3">
-              <svg className="w-5 h-5 text-[#e4007c] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Info */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+
+          {/* Confirmed address */}
+          <div className="bg-gray-800 rounded-xl p-3.5 border border-gray-700">
+            <div className="flex items-start gap-3">
+              <svg className="w-4 h-4 text-[#e4007c] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Dirección confirmada:</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Dirección</p>
                 {isLoadingAddress ? (
-                  <div className="flex items-center space-x-2 mt-1">
-                    <div className="w-4 h-4 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm text-gray-500">Actualizando dirección...</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 border-2 border-[#e4007c] border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-gray-400">Actualizando...</span>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600 mt-1">{confirmedAddress}</p>
+                  <p className="text-sm text-gray-200 leading-snug">{confirmedAddress}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-2">
-                  📍 Coordenadas: {currentLat.toFixed(6)}, {currentLng.toFixed(6)}
-                </p>
               </div>
             </div>
           </div>
 
-          {/* Help text */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-start space-x-3">
-              <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          {/* Read-only coordinate display */}
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Coordenadas</p>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-sm font-medium text-blue-800">💡 Cómo ajustar la ubicación</p>
-                <p className="text-xs text-blue-600 mt-1">
-                  • Las coordenadas se calcularon automáticamente desde la dirección<br/>
-                  • Ajusta los valores de latitud y longitud para mayor precisión<br/>
-                  • El mapa se actualizará automáticamente con los nuevos valores
-                </p>
+                <label className="text-xs text-gray-500 mb-1 block">Latitud</label>
+                <div className="px-3 py-2.5 bg-gray-800/60 border border-gray-700 rounded-xl text-gray-300 text-sm font-mono select-all cursor-text">
+                  {currentLat.toFixed(7)}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Longitud</label>
+                <div className="px-3 py-2.5 bg-gray-800/60 border border-gray-700 rounded-xl text-gray-300 text-sm font-mono select-all cursor-text">
+                  {currentLng.toFixed(7)}
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Tip */}
+          <div className="flex items-start gap-2.5 bg-gray-800/50 border border-gray-700/50 rounded-xl px-3.5 py-3">
+            <svg className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Arrastra el pin rosa o toca cualquier punto del mapa. Las coordenadas se actualizarán automáticamente.
+            </p>
+          </div>
+
         </div>
 
         {/* Actions */}
-        <div className="p-6 border-t border-gray-200 flex space-x-3">
+        <div className="flex gap-3 px-4 py-4 border-t border-gray-700 bg-[#111827] flex-shrink-0">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-600 text-gray-300 text-sm font-medium hover:bg-gray-800 hover:text-white transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-[#e4007c] to-pink-500 text-white rounded-xl font-medium hover:from-[#c6006b] hover:to-pink-600 transition-all shadow-lg"
+            disabled={isLoadingAddress}
+            className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#e4007c] to-pink-500 text-white text-sm font-semibold hover:from-[#c6006b] hover:to-pink-600 transition-all shadow-lg shadow-pink-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Confirmar ubicación
+            {isLoadingAddress ? 'Actualizando...' : 'Confirmar ubicación'}
           </button>
         </div>
+
       </div>
     </div>
   );

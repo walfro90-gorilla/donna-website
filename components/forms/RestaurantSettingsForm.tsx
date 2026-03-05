@@ -133,9 +133,9 @@ export default function RestaurantSettingsForm() {
             )}
 
             {/* General Settings */}
-            <div className="bg-white shadow rounded-lg p-6">
-                <div className="border-b border-gray-200 pb-4 mb-6">
-                    <h2 className="text-lg font-medium leading-6 text-gray-900">Configuración General</h2>
+            <div className="bg-[#1e293b] border border-gray-700 rounded-lg p-6">
+                <div className="border-b border-gray-700 pb-4 mb-6">
+                    <h2 className="text-lg font-medium leading-6 text-white">Configuración General</h2>
                     <p className="mt-1 text-sm text-gray-500">
                         Define tus zonas de entrega y condiciones de pedido.
                     </p>
@@ -144,7 +144,7 @@ export default function RestaurantSettingsForm() {
                 <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
                     {/* Delivery Radius */}
                     <div>
-                        <label htmlFor="delivery_radius_km" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="delivery_radius_km" className="block text-sm font-medium text-gray-300">
                             Radio de Entrega (km)
                         </label>
                         <div className="mt-1">
@@ -156,14 +156,14 @@ export default function RestaurantSettingsForm() {
                                 step="0.1"
                                 value={formData.delivery_radius_km}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                             />
                         </div>
                     </div>
 
                     {/* Min Order Amount */}
                     <div>
-                        <label htmlFor="min_order_amount" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="min_order_amount" className="block text-sm font-medium text-gray-300">
                             Pedido Mínimo ($)
                         </label>
                         <div className="mt-1">
@@ -175,14 +175,14 @@ export default function RestaurantSettingsForm() {
                                 step="1"
                                 value={formData.min_order_amount}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                             />
                         </div>
                     </div>
 
                     {/* Estimated Time */}
                     <div>
-                        <label htmlFor="estimated_delivery_time_minutes" className="block text-sm font-medium text-gray-700">
+                        <label htmlFor="estimated_delivery_time_minutes" className="block text-sm font-medium text-gray-300">
                             Tiempo Estimado (min)
                         </label>
                         <div className="mt-1">
@@ -194,7 +194,7 @@ export default function RestaurantSettingsForm() {
                                 step="5"
                                 value={formData.estimated_delivery_time_minutes}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                className="block w-full sm:text-sm bg-gray-800 border border-gray-600 text-white placeholder-gray-500 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                             />
                         </div>
                     </div>
@@ -202,9 +202,9 @@ export default function RestaurantSettingsForm() {
             </div>
 
             {/* Business Hours */}
-            <div className="bg-white shadow rounded-lg p-6">
-                <div className="border-b border-gray-200 pb-4 mb-6">
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">Horarios de Atención</h3>
+            <div className="bg-[#1e293b] border border-gray-700 rounded-lg p-6">
+                <div className="border-b border-gray-700 pb-4 mb-6">
+                    <h3 className="text-lg font-medium leading-6 text-white">Horarios de Atención</h3>
                     <p className="mt-1 text-sm text-gray-500">
                         Configura los días y horas que tu negocio está abierto.
                     </p>
@@ -212,7 +212,7 @@ export default function RestaurantSettingsForm() {
                 <div className="space-y-4">
                     {DAYS.map((day) => (
                         <div key={day.key} className="flex items-center space-x-4">
-                            <div className="w-24 font-medium text-gray-700">{day.label}</div>
+                            <div className="w-24 font-medium text-gray-300">{day.label}</div>
                             <div className="flex items-center space-x-2">
                                 <label className="inline-flex items-center">
                                     <input
@@ -221,7 +221,7 @@ export default function RestaurantSettingsForm() {
                                         onChange={(e) => handleHoursChange(day.key, 'closed', !e.target.checked)}
                                         className="form-checkbox h-4 w-4 text-[#e4007c] border-gray-300 rounded focus:ring-[#e4007c]"
                                     />
-                                    <span className="ml-2 text-sm text-gray-600">Abierto</span>
+                                    <span className="ml-2 text-sm text-gray-300">Abierto</span>
                                 </label>
                             </div>
 
@@ -231,14 +231,14 @@ export default function RestaurantSettingsForm() {
                                         type="time"
                                         value={formData.business_hours[day.key]?.open}
                                         onChange={(e) => handleHoursChange(day.key, 'open', e.target.value)}
-                                        className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-32 sm:text-sm border-gray-300 rounded-md p-1 border"
+                                        className="block w-32 sm:text-sm bg-gray-800 border border-gray-600 text-white rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                                     />
                                     <span className="text-gray-500">-</span>
                                     <input
                                         type="time"
                                         value={formData.business_hours[day.key]?.close}
                                         onChange={(e) => handleHoursChange(day.key, 'close', e.target.value)}
-                                        className="shadow-sm focus:ring-[#e4007c] focus:border-[#e4007c] block w-32 sm:text-sm border-gray-300 rounded-md p-1 border"
+                                        className="block w-32 sm:text-sm bg-gray-800 border border-gray-600 text-white rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c]"
                                     />
                                 </div>
                             )}

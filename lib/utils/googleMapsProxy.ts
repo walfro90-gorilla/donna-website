@@ -138,7 +138,8 @@ export class GoogleMapsProxy {
         headers: this.headers,
         body: JSON.stringify({
           action: 'reverse_geocode',
-          latlng: `${lat},${lng}`,
+          lat,
+          lon: lng,
           language: 'es'
         })
       });

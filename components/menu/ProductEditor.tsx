@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/auth/context';
 import { ImageUpload, Button, LoadingSpinner, Alert } from '@/components/ui';
 
 interface Product {
@@ -22,6 +23,7 @@ interface ProductEditorProps {
 }
 
 export default function ProductEditor({ restaurantId, product, onSave, onCancel }: ProductEditorProps) {
+    const { user } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -108,7 +110,7 @@ export default function ProductEditor({ restaurantId, product, onSave, onCancel 
                     <div className="w-full sm:w-auto">
                         <ImageUpload
                             bucket="restaurant-images"
-                            folderPath={`${restaurantId}/products`}
+                            folderPath={`${user?.id}/products`}
                             label="Foto del Platillo"
                             defaultImage={formData.image_url}
                             onUploadComplete={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
