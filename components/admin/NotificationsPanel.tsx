@@ -129,13 +129,14 @@ export default function NotificationsPanel() {
     };
 
     const getEntityLink = (notification: Notification) => {
+        const id = notification.entity_id;
         switch (notification.entity_type) {
             case 'restaurant':
-                return '/admin/restaurants';
+                return id ? `/admin/restaurants/${id}` : '/admin/restaurants';
             case 'delivery_agent':
-                return '/admin/couriers';
+                return id ? `/admin/couriers/${id}` : '/admin/couriers';
             case 'user':
-                return '/admin/users';
+                return id ? `/admin/users/${id}` : '/admin/users';
             default:
                 return '/admin';
         }

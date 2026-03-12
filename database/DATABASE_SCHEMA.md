@@ -378,6 +378,10 @@ CREATE TABLE public.restaurants (
   commission_bps integer NOT NULL DEFAULT 1500 CHECK (commission_bps >= 0 AND commission_bps <= 3000),
   facade_image_url text,
   location USER-DEFINED,
+  facebook_url text,
+  instagram_url text,
+  website_url text,
+  delivery_fee double precision NOT NULL DEFAULT 35.0,
   CONSTRAINT restaurants_pkey PRIMARY KEY (id),
   CONSTRAINT restaurants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );

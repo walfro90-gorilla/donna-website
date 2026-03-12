@@ -33,27 +33,27 @@ export async function middleware(request: NextRequest) {
     // Create Supabase client for middleware
     const { supabase, response } = createClient(request);
 
-    // Get session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get authenticated user (validates token with Supabase Auth server)
+    const { data: { user: authUser }, error: sessionError } = await supabase.auth.getUser();
 
-    console.log('👤 Sesión:', session ? 'Existe' : 'No existe');
+    console.log('👤 Sesión:', authUser ? 'Existe' : 'No existe');
     console.log('❌ Error de sesión:', sessionError);
 
-    // If no session, redirect to login
-    if (sessionError || !session) {
+    // If no authenticated user, redirect to login
+    if (sessionError || !authUser) {
       console.log('🚫 Sin sesión, redirigiendo a login');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    console.log('👤 User ID:', session.user.id);
+    console.log('👤 User ID:', authUser.id);
 
     // Get user role from database
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('role')
-      .eq('id', session.user.id)
+      .eq('id', authUser.id)
       .single();
 
     console.log('📊 User data:', userData);

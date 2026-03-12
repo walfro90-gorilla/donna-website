@@ -17,9 +17,15 @@ import {
     DollarSign,
     Navigation,
     User,
-    ChevronLeft
+    ChevronLeft,
+    Wifi,
+    WifiOff,
+    Percent,
+    Loader2,
+    Zap
 } from 'lucide-react';
 import Link from 'next/link';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus } from '../actions';
 
 interface RestaurantDetailProps {
     params: Promise<{
@@ -36,6 +42,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [ordersCount, setOrdersCount] = useState(0);
     const [accountBalance, setAccountBalance] = useState(0);
     const [recentOrders, setRecentOrders] = useState<any[]>([]);
+    const [togglingOnline, setTogglingOnline] = useState(false);
+    const [editingCommission, setEditingCommission] = useState(false);
+    const [commissionBps, setCommissionBps] = useState(0);
+    const [savingCommission, setSavingCommission] = useState(false);
 
     useEffect(() => {
         fetchRestaurantDetails();
@@ -102,6 +112,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
             setOrdersCount(ordCount || 0);
             setAccountBalance(accountData?.balance || 0);
             setRecentOrders(ordersData || []);
+            setCommissionBps(restaurantData?.commission_bps ?? 1500);
 
         } catch (error) {
             console.error('Error fetching restaurant details:', error);
@@ -111,20 +122,26 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     };
 
     const handleStatusUpdate = async (newStatus: string) => {
-        try {
-            const { error } = await supabase
-                .from('restaurants')
-                .update({ status: newStatus })
-                .eq('id', id)
-                .select()
-                .single();
+        const { error } = await updateRestaurantStatus(id, newStatus as any);
+        if (error) { alert('Error: ' + error); return; }
+        setRestaurant({ ...restaurant, status: newStatus });
+    };
 
-            if (error) throw error;
-            setRestaurant({ ...restaurant, status: newStatus });
-        } catch (error) {
-            console.error('Error updating status:', error);
-            alert('Error al actualizar el estado');
-        }
+    const handleToggleOnline = async () => {
+        setTogglingOnline(true);
+        const { error } = await toggleRestaurantOnline(id, !restaurant.online);
+        setTogglingOnline(false);
+        if (error) { alert('Error: ' + error); return; }
+        setRestaurant({ ...restaurant, online: !restaurant.online });
+    };
+
+    const handleSaveCommission = async () => {
+        setSavingCommission(true);
+        const { error } = await updateRestaurantCommission(id, commissionBps);
+        setSavingCommission(false);
+        if (error) { alert('Error: ' + error); return; }
+        setRestaurant({ ...restaurant, commission_bps: commissionBps });
+        setEditingCommission(false);
     };
 
     if (loading) {
@@ -176,7 +193,27 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                             </span>
                         </div>
                     </div>
-                    <div className="mt-4 sm:mt-0 flex gap-3">
+                    <div className="mt-4 sm:mt-0 flex flex-wrap gap-3">
+                        {/* Toggle online/offline — siempre visible */}
+                        <button
+                            onClick={handleToggleOnline}
+                            disabled={togglingOnline}
+                            className={`inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                                restaurant.online
+                                    ? 'border-green-500 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 focus:ring-green-500'
+                                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-[#e4007c]'
+                            }`}
+                        >
+                            {togglingOnline ? (
+                                <Loader2 className="-ml-1 mr-2 h-4 w-4 animate-spin" />
+                            ) : restaurant.online ? (
+                                <Wifi className="-ml-1 mr-2 h-4 w-4" />
+                            ) : (
+                                <WifiOff className="-ml-1 mr-2 h-4 w-4" />
+                            )}
+                            {restaurant.online ? 'Poner Offline' : 'Poner Online'}
+                        </button>
+
                         {restaurant.status === 'pending' && (
                             <>
                                 <button
@@ -194,6 +231,24 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                     Aprobar
                                 </button>
                             </>
+                        )}
+                        {restaurant.status === 'approved' && (
+                            <button
+                                onClick={() => handleStatusUpdate('rejected')}
+                                className="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                                <XCircle className="-ml-1 mr-2 h-4 w-4" />
+                                Suspender
+                            </button>
+                        )}
+                        {restaurant.status === 'rejected' && (
+                            <button
+                                onClick={() => handleStatusUpdate('approved')}
+                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#e4007c] hover:bg-[#c00068]"
+                            >
+                                <CheckCircle className="-ml-1 mr-2 h-4 w-4" />
+                                Reactivar
+                            </button>
                         )}
                     </div>
                 </div>
@@ -388,6 +443,86 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
 
                 {/* Right Column - Status & Media */}
                 <div className="space-y-8">
+
+                    {/* God Mode — Commission Control */}
+                    <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-[#e4007c]/30 dark:border-[#e4007c]/20">
+                        <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-[#e4007c]/5">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-[#e4007c]" />
+                                God Mode — Controles
+                            </h3>
+                        </div>
+                        <div className="px-6 py-5 space-y-4">
+                            {/* Online status display */}
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado Online</p>
+                                    <p className={`text-xs mt-0.5 ${restaurant.online ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                                        {restaurant.online ? '● Visible para clientes' : '○ No visible para clientes'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleToggleOnline}
+                                    disabled={togglingOnline}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${restaurant.online ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${restaurant.online ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+
+                            {/* Commission editor */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                        <Percent className="h-3.5 w-3.5" />
+                                        Comisión
+                                    </p>
+                                    {!editingCommission ? (
+                                        <button
+                                            onClick={() => setEditingCommission(true)}
+                                            className="text-xs text-[#e4007c] hover:underline"
+                                        >
+                                            Editar
+                                        </button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleSaveCommission}
+                                                disabled={savingCommission}
+                                                className="text-xs text-white bg-[#e4007c] hover:bg-[#c00068] px-2 py-0.5 rounded disabled:opacity-50"
+                                            >
+                                                {savingCommission ? '...' : 'Guardar'}
+                                            </button>
+                                            <button
+                                                onClick={() => { setEditingCommission(false); setCommissionBps(restaurant.commission_bps ?? 1500); }}
+                                                className="text-xs text-gray-500 hover:text-gray-700"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                {editingCommission ? (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="0" max="3000" step="50"
+                                            value={commissionBps}
+                                            onChange={e => setCommissionBps(Number(e.target.value))}
+                                            className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#e4007c] focus:border-[#e4007c]"
+                                        />
+                                        <span className="text-sm text-gray-500">bps</span>
+                                        <span className="text-sm font-semibold text-[#e4007c]">= {(commissionBps / 100).toFixed(1)}%</span>
+                                    </div>
+                                ) : (
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {((restaurant.commission_bps ?? 1500) / 100).toFixed(1)}%
+                                        <span className="text-sm font-normal text-gray-400 ml-2">{restaurant.commission_bps ?? 1500} bps</span>
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Financial Summary Card */}
                     <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
