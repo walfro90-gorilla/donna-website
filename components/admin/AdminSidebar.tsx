@@ -11,7 +11,8 @@ import {
     ShoppingBag,
     DollarSign,
     Settings,
-    LogOut
+    LogOut,
+    MapPin
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import NotificationsPanel from './NotificationsPanel';
@@ -28,6 +29,7 @@ export default function AdminSidebar() {
         { name: 'Pedidos', href: '/admin/orders', icon: ShoppingBag },
         { name: 'Balance', href: '/admin/balance', icon: DollarSign },
         { name: 'Crear Perfil', href: '/admin/create-profile', icon: Users },
+        { name: 'Zonas de Cobertura', href: '/admin/coverage-zones', icon: MapPin },
         { name: 'Configuración', href: '/admin/settings', icon: Settings },
     ];
 
