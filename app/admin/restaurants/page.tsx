@@ -27,7 +27,7 @@ export default function AdminRestaurantsPage() {
         try {
             const { data, error } = await supabase
                 .from('restaurants')
-                .select('id, name, cuisine_type, status, online, average_rating, logo_url, users:user_id (email, phone)')
+                .select('id, name, cuisine_type, status, online, business_hours_enabled, average_rating, logo_url, users:user_id (email, phone)')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -167,9 +167,16 @@ export default function AdminRestaurantsPage() {
                                                     </span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                    <div className={`flex items-center gap-1.5 text-xs font-medium ${restaurant.online ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                                                        <div className={`h-2 w-2 rounded-full ${restaurant.online ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                                                        {restaurant.online ? 'Online' : 'Offline'}
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <div className={`flex items-center gap-1.5 text-xs font-medium ${restaurant.online ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                            <div className={`h-2 w-2 rounded-full ${restaurant.online ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                                                            {restaurant.online ? 'Online' : 'Offline'}
+                                                        </div>
+                                                        {restaurant.business_hours_enabled && (
+                                                            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                                                Auto
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">

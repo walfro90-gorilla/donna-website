@@ -6,7 +6,10 @@
       "Bash(xargs grep -l \"webhook\\\\|order\\\\|payment\\\\|notification\\\\|email\\\\|sms\\\\|twilio\\\\|stripe\")",
       "Bash(grep -r \"twilio\\\\|mailgun\\\\|sendgrid\\\\|stripe\\\\|paypal\\\\|whatsapp\" /x/Codes/donna-website --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.json\" ! -path \"*/node_modules/*\")",
       "Bash(xargs grep -l \"callback\\\\|route\")",
-      "Bash(ls -la x:/Codes/donna-website/components/LocationConfirmation*)"
+      "Bash(ls -la x:/Codes/donna-website/components/LocationConfirmation*)",
+      "Bash(npm install:*)",
+      "Bash(ls -la x:/Codes/donna-website/app/admin/restaurants/[id]/)",
+      "Bash(grep -E '\\\\.\\(ts|tsx|js\\)$')"
     ]
   }
 }

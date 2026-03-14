@@ -250,6 +250,7 @@ CREATE TABLE public.order_items (
   price_at_time_of_order numeric NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   unit_price numeric NOT NULL DEFAULT 0.00,
+  is_removed boolean NOT NULL DEFAULT false,
   CONSTRAINT order_items_pkey PRIMARY KEY (id),
   CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
   CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
@@ -400,6 +401,8 @@ CREATE TABLE public.restaurants (
   instagram_url text,
   website_url text,
   delivery_fee double precision NOT NULL DEFAULT 35.0,
+  business_hours_enabled boolean NOT NULL DEFAULT false,
+  timezone text NOT NULL DEFAULT 'America/Mexico_City'::text,
   CONSTRAINT restaurants_pkey PRIMARY KEY (id),
   CONSTRAINT restaurants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );

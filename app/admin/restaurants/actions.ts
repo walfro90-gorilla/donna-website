@@ -10,7 +10,7 @@ export async function toggleRestaurantOnline(
     const supabase = createAdminClient();
     const { error } = await supabase
       .from('restaurants')
-      .update({ online, updated_at: new Date().toISOString() })
+      .update({ online, business_hours_enabled: false, updated_at: new Date().toISOString() })
       .eq('id', restaurantId);
     if (error) return { error: error.message };
     return { error: null };
@@ -53,6 +53,31 @@ export async function updateRestaurantStatus(
     return { error: null };
   } catch {
     return { error: 'Error al actualizar estado' };
+  }
+}
+
+export async function updateRestaurantSchedule(
+  restaurantId: string,
+  data: {
+    business_hours: Record<string, { enabled: boolean; open: string; close: string }>;
+    business_hours_enabled: boolean;
+  },
+): Promise<{ error: string | null }> {
+  if (!restaurantId) return { error: 'ID de restaurante requerido' };
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('restaurants')
+      .update({
+        business_hours: data.business_hours,
+        business_hours_enabled: data.business_hours_enabled,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', restaurantId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al actualizar horarios' };
   }
 }
 

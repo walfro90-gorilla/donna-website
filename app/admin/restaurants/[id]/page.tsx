@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus } from '../actions';
+import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 
 interface RestaurantDetailProps {
     params: Promise<{
@@ -132,7 +133,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
         const { error } = await toggleRestaurantOnline(id, !restaurant.online);
         setTogglingOnline(false);
         if (error) { alert('Error: ' + error); return; }
-        setRestaurant({ ...restaurant, online: !restaurant.online });
+        setRestaurant({ ...restaurant, online: !restaurant.online, business_hours_enabled: false });
     };
 
     const handleSaveCommission = async () => {
@@ -370,23 +371,19 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                 </div>
                             </dl>
 
-                            <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Horarios de Atención</h4>
-                                {restaurant.business_hours ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-900 dark:text-white">
-                                        {Object.entries(restaurant.business_hours).map(([day, hours]: [string, any]) => (
-                                            <div key={day} className="flex justify-between">
-                                                <span className="capitalize w-24 font-medium">{day}:</span>
-                                                <span>{hours.open} - {hours.close}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">No configurado</p>
-                                )}
-                            </div>
                         </div>
                     </div>
+
+                    {/* Business Hours Editor */}
+                    <BusinessHoursEditor
+                        restaurantId={id}
+                        initialHours={restaurant.business_hours}
+                        initialEnabled={restaurant.business_hours_enabled ?? false}
+                        timezone={restaurant.timezone ?? 'America/Mexico_City'}
+                        onSaved={(hours, enabled) =>
+                            setRestaurant({ ...restaurant, business_hours: hours, business_hours_enabled: enabled })
+                        }
+                    />
 
                     {/* Recent Orders Card */}
                     <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -469,6 +466,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${restaurant.online ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                             </div>
+
+                            <p className="text-xs text-gray-400 dark:text-gray-500 -mt-2">
+                                {restaurant.business_hours_enabled ? '⏱ Horario automático activo' : '✋ Control manual'}
+                            </p>
 
                             {/* Commission editor */}
                             <div>
