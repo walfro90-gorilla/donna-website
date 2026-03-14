@@ -76,7 +76,8 @@ export async function updateRestaurantSchedule(
       .eq('id', restaurantId);
     if (error) return { error: error.message };
     return { error: null };
-  } catch {
+  } catch (e) {
+    console.error('[updateRestaurantSchedule]', e);
     return { error: 'Error al actualizar horarios' };
   }
 }

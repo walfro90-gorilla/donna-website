@@ -43,6 +43,7 @@ export function BusinessHoursEditor({ restaurantId, initialHours, initialEnabled
     const [hours, setHours] = useState<BusinessHours>(() => buildInitialHours(initialHours));
     const [autoEnabled, setAutoEnabled] = useState(initialEnabled);
     const [saving, setSaving] = useState(false);
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
 
     const updateDay = (day: DayKey, field: keyof DaySchedule, value: string | boolean) => {
         setHours(prev => ({
@@ -53,17 +54,25 @@ export function BusinessHoursEditor({ restaurantId, initialHours, initialEnabled
 
     const handleSave = async () => {
         setSaving(true);
-        const { error } = await updateRestaurantSchedule(restaurantId, {
-            business_hours: hours,
-            business_hours_enabled: autoEnabled,
-        });
-        setSaving(false);
-        if (error) {
-            toast.error('Error al guardar horarios: ' + error);
-            return;
+        try {
+            const { error } = await updateRestaurantSchedule(restaurantId, {
+                business_hours: hours,
+                business_hours_enabled: autoEnabled,
+            });
+            if (error) {
+                console.error('[BusinessHoursEditor] save error:', error);
+                toast.error('Error: ' + error);
+                return;
+            }
+            setSavedAt(new Date());
+            toast.success('Horarios actualizados');
+            onSaved(hours, autoEnabled);
+        } catch (e) {
+            console.error('[BusinessHoursEditor] unexpected error:', e);
+            toast.error('Error inesperado al guardar');
+        } finally {
+            setSaving(false);
         }
-        toast.success('Horarios actualizados');
-        onSaved(hours, autoEnabled);
     };
 
     return (
@@ -146,15 +155,18 @@ export function BusinessHoursEditor({ restaurantId, initialHours, initialEnabled
                 </div>
 
                 {/* Save button */}
-                <div className="flex justify-end pt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                    {savedAt && !saving && (
+                        <span className="text-xs text-green-600 dark:text-green-400">
+                            ✓ Guardado a las {savedAt.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    )}
                     <button
                         onClick={handleSave}
                         disabled={saving}
                         className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#e4007c] hover:bg-[#c00068] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c] disabled:opacity-50"
                     >
-                        {saving ? (
-                            <Loader2 className="-ml-1 mr-2 h-4 w-4 animate-spin" />
-                        ) : null}
+                        {saving && <Loader2 className="-ml-1 mr-2 h-4 w-4 animate-spin" />}
                         {saving ? 'Guardando...' : 'Guardar horarios'}
                     </button>
                 </div>

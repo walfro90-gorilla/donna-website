@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { LoadingSpinner } from '@/components/ui';
+import { Toaster } from 'react-hot-toast';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -33,6 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
+            <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
             <AdminSidebar />
             <div className="md:pl-64 flex flex-col flex-1">
                 <main className="flex-1 pb-8">
