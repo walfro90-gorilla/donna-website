@@ -84,7 +84,7 @@ export default function AdminRestaurantsPage() {
                     <button
                         key={key}
                         onClick={() => { setFilter(key); setPage(1); }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${color} ${filter === key ? 'ring-2 ring-offset-1 ring-[#e4007c]' : 'opacity-70 hover:opacity-100'}`}
+                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${color} ${filter === key ? 'ring-2 ring-offset-1 ring-[#e4007c]' : 'opacity-70 hover:opacity-100'}`}
                     >
                         {label}
                         <span className="bg-white/40 dark:bg-black/20 rounded-full px-1.5">{counts[key]}</span>
@@ -94,7 +94,7 @@ export default function AdminRestaurantsPage() {
 
             {/* Search */}
             <div className="mt-4 flex flex-col sm:flex-row gap-4">
-                <div className="relative rounded-md shadow-sm max-w-xs">
+                <div className="relative rounded-md shadow-sm w-full sm:max-w-xs">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search className="h-5 w-5 text-gray-400" />
                     </div>
@@ -116,11 +116,11 @@ export default function AdminRestaurantsPage() {
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead className="bg-gray-50 dark:bg-gray-800">
                                     <tr>
-                                        <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white sm:pl-6">Restaurante</th>
-                                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Contacto</th>
-                                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Estado</th>
-                                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Online</th>
-                                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Rating</th>
+                                        <th className="py-3.5 pl-4 pr-3 text-left text-xs font-semibold tracking-wider uppercase text-gray-600 dark:text-gray-300 sm:pl-6">Restaurante</th>
+                                        <th className="hidden sm:table-cell px-3 py-3.5 text-left text-xs font-semibold tracking-wider uppercase text-gray-600 dark:text-gray-300">Contacto</th>
+                                        <th className="px-3 py-3.5 text-left text-xs font-semibold tracking-wider uppercase text-gray-600 dark:text-gray-300">Estado</th>
+                                        <th className="px-3 py-3.5 text-left text-xs font-semibold tracking-wider uppercase text-gray-600 dark:text-gray-300">Online</th>
+                                        <th className="hidden md:table-cell px-3 py-3.5 text-left text-xs font-semibold tracking-wider uppercase text-gray-600 dark:text-gray-300">Rating</th>
                                         <th className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Acciones</span></th>
                                     </tr>
                                 </thead>
@@ -153,7 +153,7 @@ export default function AdminRestaurantsPage() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                                <td className="hidden sm:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                                                     <div>{restaurant.users?.email || '—'}</div>
                                                     <div className="text-xs">{restaurant.users?.phone || '—'}</div>
                                                 </td>
@@ -173,13 +173,13 @@ export default function AdminRestaurantsPage() {
                                                             {restaurant.online ? 'Online' : 'Offline'}
                                                         </div>
                                                         {restaurant.business_hours_enabled && (
-                                                            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                                            <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                                                                 Auto
                                                             </span>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                                <td className="hidden md:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                                                     <span className="text-yellow-400">★</span>
                                                     <span className="ml-1 text-gray-900 dark:text-white">{restaurant.average_rating?.toFixed(1) || '—'}</span>
                                                 </td>

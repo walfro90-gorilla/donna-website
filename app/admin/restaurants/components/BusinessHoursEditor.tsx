@@ -76,95 +76,114 @@ export function BusinessHoursEditor({ restaurantId, initialHours, initialEnabled
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center">
-                    <Clock className="h-5 w-5 mr-2 text-gray-400" />
+        <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">
+            {/* Card Header */}
+            <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <Clock className="h-5 w-5 mr-2 text-[#e4007c]" />
                     Horarios de Atención
                 </h3>
             </div>
 
-            <div className="px-6 py-5 space-y-6">
+            <div className="px-4 py-4 sm:px-6 sm:py-5 space-y-5">
+
                 {/* Auto-schedule toggle */}
-                <div className="flex items-start justify-between gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
-                    <div>
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className={`flex items-center justify-between gap-4 p-4 rounded-xl border transition-colors ${
+                    autoEnabled
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                        : 'bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-700'
+                }`}>
+                    <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                             Horario automático (cron)
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <p className={`text-sm mt-0.5 ${autoEnabled ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}>
                             {autoEnabled
-                                ? `⏱ El cron abre/cierra la cocina cada 5 min · Zona: ${timezone}`
+                                ? `⏱ Abre/cierra cada 5 min · ${timezone}`
                                 : '✋ Control manual — el cron ignora este restaurante'}
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={() => setAutoEnabled(v => !v)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${autoEnabled ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                            autoEnabled ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                        aria-label="Toggle horario automático"
                     >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${autoEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${autoEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                 </div>
 
                 {/* Day rows */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     {DAYS.map(day => {
                         const sched = hours[day];
                         return (
                             <div
                                 key={day}
-                                className={`flex items-center gap-3 py-2 px-3 rounded-md transition-colors ${sched.enabled ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900/30'}`}
+                                className={`flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 py-3 px-3 rounded-xl border transition-colors ${
+                                    sched.enabled
+                                        ? 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700'
+                                        : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800'
+                                }`}
                             >
-                                {/* Checkbox */}
-                                <input
-                                    type="checkbox"
-                                    checked={sched.enabled}
-                                    onChange={e => updateDay(day, 'enabled', e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-[#e4007c] focus:ring-[#e4007c]"
-                                />
+                                {/* Row 1 (mobile) / single row (desktop): checkbox + label + closed badge */}
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <input
+                                        type="checkbox"
+                                        checked={sched.enabled}
+                                        onChange={e => updateDay(day, 'enabled', e.target.checked)}
+                                        className="h-5 w-5 shrink-0 rounded border-gray-400 dark:border-gray-500 text-[#e4007c] focus:ring-[#e4007c]"
+                                    />
+                                    <span className={`w-24 text-sm font-semibold shrink-0 ${
+                                        sched.enabled
+                                            ? 'text-gray-900 dark:text-white'
+                                            : 'text-gray-400 dark:text-gray-500'
+                                    }`}>
+                                        {DAY_LABELS[day]}
+                                    </span>
+                                    {!sched.enabled && (
+                                        <span className="text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
+                                            Cerrado
+                                        </span>
+                                    )}
+                                </div>
 
-                                {/* Day label */}
-                                <span className={`w-24 text-sm font-medium ${sched.enabled ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
-                                    {DAY_LABELS[day]}
-                                </span>
-
-                                {sched.enabled ? (
-                                    <>
+                                {/* Row 2 (mobile) / continuation (desktop): time inputs */}
+                                {sched.enabled && (
+                                    <div className="flex items-center gap-2 pl-8 sm:pl-0">
                                         <input
                                             type="time"
                                             value={sched.open}
                                             onChange={e => updateDay(day, 'open', e.target.value)}
-                                            className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#e4007c] focus:border-[#e4007c] w-28"
+                                            className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] w-full sm:w-28"
                                         />
-                                        <span className="text-gray-400 text-xs">—</span>
+                                        <span className="text-gray-400 dark:text-gray-500 text-sm font-medium shrink-0">—</span>
                                         <input
                                             type="time"
                                             value={sched.close}
                                             onChange={e => updateDay(day, 'close', e.target.value)}
-                                            className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#e4007c] focus:border-[#e4007c] w-28"
+                                            className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#e4007c] focus:border-[#e4007c] w-full sm:w-28"
                                         />
-                                    </>
-                                ) : (
-                                    <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-                                        Cerrado
-                                    </span>
+                                    </div>
                                 )}
                             </div>
                         );
                     })}
                 </div>
 
-                {/* Save button */}
-                <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                {/* Save row */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
                     {savedAt && !saving && (
-                        <span className="text-xs text-green-600 dark:text-green-400">
+                        <span className="text-sm text-green-600 dark:text-green-400 text-center sm:text-left">
                             ✓ Guardado a las {savedAt.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                     )}
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#e4007c] hover:bg-[#c00068] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c] disabled:opacity-50"
+                        className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 border border-transparent rounded-xl text-sm font-semibold text-white bg-[#e4007c] hover:bg-[#c20069] active:bg-[#a30058] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e4007c] disabled:opacity-50 transition-colors"
                     >
                         {saving && <Loader2 className="-ml-1 mr-2 h-4 w-4 animate-spin" />}
                         {saving ? 'Guardando...' : 'Guardar horarios'}
