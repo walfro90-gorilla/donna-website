@@ -151,6 +151,146 @@ function MapPicker({
     );
 }
 
+// ─── Coverage map monitor ─────────────────────────────────────────────────────
+function CoverageMapMonitor({ zones }: { zones: CoverageZone[] }) {
+    const mapRef = useRef<HTMLDivElement>(null);
+    const mapInstanceRef = useRef<any>(null);
+    const overlaysRef = useRef<any[]>([]);
+    const [mapLoaded, setMapLoaded] = useState(false);
+
+    // Load Google Maps script
+    useEffect(() => {
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) return;
+
+        const checkReady = () => {
+            if (window.google?.maps?.Map) { setMapLoaded(true); return true; }
+            return false;
+        };
+        if (checkReady()) return;
+
+        const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+        if (existing) {
+            const interval = setInterval(() => { if (checkReady()) clearInterval(interval); }, 100);
+            return () => clearInterval(interval);
+        }
+
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => setTimeout(() => checkReady(), 100);
+        document.head.appendChild(script);
+    }, []);
+
+    // Init map
+    useEffect(() => {
+        if (!mapLoaded || !mapRef.current || mapInstanceRef.current) return;
+        mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
+            zoom: 12,
+            center: { lat: DEFAULT_LAT, lng: DEFAULT_LNG },
+            mapTypeId: 'roadmap',
+            streetViewControl: false,
+            mapTypeControl: false,
+            fullscreenControl: true,
+            zoomControl: true,
+        });
+    }, [mapLoaded]);
+
+    // Draw / redraw all zones whenever zones or map changes
+    useEffect(() => {
+        if (!mapLoaded || !mapInstanceRef.current) return;
+
+        // Remove previous overlays
+        overlaysRef.current.forEach(o => o.setMap(null));
+        overlaysRef.current = [];
+
+        if (zones.length === 0) return;
+
+        const bounds = new window.google.maps.LatLngBounds();
+
+        zones.forEach(zone => {
+            const center = { lat: zone.center_lat, lng: zone.center_lon };
+            const color = zone.is_active ? '#e4007c' : '#9ca3af';
+            const opacity = zone.is_active ? 1 : 0.5;
+
+            const circle = new window.google.maps.Circle({
+                map: mapInstanceRef.current,
+                center,
+                radius: zone.radius_km * 1000,
+                fillColor: color,
+                fillOpacity: zone.is_active ? 0.12 : 0.06,
+                strokeColor: color,
+                strokeOpacity: opacity,
+                strokeWeight: zone.is_active ? 2 : 1.5,
+            });
+
+            const marker = new window.google.maps.Marker({
+                position: center,
+                map: mapInstanceRef.current,
+                title: zone.name,
+                icon: {
+                    path: window.google.maps.SymbolPath.CIRCLE,
+                    scale: 7,
+                    fillColor: color,
+                    fillOpacity: opacity,
+                    strokeColor: '#fff',
+                    strokeWeight: 2,
+                },
+            });
+
+            const infoWindow = new window.google.maps.InfoWindow({
+                content: `
+                    <div style="font-family:sans-serif;min-width:140px">
+                        <div style="font-weight:600;font-size:13px;color:#111">${zone.name}</div>
+                        <div style="font-size:11px;color:#666;margin-top:3px">Radio: ${zone.radius_km.toFixed(1)} km</div>
+                        <div style="font-size:11px;margin-top:2px;color:${zone.is_active ? '#16a34a' : '#9ca3af'};font-weight:500">
+                            ${zone.is_active ? '● Activa' : '○ Inactiva'}
+                        </div>
+                    </div>`,
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.open(mapInstanceRef.current, marker);
+            });
+
+            bounds.extend(center);
+            overlaysRef.current.push(circle, marker);
+        });
+
+        mapInstanceRef.current.fitBounds(bounds, 60);
+    }, [mapLoaded, zones]);
+
+    if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) return null;
+
+    return (
+        <div className="mt-6 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                    <Map className="h-4 w-4 text-[#e4007c]" />
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Mapa de Cobertura</span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="flex items-center gap-1.5">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#e4007c]" /> Activa
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-gray-400" /> Inactiva
+                    </span>
+                </div>
+            </div>
+            <div className="relative">
+                <div ref={mapRef} className="h-80 w-full" />
+                {!mapLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                        <Loader2 className="h-7 w-7 animate-spin text-[#e4007c]" />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 // ─── Form modal ──────────────────────────────────────────────────────────────
 function ZoneFormModal({
     zone, onClose, onSaved,
@@ -487,6 +627,11 @@ export default function CoverageZonesPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Map monitor */}
+            {!loading && zones.length > 0 && (
+                <CoverageMapMonitor zones={zones} />
+            )}
 
             {/* Table */}
             <div className="mt-6 overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg border border-gray-200 dark:border-gray-700">
