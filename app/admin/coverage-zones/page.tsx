@@ -18,14 +18,35 @@ export interface CoverageZone {
 }
 
 declare global {
-    interface Window { google: any; }
+    interface Window { google: any; __gmInitCallback?: () => void; }
 }
 
 // Default center: Culiacán, Sinaloa
 const DEFAULT_LAT = 24.8049;
 const DEFAULT_LNG = -107.3940;
 
-// ─── Map picker component ────────────────────────────────────────────────────
+// ─── Singleton Google Maps loader ─────────────────────────────────────────────
+// Ensures the script is injected only once regardless of how many components use it.
+let _mapsPromise: Promise<void> | null = null;
+
+function loadGoogleMaps(): Promise<void> {
+    if (typeof window === 'undefined') return Promise.reject('SSR');
+    if (_mapsPromise) return _mapsPromise;
+    _mapsPromise = new Promise<void>((resolve, reject) => {
+        if (window.google?.maps?.Map) { resolve(); return; }
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) { reject(new Error('Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY')); return; }
+        window.__gmInitCallback = () => resolve();
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker,places&callback=__gmInitCallback&loading=async`;
+        script.async = true;
+        script.onerror = () => { _mapsPromise = null; reject(new Error('Google Maps load error')); };
+        document.head.appendChild(script);
+    });
+    return _mapsPromise;
+}
+
+// ─── Map picker (used inside the form modal) ──────────────────────────────────
 function MapPicker({
     lat, lng, radiusKm, onLocationChange,
 }: {
@@ -38,51 +59,29 @@ function MapPicker({
     const circleRef = useRef<any>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
 
-    // Load Google Maps script
     useEffect(() => {
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-        if (!apiKey) return;
-
-        const checkReady = () => {
-            if (window.google?.maps?.Map) { setMapLoaded(true); return true; }
-            return false;
-        };
-        if (checkReady()) return;
-
-        const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-        if (existing) {
-            const interval = setInterval(() => { if (checkReady()) clearInterval(interval); }, 100);
-            return () => clearInterval(interval);
-        }
-
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => setTimeout(() => checkReady(), 100);
-        document.head.appendChild(script);
+        loadGoogleMaps().then(() => setMapLoaded(true)).catch(() => {});
     }, []);
 
-    // Init map
+    // Init map once Maps API is ready
     useEffect(() => {
-        if (!mapLoaded || !mapRef.current) return;
-        if (mapInstanceRef.current) return; // already initialized
-
+        if (!mapLoaded || !mapRef.current || mapInstanceRef.current) return;
         const center = { lat, lng };
+
         mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
             center,
             zoom: 13,
+            mapId: 'DEMO_MAP_ID',
             mapTypeId: 'roadmap',
-            disableDefaultUI: false,
             zoomControl: true,
             streetViewControl: false,
             mapTypeControl: false,
         });
 
-        markerRef.current = new window.google.maps.Marker({
+        markerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
             position: center,
             map: mapInstanceRef.current,
-            draggable: true,
+            gmpDraggable: true,
             title: 'Centro de la zona',
         });
 
@@ -97,28 +96,29 @@ function MapPicker({
             strokeWeight: 2,
         });
 
-        markerRef.current.addListener('dragend', (e: any) => {
-            const newLat = e.latLng.lat();
-            const newLng = e.latLng.lng();
+        markerRef.current.addListener('dragend', () => {
+            const pos = markerRef.current.position as any;
+            if (!pos) return;
+            const newLat = typeof pos.lat === 'function' ? pos.lat() : Number(pos.lat);
+            const newLng = typeof pos.lng === 'function' ? pos.lng() : Number(pos.lng);
             circleRef.current?.setCenter({ lat: newLat, lng: newLng });
             onLocationChange(newLat, newLng);
         });
 
-        // Click on map to move marker
         mapInstanceRef.current.addListener('click', (e: any) => {
             const newLat = e.latLng.lat();
             const newLng = e.latLng.lng();
-            markerRef.current?.setPosition({ lat: newLat, lng: newLng });
+            markerRef.current.position = { lat: newLat, lng: newLng };
             circleRef.current?.setCenter({ lat: newLat, lng: newLng });
             onLocationChange(newLat, newLng);
         });
-    }, [mapLoaded]);
+    }, [mapLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Sync marker + circle when lat/lng changes externally
+    // Sync marker + circle when lat/lng change externally (e.g. manual input)
     useEffect(() => {
         if (!mapInstanceRef.current) return;
         const pos = { lat, lng };
-        markerRef.current?.setPosition(pos);
+        if (markerRef.current) markerRef.current.position = pos;
         circleRef.current?.setCenter(pos);
         mapInstanceRef.current.panTo(pos);
     }, [lat, lng]);
@@ -158,37 +158,17 @@ function CoverageMapMonitor({ zones }: { zones: CoverageZone[] }) {
     const overlaysRef = useRef<any[]>([]);
     const [mapLoaded, setMapLoaded] = useState(false);
 
-    // Load Google Maps script
     useEffect(() => {
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-        if (!apiKey) return;
-
-        const checkReady = () => {
-            if (window.google?.maps?.Map) { setMapLoaded(true); return true; }
-            return false;
-        };
-        if (checkReady()) return;
-
-        const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-        if (existing) {
-            const interval = setInterval(() => { if (checkReady()) clearInterval(interval); }, 100);
-            return () => clearInterval(interval);
-        }
-
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => setTimeout(() => checkReady(), 100);
-        document.head.appendChild(script);
+        loadGoogleMaps().then(() => setMapLoaded(true)).catch(() => {});
     }, []);
 
-    // Init map
+    // Init map once
     useEffect(() => {
         if (!mapLoaded || !mapRef.current || mapInstanceRef.current) return;
         mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
             zoom: 12,
             center: { lat: DEFAULT_LAT, lng: DEFAULT_LNG },
+            mapId: 'DEMO_MAP_ID',
             mapTypeId: 'roadmap',
             streetViewControl: false,
             mapTypeControl: false,
@@ -197,12 +177,15 @@ function CoverageMapMonitor({ zones }: { zones: CoverageZone[] }) {
         });
     }, [mapLoaded]);
 
-    // Draw / redraw all zones whenever zones or map changes
+    // Draw / redraw all zones whenever zones list or map readiness changes
     useEffect(() => {
         if (!mapLoaded || !mapInstanceRef.current) return;
 
         // Remove previous overlays
-        overlaysRef.current.forEach(o => o.setMap(null));
+        overlaysRef.current.forEach(o => {
+            if (typeof o.setMap === 'function') o.setMap(null); // Circle
+            else o.map = null;                                    // AdvancedMarkerElement
+        });
         overlaysRef.current = [];
 
         if (zones.length === 0) return;
@@ -212,7 +195,6 @@ function CoverageMapMonitor({ zones }: { zones: CoverageZone[] }) {
         zones.forEach(zone => {
             const center = { lat: zone.center_lat, lng: zone.center_lon };
             const color = zone.is_active ? '#e4007c' : '#9ca3af';
-            const opacity = zone.is_active ? 1 : 0.5;
 
             const circle = new window.google.maps.Circle({
                 map: mapInstanceRef.current,
@@ -221,37 +203,40 @@ function CoverageMapMonitor({ zones }: { zones: CoverageZone[] }) {
                 fillColor: color,
                 fillOpacity: zone.is_active ? 0.12 : 0.06,
                 strokeColor: color,
-                strokeOpacity: opacity,
+                strokeOpacity: zone.is_active ? 1 : 0.5,
                 strokeWeight: zone.is_active ? 2 : 1.5,
             });
 
-            const marker = new window.google.maps.Marker({
+            // Custom dot element for AdvancedMarkerElement
+            const dot = document.createElement('div');
+            dot.style.cssText = `
+                width:14px;height:14px;border-radius:50%;
+                background:${color};border:2px solid white;
+                box-shadow:0 1px 4px rgba(0,0,0,.35);
+                opacity:${zone.is_active ? 1 : 0.55};
+                cursor:pointer;
+            `;
+
+            const marker = new window.google.maps.marker.AdvancedMarkerElement({
                 position: center,
                 map: mapInstanceRef.current,
                 title: zone.name,
-                icon: {
-                    path: window.google.maps.SymbolPath.CIRCLE,
-                    scale: 7,
-                    fillColor: color,
-                    fillOpacity: opacity,
-                    strokeColor: '#fff',
-                    strokeWeight: 2,
-                },
+                content: dot,
             });
 
             const infoWindow = new window.google.maps.InfoWindow({
                 content: `
-                    <div style="font-family:sans-serif;min-width:140px">
-                        <div style="font-weight:600;font-size:13px;color:#111">${zone.name}</div>
-                        <div style="font-size:11px;color:#666;margin-top:3px">Radio: ${zone.radius_km.toFixed(1)} km</div>
-                        <div style="font-size:11px;margin-top:2px;color:${zone.is_active ? '#16a34a' : '#9ca3af'};font-weight:500">
+                    <div style="font-family:sans-serif;min-width:150px;padding:2px 0">
+                        <div style="font-weight:700;font-size:13px;color:#111">${zone.name}</div>
+                        <div style="font-size:11px;color:#666;margin-top:4px">Radio: <b>${zone.radius_km.toFixed(1)} km</b></div>
+                        <div style="font-size:11px;margin-top:3px;color:${zone.is_active ? '#16a34a' : '#9ca3af'};font-weight:600">
                             ${zone.is_active ? '● Activa' : '○ Inactiva'}
                         </div>
                     </div>`,
             });
 
             marker.addListener('click', () => {
-                infoWindow.open(mapInstanceRef.current, marker);
+                infoWindow.open({ anchor: marker, map: mapInstanceRef.current });
             });
 
             bounds.extend(center);
