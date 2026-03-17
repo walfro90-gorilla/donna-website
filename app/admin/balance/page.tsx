@@ -11,11 +11,12 @@ export const metadata = {
 export default async function AdminBalancePage({
     searchParams,
 }: {
-    searchParams: { [key: string]: string | string[] | undefined };
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-    const page = Number(searchParams.page) || 1;
-    const type = typeof searchParams.type === 'string' ? searchParams.type : undefined;
-    const accountType = typeof searchParams.accountType === 'string' ? searchParams.accountType : undefined;
+    const params = await searchParams;
+    const page = Number(params.page) || 1;
+    const type = typeof params.type === 'string' ? params.type : undefined;
+    const accountType = typeof params.accountType === 'string' ? params.accountType : undefined;
 
     // Fetch data in parallel
     const [stats, transactionsData] = await Promise.all([
