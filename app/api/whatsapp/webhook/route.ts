@@ -3,13 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// Use service role to bypass RLS — this endpoint is called by Clawbot (not browser)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-);
-
 interface WhatsAppWebhookPayload {
   event: string;
   messageId: string;
@@ -44,6 +37,12 @@ export async function POST(req: NextRequest) {
   if (payload.event !== 'message') {
     return NextResponse.json({ autoRespond: true });
   }
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
 
   try {
     // ── 2. Upsert contact ─────────────────────────────────────
