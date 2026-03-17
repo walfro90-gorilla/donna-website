@@ -5,7 +5,18 @@
       "Bash(cut -d'\\(' -f1)",
       "Bash(echo \"Exit code: $?\")",
       "Bash(npx next:*)",
-      "Read(//^/ {file=$0} /  Error:/**)"
+      "Read(//^/ {file=$0} /  Error:/**)",
+      "Bash(find /x/Codes/donna-website/app/admin -type f -name *.tsx)",
+      "Bash(ls -la /x/Codes/donna-website/app/admin/couriers/[id]/)",
+      "Bash(ls -la /x/Codes/donna-website/app/admin/orders/[id]/)",
+      "Bash(ls -la /x/Codes/donna-website/app/admin/users/[id]/)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(grep -r \"conversation\\\\|messaging\\\\|chat\" /x/Codes/donna-website/lib/supabase/*.sql)",
+      "Bash(xargs grep:*)"
+    ],
+    "additionalDirectories": [
+      "x:\\Codes\\donna-website\\app\\api\\whatsapp\\conversations\\[id]",
+      "x:\\Codes\\donna-website\\app\\admin\\crm"
     ]
   }
 }

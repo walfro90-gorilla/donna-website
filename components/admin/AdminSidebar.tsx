@@ -12,7 +12,8 @@ import {
     DollarSign,
     Settings,
     LogOut,
-    MapPin
+    MapPin,
+    MessageCircle
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import NotificationsPanel from './NotificationsPanel';
@@ -30,6 +31,7 @@ export default function AdminSidebar() {
         { name: 'Balance', href: '/admin/balance', icon: DollarSign },
         { name: 'Crear Perfil', href: '/admin/create-profile', icon: Users },
         { name: 'Zonas de Cobertura', href: '/admin/coverage-zones', icon: MapPin },
+        { name: 'WhatsApp CRM', href: '/admin/crm', icon: MessageCircle },
         { name: 'Configuración', href: '/admin/settings', icon: Settings },
     ];
 
