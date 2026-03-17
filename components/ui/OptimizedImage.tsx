@@ -85,7 +85,7 @@ export default function OptimizedImage({
     };
 
     img.onload = handleLoad;
-    img.onerror = handleError;
+    img.onerror = handleError as unknown as OnErrorEventHandler;
     
     // Generate optimized src with quality and format
     const optimizedSrc = generateOptimizedSrc(src, { width, height, quality });

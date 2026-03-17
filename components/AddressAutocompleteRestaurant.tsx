@@ -57,16 +57,28 @@ export default function AddressAutocompleteRestaurant({
         console.log('⚠️ Google Maps API key not configured, using edge function only');
       }
     } else {
-      // If google is already available or script exists, wait for it
+      // Google ya cargó — inicializar directamente
+      if (window.google && window.google.maps && window.google.maps.places) {
+        initializePlaces();
+        return;
+      }
+
+      // Script ya está en el DOM pero aún no terminó de cargar — esperar con poll + timeout
       const checkGoogle = setInterval(() => {
         if (window.google && window.google.maps && window.google.maps.places) {
           clearInterval(checkGoogle);
+          clearTimeout(timeoutId);
           initializePlaces();
         }
       }, 100);
 
-      // Cleanup interval
-      return () => clearInterval(checkGoogle);
+      // Timeout de 10 segundos para evitar polling infinito
+      const timeoutId = setTimeout(() => clearInterval(checkGoogle), 10_000);
+
+      return () => {
+        clearInterval(checkGoogle);
+        clearTimeout(timeoutId);
+      };
     }
   }, []);
 

@@ -393,7 +393,7 @@ export default function DocumentationStep({
           const isUploading = uploadingDocuments.has(requirement.type);
           
           return (
-            <Card key={requirement.type} variant="outline" className="p-6">
+            <Card key={requirement.type} variant="outlined" className="p-6">
               <div className="flex items-start space-x-4">
                 <div className="text-3xl">{requirement.icon}</div>
                 <div className="flex-1">
@@ -431,17 +431,18 @@ export default function DocumentationStep({
                       maxSize: requirement.maxSize,
                       validationRules: []
                     }}
-                    onUpload={(file) => handleDocumentUpload(requirement.type, file)}
+                    onUpload={((file: File) => handleDocumentUpload(requirement.type, file)) as any}
                     onRemove={() => handleDocumentRemove(requirement.type)}
                     existingDocument={uploadedDoc ? {
                       id: uploadedDoc.id,
-                      filename: uploadedDoc.filename,
+                      file: new File([], uploadedDoc.filename),
+                      name: uploadedDoc.filename,
+                      size: 0,
+                      type: uploadedDoc.type,
                       url: uploadedDoc.url,
-                      status: uploadedDoc.status,
-                      uploadedAt: uploadedDoc.uploadedAt,
-                      type: uploadedDoc.type
+                      status: 'uploaded' as const,
                     } : undefined}
-                    isLoading={isUploading}
+                    disabled={isUploading}
                   />
 
                   {allErrors[requirement.type] && (

@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Search, Eye } from 'lucide-react';
+import Pagination from '@/components/admin/Pagination';
+
+const PAGE_SIZE = 25;
 
 const STATUS_LABELS: Record<string, string> = {
     pending: 'Pendiente', confirmed: 'Confirmado', preparing: 'Preparando',
@@ -16,44 +19,46 @@ const STATUS_LABELS: Record<string, string> = {
 export default function AdminOrdersPage() {
     const router = useRouter();
     const [orders, setOrders] = useState<any[]>([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
 
+    // Refetch con debounce en búsqueda
     useEffect(() => {
-        fetchOrders();
-    }, []);
+        const timer = setTimeout(() => fetchOrders(page, filter, search), search ? 300 : 0);
+        return () => clearTimeout(timer);
+    }, [page, filter, search]);
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (currentPage: number, currentFilter: string, currentSearch: string) => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-          *,
-          restaurants (name),
-          client:users!orders_user_id_fkey (name, email),
-          courier:users!orders_delivery_agent_id_fkey (name)
-        `)
-                .order('created_at', { ascending: false })
-                .limit(200);
+            const from = (currentPage - 1) * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
 
+            let query = supabase
+                .from('orders')
+                .select(
+                    'id, status, total_amount, created_at, restaurants(name), client:users!orders_user_id_fkey(name, email), courier:users!orders_delivery_agent_id_fkey(name)',
+                    { count: 'exact' },
+                )
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (currentFilter !== 'all') query = query.eq('status', currentFilter);
+            if (currentSearch.trim()) query = query.ilike('restaurants.name', `%${currentSearch.trim()}%`);
+
+            const { data, count, error } = await query;
             if (error) throw error;
             setOrders(data || []);
+            setTotal(count || 0);
         } catch (error) {
             console.error('Error fetching orders:', error);
         } finally {
             setLoading(false);
         }
     };
-
-    const filteredOrders = orders.filter(o => {
-        const matchesFilter = filter === 'all' || o.status === filter;
-        const matchesSearch = o.id.includes(search) ||
-            o.restaurants?.name?.toLowerCase().includes(search.toLowerCase()) ||
-            o.client?.name?.toLowerCase().includes(search.toLowerCase());
-        return matchesFilter && matchesSearch;
-    });
 
     const formatCurrency = (amount: number) =>
         new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
@@ -76,7 +81,7 @@ export default function AdminOrdersPage() {
                 <div className="sm:flex-auto">
                     <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Pedidos</h1>
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Historial completo · {filteredOrders.length} pedidos. Haz clic en un pedido para ver detalles y administrarlo.
+                        {total} pedido{total !== 1 ? 's' : ''}. Haz clic en un pedido para ver detalles y administrarlo.
                     </p>
                 </div>
             </div>
@@ -90,14 +95,14 @@ export default function AdminOrdersPage() {
                     <input
                         type="text"
                         className="focus:ring-[#e4007c] focus:border-[#e4007c] block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-700 rounded-md p-2 border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                        placeholder="Buscar pedido, restaurante o cliente..."
+                        placeholder="Buscar por restaurante..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                     />
                 </div>
                 <select
                     value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
+                    onChange={(e) => { setFilter(e.target.value); setPage(1); }}
                     className="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-[#e4007c] focus:border-[#e4007c] sm:text-sm rounded-md border"
                 >
                     <option value="all">Todos los estados</option>
@@ -137,12 +142,12 @@ export default function AdminOrdersPage() {
                                         <tr>
                                             <td colSpan={8} className="text-center py-8 text-gray-500 dark:text-gray-400">Cargando...</td>
                                         </tr>
-                                    ) : filteredOrders.length === 0 ? (
+                                    ) : orders.length === 0 ? (
                                         <tr>
                                             <td colSpan={8} className="text-center py-8 text-gray-500 dark:text-gray-400">No se encontraron pedidos</td>
                                         </tr>
                                     ) : (
-                                        filteredOrders.map((order) => (
+                                        orders.map((order) => (
                                             <tr
                                                 key={order.id}
                                                 onClick={() => router.push(`/admin/orders/${order.id}`)}
@@ -179,6 +184,7 @@ export default function AdminOrdersPage() {
                                     )}
                                 </tbody>
                             </table>
+                            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
                         </div>
                     </div>
                 </div>

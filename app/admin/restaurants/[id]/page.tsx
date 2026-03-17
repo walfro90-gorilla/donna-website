@@ -27,6 +27,7 @@ import {
 import Link from 'next/link';
 import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface RestaurantDetailProps {
     params: Promise<{
@@ -629,7 +630,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                             <div className="col-span-2">
                                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1.5">Portada</p>
                                 {restaurant.cover_image_url ? (
-                                    <img src={restaurant.cover_image_url} alt="Cover" className="w-full h-36 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
+                                    <OptimizedImage src={restaurant.cover_image_url} alt="Cover" className="w-full h-36 object-cover rounded-xl border border-gray-200 dark:border-gray-700" priority />
                                 ) : (
                                     <div className="w-full h-36 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400 text-sm border border-gray-200 dark:border-gray-600">
                                         Sin imagen
@@ -639,7 +640,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                             <div>
                                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1.5">Logo</p>
                                 {restaurant.logo_url ? (
-                                    <img src={restaurant.logo_url} alt="Logo" className="w-full h-24 object-contain bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700" />
+                                    <OptimizedImage src={restaurant.logo_url} alt="Logo" className="w-full h-24 object-contain bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700" />
                                 ) : (
                                     <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400 text-xs border border-gray-200 dark:border-gray-600">Sin logo</div>
                                 )}
@@ -647,7 +648,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                             <div>
                                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1.5">Fachada</p>
                                 {restaurant.facade_image_url ? (
-                                    <img src={restaurant.facade_image_url} alt="Fachada" className="w-full h-24 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
+                                    <OptimizedImage src={restaurant.facade_image_url} alt="Fachada" className="w-full h-24 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
                                 ) : (
                                     <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400 text-xs border border-gray-200 dark:border-gray-600">Sin fachada</div>
                                 )}

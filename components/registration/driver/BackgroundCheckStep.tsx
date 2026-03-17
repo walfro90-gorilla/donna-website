@@ -184,7 +184,7 @@ export default function BackgroundCheckStep({
           </p>
         </div>
 
-        <Card variant="outline" className="p-6">
+        <Card variant="outlined" className="p-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900">ID de Verificación:</span>
@@ -269,7 +269,7 @@ export default function BackgroundCheckStep({
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {backgroundCheckSteps.map((step, index) => (
-            <Card key={index} variant="outline" className="p-4">
+            <Card key={index} variant="outlined" className="p-4">
               <div className="flex items-start space-x-3">
                 <div className="text-2xl">{step.icon}</div>
                 <div>
@@ -295,7 +295,7 @@ export default function BackgroundCheckStep({
 
         <div className="space-y-4">
           {consentItems.map((item) => (
-            <Card key={item.id} variant="outline" className="p-4">
+            <Card key={item.id} variant="outlined" className="p-4">
               <div className="flex items-start space-x-3">
                 <input
                   type="checkbox"

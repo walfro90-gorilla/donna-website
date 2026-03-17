@@ -152,7 +152,7 @@ export default function VehicleInformationStep({
           {vehicleTypeOptions.map((option) => (
             <Card
               key={option.value}
-              variant={data.vehicleInfo?.vehicleType === option.value ? 'primary' : 'outline'}
+              variant={data.vehicleInfo?.vehicleType === option.value ? 'filled' : 'outlined'}
               className={`cursor-pointer transition-all hover:shadow-md ${
                 data.vehicleInfo?.vehicleType === option.value ? 'ring-2 ring-[#e4007c]' : ''
               }`}

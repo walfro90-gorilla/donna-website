@@ -72,10 +72,10 @@ export default function ExportReportsWidget() {
             const formattedData = data?.map(order => ({
                 ID: order.id,
                 Fecha: new Date(order.created_at).toLocaleString('es-MX'),
-                Restaurante: order.restaurants?.name || 'N/A',
-                Cliente: order.client?.name || 'N/A',
-                Email_Cliente: order.client?.email || 'N/A',
-                Repartidor: order.courier?.name || 'Sin asignar',
+                Restaurante: (order.restaurants as any[])?.[0]?.name || 'N/A',
+                Cliente: (order.client as any[])?.[0]?.name || 'N/A',
+                Email_Cliente: (order.client as any[])?.[0]?.email || 'N/A',
+                Repartidor: (order.courier as any[])?.[0]?.name || 'Sin asignar',
                 Estado: order.status,
                 Total: order.total_amount,
                 Tarifa_Envio: order.delivery_fee,
@@ -115,8 +115,8 @@ export default function ExportReportsWidget() {
                 Nombre: restaurant.name,
                 Estado: restaurant.status,
                 Fecha_Registro: new Date(restaurant.created_at).toLocaleDateString('es-MX'),
-                Email: restaurant.users?.email || 'N/A',
-                Telefono: restaurant.users?.phone || 'N/A',
+                Email: (restaurant.users as any[])?.[0]?.email || 'N/A',
+                Telefono: (restaurant.users as any[])?.[0]?.phone || 'N/A',
                 Tipo_Cocina: restaurant.cuisine_type || 'N/A',
                 Rating: restaurant.average_rating || 0,
                 Total_Resenas: restaurant.total_reviews || 0
@@ -150,9 +150,9 @@ export default function ExportReportsWidget() {
 
             const formattedData = data?.map(courier => ({
                 ID: courier.user_id,
-                Nombre: courier.users?.name || 'N/A',
-                Email: courier.users?.email || 'N/A',
-                Telefono: courier.users?.phone || 'N/A',
+                Nombre: (courier.users as any[])?.[0]?.name || 'N/A',
+                Email: (courier.users as any[])?.[0]?.email || 'N/A',
+                Telefono: (courier.users as any[])?.[0]?.phone || 'N/A',
                 Estado: courier.status,
                 Tipo_Vehiculo: courier.vehicle_type || 'N/A',
                 Placa: courier.vehicle_plate || 'N/A',
@@ -187,7 +187,7 @@ export default function ExportReportsWidget() {
 
                 return {
                     Fecha: new Date(order.created_at).toLocaleDateString('es-MX'),
-                    Restaurante: order.restaurants?.name || 'N/A',
+                    Restaurante: (order.restaurants as any[])?.[0]?.name || 'N/A',
                     Subtotal: subtotal.toFixed(2),
                     Tarifa_Envio: Number(order.delivery_fee || 0).toFixed(2),
                     Total: Number(order.total_amount).toFixed(2),

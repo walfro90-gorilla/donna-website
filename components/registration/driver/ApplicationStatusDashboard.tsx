@@ -203,7 +203,7 @@ export default function ApplicationStatusDashboard({
   if (error || !statusInfo) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Card variant="outline" className="p-6 text-center">
+        <Card variant="outlined" className="p-6 text-center">
           <div className="text-red-500 text-4xl mb-4">⚠️</div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Error al Cargar Estado
@@ -249,7 +249,7 @@ export default function ApplicationStatusDashboard({
       </div>
 
       {/* Current Status Card */}
-      <Card variant="primary" className="p-6">
+      <Card variant="default" className="p-6">
         <div className="flex items-center space-x-4">
           <div className="text-4xl">{getStatusIcon(statusInfo.status)}</div>
           <div className="flex-1">
@@ -278,7 +278,7 @@ export default function ApplicationStatusDashboard({
         </h3>
         <div className="space-y-4">
           {statusSteps.map((step, index) => (
-            <Card key={step.id} variant="outline" className="p-4">
+            <Card key={step.id} variant="outlined" className="p-4">
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
@@ -330,7 +330,7 @@ export default function ApplicationStatusDashboard({
 
       {/* Next Steps */}
       {statusInfo.nextSteps.length > 0 && (
-        <Card variant="outline" className="p-6">
+        <Card variant="outlined" className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Próximos Pasos
           </h3>
@@ -347,7 +347,7 @@ export default function ApplicationStatusDashboard({
 
       {/* Documents Needed (if any) */}
       {statusInfo.documentsNeeded && statusInfo.documentsNeeded.length > 0 && (
-        <Card variant="outline" className="p-6 border-yellow-200 bg-yellow-50">
+        <Card variant="outlined" className="p-6 border-yellow-200 bg-yellow-50">
           <h3 className="text-lg font-semibold text-yellow-900 mb-4">
             Documentos Requeridos
           </h3>
@@ -374,7 +374,7 @@ export default function ApplicationStatusDashboard({
 
       {/* Rejection Reasons (if any) */}
       {statusInfo.rejectionReasons && statusInfo.rejectionReasons.length > 0 && (
-        <Card variant="outline" className="p-6 border-red-200 bg-red-50">
+        <Card variant="outlined" className="p-6 border-red-200 bg-red-50">
           <h3 className="text-lg font-semibold text-red-900 mb-4">
             Motivos de Rechazo
           </h3>
@@ -397,7 +397,7 @@ export default function ApplicationStatusDashboard({
       )}
 
       {/* Contact Support */}
-      <Card variant="outline" className="p-6 bg-gray-50">
+      <Card variant="outlined" className="p-6 bg-gray-50">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           ¿Necesitas Ayuda?
         </h3>

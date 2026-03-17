@@ -30,8 +30,8 @@ export function useLoadingState(initialState: Partial<LoadingState> = {}) {
     ...initialState
   });
 
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const progressIntervalRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const progressIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const startLoading = useCallback((options: LoadingOptions & { message?: string } = {}) => {
     const startTime = Date.now();

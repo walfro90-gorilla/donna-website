@@ -35,7 +35,7 @@ const AddressAutocomplete: React.FC<Props> = ({
           const place = autocomplete.getPlace();
           if (place.geometry && place.address_components) {
             const structured_address: { [key: string]: string } = {};
-            place.address_components.forEach(component => {
+            place.address_components.forEach((component: any) => {
               structured_address[component.types[0]] = component.long_name;
             });
             

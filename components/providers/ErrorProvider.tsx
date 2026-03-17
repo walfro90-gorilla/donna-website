@@ -189,7 +189,7 @@ export function useAsyncOperation() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<UserFriendlyError | null>(null);
 
-  const execute = useCallback(async <T>(
+  const execute = useCallback(async <T,>(
     operation: () => Promise<T>,
     context?: string,
     options?: {

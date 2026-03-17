@@ -235,14 +235,16 @@ export async function registerRestaurantClient(
         }
 
         // Crear cuenta financiera (best-effort)
-        await supabase.rpc('create_account_public', {
-          p_user_id: userId,
-          p_account_type: 'restaurant',
-          p_balance: 0.0,
-        }).catch(() => {
+        try {
+          await supabase.rpc('create_account_public', {
+            p_user_id: userId,
+            p_account_type: 'restaurant',
+            p_balance: 0.0,
+          });
+        } catch {
           // Ignorar errores en la creación de cuenta
           console.warn('No se pudo crear la cuenta financiera');
-        });
+        }
       } else {
         return { ok: false, error: errorMsg };
       }

@@ -206,7 +206,7 @@ export default function StatusNotifications({
 
   if (error) {
     return (
-      <Card variant="outline" className="p-6 text-center">
+      <Card variant="outlined" className="p-6 text-center">
         <div className="text-red-500 text-2xl mb-2">⚠️</div>
         <p className="text-gray-600">{error}</p>
         <button
@@ -221,7 +221,7 @@ export default function StatusNotifications({
 
   if (notifications.length === 0) {
     return (
-      <Card variant="outline" className="p-6 text-center">
+      <Card variant="outlined" className="p-6 text-center">
         <div className="text-gray-400 text-4xl mb-4">📭</div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
           No hay notificaciones
@@ -263,7 +263,7 @@ export default function StatusNotifications({
         {notifications.map((notification) => (
           <Card
             key={notification.id}
-            variant="outline"
+            variant="outlined"
             className={`cursor-pointer transition-all hover:shadow-md ${
               !notification.read ? 'ring-2 ring-[#e4007c] ring-opacity-20' : ''
             } ${getNotificationColor(notification.type)}`}

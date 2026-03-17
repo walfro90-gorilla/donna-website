@@ -87,7 +87,7 @@ export default function DeliveryDocumentsForm() {
     };
 
     if (isLoading) {
-        return <div className="flex justify-center p-8"><LoadingSpinner /></div>;
+        return <div className="flex justify-center p-8"><LoadingSpinner isLoading={true} /></div>;
     }
 
     return (

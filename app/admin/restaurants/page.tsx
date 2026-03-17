@@ -3,35 +3,69 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Search, CheckCircle, XCircle, Eye, Store, Wifi } from 'lucide-react';
-import Link from 'next/link';
+import { Search, CheckCircle, XCircle, Eye, Store } from 'lucide-react';
 import Pagination from '@/components/admin/Pagination';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { updateRestaurantStatus } from './actions';
 
 const PAGE_SIZE = 20;
 
+interface StatusCounts { all: number; pending: number; approved: number; rejected: number; }
+
 export default function AdminRestaurantsPage() {
     const router = useRouter();
     const [restaurants, setRestaurants] = useState<any[]>([]);
+    const [total, setTotal] = useState(0);
+    const [counts, setCounts] = useState<StatusCounts>({ all: 0, pending: 0, approved: 0, rejected: 0 });
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
 
+    // Conteos de estado (una vez al montar, para los badges del filtro)
     useEffect(() => {
-        fetchRestaurants();
+        (async () => {
+            const [
+                { count: all }, { count: pending },
+                { count: approved }, { count: rejected },
+            ] = await Promise.all([
+                supabase.from('restaurants').select('*', { count: 'exact', head: true }),
+                supabase.from('restaurants').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+                supabase.from('restaurants').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+                supabase.from('restaurants').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+            ]);
+            setCounts({ all: all || 0, pending: pending || 0, approved: approved || 0, rejected: rejected || 0 });
+        })();
     }, []);
 
-    const fetchRestaurants = async () => {
+    // Datos paginados — se re-ejecuta cuando cambia página, filtro o búsqueda (con debounce en búsqueda)
+    useEffect(() => {
+        const timer = setTimeout(() => fetchRestaurants(page, filter, search), search ? 300 : 0);
+        return () => clearTimeout(timer);
+    }, [page, filter, search]);
+
+    const fetchRestaurants = async (currentPage: number, currentFilter: string, currentSearch: string) => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('restaurants')
-                .select('id, name, cuisine_type, status, online, business_hours_enabled, average_rating, logo_url, users:user_id (email, phone)')
-                .order('created_at', { ascending: false });
+            const from = (currentPage - 1) * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
 
+            let query = supabase
+                .from('restaurants')
+                .select(
+                    'id, name, cuisine_type, status, online, business_hours_enabled, average_rating, logo_url, users:user_id(email, phone)',
+                    { count: 'exact' },
+                )
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (currentFilter !== 'all') query = query.eq('status', currentFilter);
+            if (currentSearch.trim()) query = query.ilike('name', `%${currentSearch.trim()}%`);
+
+            const { data, count, error } = await query;
             if (error) throw error;
             setRestaurants(data || []);
+            setTotal(count || 0);
         } catch (error) {
             console.error('Error fetching restaurants:', error);
         } finally {
@@ -40,26 +74,11 @@ export default function AdminRestaurantsPage() {
     };
 
     const handleStatusUpdate = async (e: React.MouseEvent, id: string, newStatus: 'approved' | 'rejected') => {
-        e.stopPropagation(); // prevent row click navigation
+        e.stopPropagation();
         const { error } = await updateRestaurantStatus(id, newStatus);
         if (error) { alert('Error: ' + error); return; }
         setRestaurants(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
-    };
-
-    const filtered = restaurants.filter(r => {
-        const matchesFilter = filter === 'all' || r.status === filter;
-        const matchesSearch = r.name.toLowerCase().includes(search.toLowerCase()) ||
-            r.users?.email?.toLowerCase().includes(search.toLowerCase());
-        return matchesFilter && matchesSearch;
-    });
-
-    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-    const counts = {
-        all: restaurants.length,
-        pending: restaurants.filter(r => r.status === 'pending').length,
-        approved: restaurants.filter(r => r.status === 'approved').length,
-        rejected: restaurants.filter(r => r.status === 'rejected').length,
+        setCounts(prev => ({ ...prev, [newStatus]: prev[newStatus] + 1, pending: Math.max(0, prev.pending - 1) }));
     };
 
     return (
@@ -68,7 +87,7 @@ export default function AdminRestaurantsPage() {
                 <div className="sm:flex-auto">
                     <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Restaurantes</h1>
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        {filtered.length} restaurantes. Haz clic en una fila para ver el perfil completo y administrarlo.
+                        {total} restaurante{total !== 1 ? 's' : ''}. Haz clic en una fila para ver el perfil completo y administrarlo.
                     </p>
                 </div>
             </div>
@@ -101,7 +120,7 @@ export default function AdminRestaurantsPage() {
                     <input
                         type="text"
                         className="focus:ring-[#e4007c] focus:border-[#e4007c] block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-700 rounded-md p-2 border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                        placeholder="Buscar restaurante o email..."
+                        placeholder="Buscar por nombre..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                     />
@@ -127,10 +146,10 @@ export default function AdminRestaurantsPage() {
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
                                     {loading ? (
                                         <tr><td colSpan={6} className="text-center py-8 text-gray-500 dark:text-gray-400">Cargando...</td></tr>
-                                    ) : paginated.length === 0 ? (
+                                    ) : restaurants.length === 0 ? (
                                         <tr><td colSpan={6} className="text-center py-8 text-gray-500 dark:text-gray-400">No se encontraron restaurantes</td></tr>
                                     ) : (
-                                        paginated.map((restaurant) => (
+                                        restaurants.map((restaurant) => (
                                             <tr
                                                 key={restaurant.id}
                                                 onClick={() => router.push(`/admin/restaurants/${restaurant.id}`)}
@@ -140,7 +159,7 @@ export default function AdminRestaurantsPage() {
                                                     <div className="flex items-center gap-3">
                                                         <div className="h-9 w-9 flex-shrink-0">
                                                             {restaurant.logo_url ? (
-                                                                <img className="h-9 w-9 rounded-full object-cover" src={restaurant.logo_url} alt="" />
+                                                                <OptimizedImage className="h-9 w-9 rounded-full object-cover" src={restaurant.logo_url} alt="" />
                                                             ) : (
                                                                 <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                                                                     <Store className="h-4 w-4 text-gray-400" />
@@ -173,9 +192,7 @@ export default function AdminRestaurantsPage() {
                                                             {restaurant.online ? 'Online' : 'Offline'}
                                                         </div>
                                                         {restaurant.business_hours_enabled && (
-                                                            <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                                                Auto
-                                                            </span>
+                                                            <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Auto</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -187,18 +204,10 @@ export default function AdminRestaurantsPage() {
                                                     <div className="flex justify-end gap-2 items-center" onClick={e => e.stopPropagation()}>
                                                         {restaurant.status === 'pending' && (
                                                             <>
-                                                                <button
-                                                                    onClick={(e) => handleStatusUpdate(e, restaurant.id, 'approved')}
-                                                                    className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                                                                    title="Aprobar"
-                                                                >
+                                                                <button onClick={(e) => handleStatusUpdate(e, restaurant.id, 'approved')} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300" title="Aprobar">
                                                                     <CheckCircle className="h-5 w-5" />
                                                                 </button>
-                                                                <button
-                                                                    onClick={(e) => handleStatusUpdate(e, restaurant.id, 'rejected')}
-                                                                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                                                    title="Rechazar"
-                                                                >
+                                                                <button onClick={(e) => handleStatusUpdate(e, restaurant.id, 'rejected')} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300" title="Rechazar">
                                                                     <XCircle className="h-5 w-5" />
                                                                 </button>
                                                             </>
@@ -211,12 +220,7 @@ export default function AdminRestaurantsPage() {
                                     )}
                                 </tbody>
                             </table>
-                            <Pagination
-                                page={page}
-                                pageSize={PAGE_SIZE}
-                                total={filtered.length}
-                                onPageChange={setPage}
-                            />
+                            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
                         </div>
                     </div>
                 </div>

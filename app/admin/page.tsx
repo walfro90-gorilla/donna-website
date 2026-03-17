@@ -1,77 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import {
-  Users,
-  Store,
-  Bike,
-  ShoppingBag,
-  DollarSign,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Activity,
-  Zap,
-  UserCheck,
-  WifiOff
+  Users, Store, Bike, ShoppingBag, DollarSign, TrendingUp,
+  AlertCircle, CheckCircle, Clock, Activity, Zap, UserCheck, WifiOff
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import StatsCard from '@/components/admin/StatsCard';
-import RevenueChart from '@/components/admin/RevenueChart';
-import OrdersChart from '@/components/admin/OrdersChart';
 import Link from 'next/link';
 
-interface DashboardStats {
-  totalUsers: number;
-  totalRestaurants: number;
-  totalCouriers: number;
-  totalOrders: number;
-  pendingRestaurants: number;
-  pendingCouriers: number;
-  totalRevenue: number;
-  ordersToday: number;
-  revenueToday: number;
-  onlineRestaurants: number;
-  approvedCouriers: number;
-  activeOrders: number;
-  unreadNotifications: number;
-}
-
-interface RecentOrder {
-  id: string;
-  status: string;
-  total_amount: number;
-  created_at: string;
-  restaurants: { name: string } | null;
-  client: { name: string } | null;
-}
-
-interface AdminNotification {
-  id: string;
-  title: string;
-  message: string;
-  category: string;
-  entity_type: string;
-  entity_id: string;
-  created_at: string;
-  is_read: boolean;
-}
+// Recharts (~200KB) cargado solo cuando el dashboard se monta — no bloquea el bundle inicial
+const RevenueChart = dynamic(() => import('@/components/admin/RevenueChart'), {
+  ssr: false,
+  loading: () => <div className="h-80 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />,
+});
+const OrdersChart = dynamic(() => import('@/components/admin/OrdersChart'), {
+  ssr: false,
+  loading: () => <div className="h-80 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />,
+});
+import { supabase } from '@/lib/supabase/client';
+import { useAdminStats } from '@/lib/hooks/useAdminStats';
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmado',
-  preparing: 'Preparando',
-  in_preparation: 'En preparación',
-  ready_for_pickup: 'Listo para recoger',
-  assigned: 'Asignado',
-  picked_up: 'Recogido',
-  on_the_way: 'En camino',
-  in_transit: 'En tránsito',
-  delivered: 'Entregado',
-  cancelled: 'Cancelado',
-  canceled: 'Cancelado',
-  not_delivered: 'No entregado',
+  pending: 'Pendiente', confirmed: 'Confirmado', preparing: 'Preparando',
+  in_preparation: 'En preparación', ready_for_pickup: 'Listo para recoger',
+  assigned: 'Asignado', picked_up: 'Recogido', on_the_way: 'En camino',
+  in_transit: 'En tránsito', delivered: 'Entregado', cancelled: 'Cancelado',
+  canceled: 'Cancelado', not_delivered: 'No entregado',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -97,120 +51,29 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
+  const { data, isLoading, mutate } = useAdminStats();
+
+  const stats = data?.stats ?? {
     totalUsers: 0, totalRestaurants: 0, totalCouriers: 0, totalOrders: 0,
     pendingRestaurants: 0, pendingCouriers: 0, totalRevenue: 0,
     ordersToday: 0, revenueToday: 0, onlineRestaurants: 0,
     approvedCouriers: 0, activeOrders: 0, unreadNotifications: 0,
-  });
-  const [chartData, setChartData] = useState<{ revenue: { date: string; revenue: number }[]; orders: { name: string; value: number }[] }>({ revenue: [], orders: [] });
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchAll();
-  }, []);
-
-  const fetchAll = async () => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayISO = today.toISOString();
-
-      const activeStatuses = ['pending', 'confirmed', 'preparing', 'in_preparation', 'ready_for_pickup', 'assigned', 'picked_up', 'on_the_way', 'in_transit'];
-
-      const [
-        { count: usersCount },
-        { count: restaurantsCount },
-        { count: couriersCount },
-        { count: ordersCount },
-        { count: pendingRestaurantsCount },
-        { count: pendingCouriersCount },
-        { data: revenueData },
-        { count: ordersTodayCount },
-        { data: revenueTodayData },
-        { data: allOrders },
-        { count: onlineRestaurantsCount },
-        { count: approvedCouriersCount },
-        { count: activeOrdersCount },
-        { data: recentOrdersData },
-        { data: notificationsData },
-      ] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'client'),
-        supabase.from('restaurants').select('*', { count: 'exact', head: true }),
-        supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('*', { count: 'exact', head: true }),
-        supabase.from('restaurants').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('orders').select('total_amount, created_at').eq('status', 'delivered'),
-        supabase.from('orders').select('*', { count: 'exact', head: true }).gte('created_at', todayISO),
-        supabase.from('orders').select('total_amount').eq('status', 'delivered').gte('created_at', todayISO),
-        supabase.from('orders').select('status, created_at'),
-        supabase.from('restaurants').select('*', { count: 'exact', head: true }).eq('online', true),
-        supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', activeStatuses),
-        supabase.from('orders')
-          .select('id, status, total_amount, created_at, restaurants(name), client:users!orders_user_id_fkey(name)')
-          .order('created_at', { ascending: false })
-          .limit(10),
-        supabase.from('admin_notifications')
-          .select('*')
-          .eq('target_role', 'admin')
-          .eq('is_read', false)
-          .order('created_at', { ascending: false })
-          .limit(5),
-      ]);
-
-      const totalRevenue = revenueData?.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0) || 0;
-      const revenueToday = revenueTodayData?.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0) || 0;
-
-      const last7Days = [...Array(7)].map((_, i) => {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        return d.toISOString().split('T')[0];
-      }).reverse();
-
-      const revenueChartData = last7Days.map(date => ({
-        date,
-        revenue: revenueData?.filter(o => o.created_at.startsWith(date)).reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0) || 0,
-      }));
-
-      const statusCounts = allOrders?.reduce((acc, o) => {
-        acc[o.status] = (acc[o.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const ordersChartData = [
-        { name: 'Completados', value: statusCounts?.['delivered'] || 0 },
-        { name: 'Pendientes', value: statusCounts?.['pending'] || 0 },
-        { name: 'En Proceso', value: activeStatuses.filter(s => s !== 'pending').reduce((sum, s) => sum + (statusCounts?.[s] || 0), 0) },
-        { name: 'Cancelados', value: (statusCounts?.['cancelled'] || 0) + (statusCounts?.['canceled'] || 0) },
-      ];
-
-      setStats({
-        totalUsers: usersCount || 0, totalRestaurants: restaurantsCount || 0,
-        totalCouriers: couriersCount || 0, totalOrders: ordersCount || 0,
-        pendingRestaurants: pendingRestaurantsCount || 0, pendingCouriers: pendingCouriersCount || 0,
-        totalRevenue, ordersToday: ordersTodayCount || 0, revenueToday,
-        onlineRestaurants: onlineRestaurantsCount || 0,
-        approvedCouriers: approvedCouriersCount || 0,
-        activeOrders: activeOrdersCount || 0,
-        unreadNotifications: notificationsData?.length || 0,
-      });
-      setChartData({ revenue: revenueChartData, orders: ordersChartData });
-      setRecentOrders((recentOrdersData as RecentOrder[]) || []);
-      setNotifications((notificationsData as AdminNotification[]) || []);
-    } catch (error) {
-      console.error('Error fetching admin stats:', error);
-    } finally {
-      setLoading(false);
-    }
   };
+  const chartData = data?.chartData ?? { revenue: [], orders: [] };
+  const recentOrders = data?.recentOrders ?? [];
+  const notifications = data?.notifications ?? [];
 
   const markNotificationRead = async (id: string) => {
     await supabase.from('admin_notifications').update({ is_read: true }).eq('id', id);
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    setStats(prev => ({ ...prev, unreadNotifications: Math.max(0, prev.unreadNotifications - 1) }));
+    // Actualizar caché SWR optimistamente — sin re-fetch
+    mutate(
+      (prev) => prev ? {
+        ...prev,
+        notifications: prev.notifications.filter((n) => n.id !== id),
+        stats: { ...prev.stats, unreadNotifications: Math.max(0, prev.stats.unreadNotifications - 1) },
+      } : prev,
+      false,
+    );
   };
 
   const formatCurrency = (amount: number) =>
@@ -226,7 +89,7 @@ export default function AdminDashboard() {
     return `hace ${Math.floor(hrs / 24)}d`;
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-8">
@@ -297,7 +160,7 @@ export default function AdminDashboard() {
 
       {/* KPIs Principales */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard title="Ingresos Totales" value={formatCurrency(stats.totalRevenue)} icon={DollarSign} color="text-green-500" subtext="Pedidos completados" />
+        <StatsCard title="Ingresos (30d)" value={formatCurrency(stats.totalRevenue)} icon={DollarSign} color="text-green-500" subtext="Pedidos completados" />
         <StatsCard title="Ingresos Hoy" value={formatCurrency(stats.revenueToday)} icon={TrendingUp} color="text-purple-500" subtext={`${stats.ordersToday} pedidos hoy`} />
         <StatsCard title="Pedidos Totales" value={stats.totalOrders} icon={ShoppingBag} color="text-blue-500" subtext={`${stats.activeOrders} activos ahora`} />
         <StatsCard title="Clientes Registrados" value={stats.totalUsers} icon={Users} color="text-indigo-500" />
@@ -428,7 +291,7 @@ export default function AdminDashboard() {
               { label: 'Total Repartidores', value: stats.totalCouriers, href: '/admin/couriers', color: 'text-gray-900 dark:text-white' },
               { label: 'Aprobados', value: stats.approvedCouriers, href: '/admin/couriers', color: 'text-blue-600 dark:text-blue-400' },
               { label: 'Total Clientes', value: stats.totalUsers, href: '/admin/users', color: 'text-gray-900 dark:text-white' },
-              { label: 'Ingresos Totales', value: formatCurrency(stats.totalRevenue), href: '/admin/balance', color: 'text-green-600 dark:text-green-400' },
+              { label: 'Ingresos (30d)', value: formatCurrency(stats.totalRevenue), href: '/admin/balance', color: 'text-green-600 dark:text-green-400' },
             ].map((item, i) => (
               <div key={i} className={`flex justify-between items-center ${i === 1 || i === 3 ? 'pb-3 border-b border-gray-100 dark:border-gray-700' : ''}`}>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">{item.label}</dt>

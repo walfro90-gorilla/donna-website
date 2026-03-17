@@ -321,7 +321,7 @@ export default function StepperForm({
             <div className="space-y-4">
               <FormSkeleton />
               <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <LoadingSpinner size="sm" variant="spinner" />
+                <LoadingSpinner size="sm" variant="spinner" isLoading={true} />
                 <span>
                   {validationProgress < 50 ? 'Validando datos...' :
                    validationProgress < 90 ? 'Procesando...' :

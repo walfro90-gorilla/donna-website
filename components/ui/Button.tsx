@@ -144,12 +144,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
 
   // Add aria-pressed separately if provided
   if (ariaPressed !== undefined) {
-    ariaAttributes['aria-pressed'] = ariaPressed;
+    (ariaAttributes as any)['aria-pressed'] = ariaPressed;
   }
 
   // Additional ARIA attributes
   if (ariaHasPopup !== undefined) {
-    ariaAttributes['aria-haspopup'] = ariaHasPopup;
+    (ariaAttributes as any)['aria-haspopup'] = ariaHasPopup;
   }
 
   const combinedClasses = `

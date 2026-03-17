@@ -389,7 +389,7 @@ export default function EnhancedFileUpload({
               key={fileState.id}
               fileName={fileState.file.name}
               progress={fileState.progress}
-              status={fileState.status}
+              status={fileState.status === 'pending' ? 'uploading' : fileState.status}
               onCancel={() => handleCancel(fileState.id)}
               onRetry={allowRetry ? () => handleRetry(fileState.id) : undefined}
             />

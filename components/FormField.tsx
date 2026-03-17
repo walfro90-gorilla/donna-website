@@ -37,6 +37,9 @@ interface FormFieldProps {
   autoFocus?: boolean;
   // Character count for text inputs
   showCharacterCount?: boolean;
+  // Date/number constraints
+  min?: string | number;
+  max?: string | number;
 }
 
 export default function FormField({
@@ -63,6 +66,8 @@ export default function FormField({
   autoComplete,
   autoFocus = false,
   showCharacterCount = false,
+  min,
+  max,
 }: FormFieldProps) {
   // Generate responsive size classes
   const responsiveSizeClasses = generateResponsiveComponentSizes('input', { base: size });
@@ -140,6 +145,8 @@ export default function FormField({
         disabled={disabled}
         minLength={minLength}
         maxLength={maxLength}
+        min={min}
+        max={max}
         autoComplete={autoComplete}
         autoFocus={autoFocus}
         className={`${getBorderClasses()} ${inputClassName}`}

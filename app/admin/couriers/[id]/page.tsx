@@ -11,6 +11,7 @@ import {
     RotateCcw, DollarSign, MapPin, Star, AlertTriangle,
     Clock, Package, ShieldCheck, Image as ImageIcon, Edit, X, Loader2
 } from 'lucide-react';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 type CourierStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'inactive';
 
@@ -264,7 +265,7 @@ export default function CourierDetailPage({ params }: { params: Promise<{ id: st
                     <div className="flex items-center gap-4">
                         <div className="h-16 w-16 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                             {courier.profile_image_url ? (
-                                <img src={courier.profile_image_url} alt="Foto" className="h-full w-full object-cover" />
+                                <OptimizedImage src={courier.profile_image_url} alt="Foto" className="h-full w-full object-cover" priority />
                             ) : (
                                 <Bike className="h-8 w-8 text-gray-400" />
                             )}

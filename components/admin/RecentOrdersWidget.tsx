@@ -37,7 +37,7 @@ export default function RecentOrdersWidget() {
                 .limit(5);
 
             if (error) throw error;
-            setOrders(data || []);
+            setOrders((data as unknown as RecentOrder[]) || []);
         } catch (error) {
             console.error('Error fetching recent orders:', error);
         } finally {

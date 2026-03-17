@@ -9,6 +9,7 @@ import {
     UserX, RotateCcw, MoreVertical, ChevronRight
 } from 'lucide-react';
 import Pagination from '@/components/admin/Pagination';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 type CourierStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'inactive';
 
@@ -78,6 +79,8 @@ const ACTIONS_BY_STATUS: Record<CourierStatus, { label: string; icon: React.Reac
 export default function AdminCouriersPage() {
     const router = useRouter();
     const [couriers, setCouriers] = useState<Courier[]>([]);
+    const [total, setTotal] = useState(0);
+    const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, suspended: 0, inactive: 0 });
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | CourierStatus>('all');
     const [search, setSearch] = useState('');
@@ -87,9 +90,31 @@ export default function AdminCouriersPage() {
 
     const PAGE_SIZE = 20;
 
+    // Conteos por estado (una vez al montar, para las tarjetas de estadísticas)
     useEffect(() => {
-        fetchCouriers();
+        (async () => {
+            const [
+                { count: pending }, { count: approved }, { count: rejected },
+                { count: suspended }, { count: inactive },
+            ] = await Promise.all([
+                supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+                supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+                supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+                supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }).eq('status', 'suspended'),
+                supabase.from('delivery_agent_profiles').select('*', { count: 'exact', head: true }).eq('status', 'inactive'),
+            ]);
+            setCounts({
+                pending: pending || 0, approved: approved || 0, rejected: rejected || 0,
+                suspended: suspended || 0, inactive: inactive || 0,
+            });
+        })();
     }, []);
+
+    // Datos paginados con debounce en búsqueda
+    useEffect(() => {
+        const timer = setTimeout(() => fetchCouriers(page, filter, search), search ? 300 : 0);
+        return () => clearTimeout(timer);
+    }, [page, filter, search]);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -102,20 +127,28 @@ export default function AdminCouriersPage() {
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
-    const fetchCouriers = async () => {
+    const fetchCouriers = async (currentPage: number, currentFilter: string, currentSearch: string) => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('delivery_agent_profiles')
-                .select(`
-                    user_id, status, account_state, profile_image_url,
-                    vehicle_type, vehicle_plate, created_at,
-                    users:user_id (name, email, phone)
-                `)
-                .order('created_at', { ascending: false });
+            const from = (currentPage - 1) * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
 
+            let query = supabase
+                .from('delivery_agent_profiles')
+                .select(
+                    'user_id, status, account_state, profile_image_url, vehicle_type, vehicle_plate, created_at, users:user_id(name, email, phone)',
+                    { count: 'exact' },
+                )
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (currentFilter !== 'all') query = query.eq('status', currentFilter);
+            if (currentSearch.trim()) query = query.ilike('users.name', `%${currentSearch.trim()}%`);
+
+            const { data, count, error } = await query;
             if (error) throw error;
             setCouriers((data as any[]) || []);
+            setTotal(count || 0);
         } catch (error) {
             console.error('Error fetching couriers:', error);
         } finally {
@@ -140,29 +173,12 @@ export default function AdminCouriersPage() {
         setCouriers(prev => prev.map(c => c.user_id === userId ? { ...c, status: newStatus } : c));
     };
 
-    const counts = {
-        pending: couriers.filter(c => c.status === 'pending').length,
-        approved: couriers.filter(c => c.status === 'approved').length,
-        rejected: couriers.filter(c => c.status === 'rejected').length,
-        suspended: couriers.filter(c => c.status === 'suspended').length,
-        inactive: couriers.filter(c => c.status === 'inactive').length,
-    };
-
     const handleFilterChange = (key: 'all' | CourierStatus) => {
         setFilter(filter === key ? 'all' : key);
         setPage(1);
     };
 
-    const filtered = couriers.filter(c => {
-        const matchesFilter = filter === 'all' || c.status === filter;
-        const matchesSearch = !search ||
-            c.users?.name?.toLowerCase().includes(search.toLowerCase()) ||
-            c.users?.email?.toLowerCase().includes(search.toLowerCase()) ||
-            c.users?.phone?.includes(search);
-        return matchesFilter && matchesSearch;
-    });
-
-    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const paginated = couriers; // Ya son los datos de la página actual desde el servidor
 
     const statCards = [
         { key: 'pending', label: 'Pendientes', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/30' },
@@ -250,7 +266,7 @@ export default function AdminCouriersPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.length === 0 ? (
+                        ) : couriers.length === 0 ? (
                             <tr>
                                 <td colSpan={5} className="text-center py-12 text-gray-400 dark:text-gray-500">
                                     No se encontraron repartidores
@@ -270,7 +286,7 @@ export default function AdminCouriersPage() {
                                             <div className="flex items-center gap-3">
                                                 <div className="h-9 w-9 flex-shrink-0">
                                                     {courier.profile_image_url ? (
-                                                        <img className="h-9 w-9 rounded-full object-cover" src={courier.profile_image_url} alt="" />
+                                                        <OptimizedImage className="h-9 w-9 rounded-full object-cover" src={courier.profile_image_url} alt="" />
                                                     ) : (
                                                         <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                                                             <Bike className="h-5 w-5 text-gray-400" />
@@ -358,7 +374,7 @@ export default function AdminCouriersPage() {
                 <Pagination
                     page={page}
                     pageSize={PAGE_SIZE}
-                    total={filtered.length}
+                    total={total}
                     onPageChange={setPage}
                 />
             </div>

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs cat:*)",
+      "Bash(cut -d'\\(' -f1)",
+      "Bash(echo \"Exit code: $?\")"
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 // components/ui/ErrorBoundary.tsx
 "use client";
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ComponentType, ErrorInfo, ReactNode } from 'react';
 import { handleError, useErrorBoundary } from '@/lib/utils/errorHandler';
 import { Button, Alert } from '@/components/ui';
 

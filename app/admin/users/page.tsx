@@ -37,28 +37,40 @@ export default function AdminUsersPage() {
                 .limit(200);
 
             if (error) throw error;
+            if (!usersData?.length) { setUsers([]); return; }
 
-            const enriched = await Promise.all(
-                (usersData || []).map(async (u) => {
-                    const [
-                        { count: orderCount },
-                        { count: debtCount },
-                        { data: suspension },
-                    ] = await Promise.all([
-                        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', u.id),
-                        supabase.from('client_debts').select('*', { count: 'exact', head: true }).eq('client_id', u.id).eq('status', 'pending'),
-                        supabase.from('client_account_suspensions').select('is_suspended').eq('client_id', u.id).single(),
-                    ]);
-                    return {
-                        ...u,
-                        orderCount: orderCount || 0,
-                        pendingDebtCount: debtCount || 0,
-                        isSuspended: suspension?.is_suspended || false,
-                    };
-                })
-            );
+            const ids = usersData.map(u => u.id);
 
-            setUsers(enriched);
+            // 3 batch queries instead of 3×N individual queries
+            const [
+                { data: ordersRaw },
+                { data: debtsRaw },
+                { data: suspensionsRaw },
+            ] = await Promise.all([
+                supabase.from('orders').select('user_id').in('user_id', ids),
+                supabase.from('client_debts').select('client_id').in('client_id', ids).eq('status', 'pending'),
+                supabase.from('client_account_suspensions').select('client_id, is_suspended').in('client_id', ids),
+            ]);
+
+            const orderCounts = (ordersRaw || []).reduce<Record<string, number>>((acc, o) => {
+                acc[o.user_id] = (acc[o.user_id] || 0) + 1;
+                return acc;
+            }, {});
+            const debtCounts = (debtsRaw || []).reduce<Record<string, number>>((acc, d) => {
+                acc[d.client_id] = (acc[d.client_id] || 0) + 1;
+                return acc;
+            }, {});
+            const suspensionMap = (suspensionsRaw || []).reduce<Record<string, boolean>>((acc, s) => {
+                acc[s.client_id] = s.is_suspended ?? false;
+                return acc;
+            }, {});
+
+            setUsers(usersData.map(u => ({
+                ...u,
+                orderCount: orderCounts[u.id] ?? 0,
+                pendingDebtCount: debtCounts[u.id] ?? 0,
+                isSuspended: suspensionMap[u.id] ?? false,
+            })));
         } catch (error) {
             console.error('Error fetching users:', error);
         } finally {

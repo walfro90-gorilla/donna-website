@@ -72,12 +72,12 @@ const ERROR_MESSAGES: Record<string, UserFriendlyError> = {
     actions: [
       {
         label: 'Iniciar sesión',
-        action: () => window.location.href = '/login',
+        action: () => { window.location.href = '/login'; },
         primary: true
       }
     ]
   },
-  
+
   PERMISSION_DENIED: {
     title: 'Acceso denegado',
     message: 'No tienes permisos para realizar esta acción.',
@@ -134,12 +134,12 @@ const ERROR_MESSAGES: Record<string, UserFriendlyError> = {
     actions: [
       {
         label: 'Iniciar sesión',
-        action: () => window.location.href = '/login',
+        action: () => { window.location.href = '/login'; },
         primary: true
       },
       {
         label: '¿Olvidaste tu contraseña?',
-        action: () => window.location.href = '/forgot-password'
+        action: () => { window.location.href = '/forgot-password'; }
       }
     ]
   },
@@ -161,7 +161,7 @@ const ERROR_MESSAGES: Record<string, UserFriendlyError> = {
     actions: [
       {
         label: 'Contactar soporte',
-        action: () => window.open('mailto:soporte@donarepartos.com', '_blank')
+        action: () => { window.open('mailto:soporte@donarepartos.com', '_blank'); }
       }
     ]
   }

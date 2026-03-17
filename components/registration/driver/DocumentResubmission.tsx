@@ -162,7 +162,7 @@ export default function DocumentResubmission({
 
       {/* Rejection Reason */}
       {rejectionReason && (
-        <Card variant="outline" className="p-4 border-red-200 bg-red-50">
+        <Card variant="outlined" className="p-4 border-red-200 bg-red-50">
           <div className="flex items-start space-x-3">
             <div className="text-red-500 mt-0.5">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -183,7 +183,7 @@ export default function DocumentResubmission({
 
       {/* Current Document (if exists) */}
       {currentDocument && (
-        <Card variant="outline" className="p-4">
+        <Card variant="outlined" className="p-4">
           <h4 className="font-medium text-gray-900 mb-2">
             Documento Actual
           </h4>
@@ -209,7 +209,7 @@ export default function DocumentResubmission({
       )}
 
       {/* Tips */}
-      <Card variant="outline" className="p-4 bg-blue-50 border-blue-200">
+      <Card variant="outlined" className="p-4 bg-blue-50 border-blue-200">
         <h4 className="font-medium text-blue-900 mb-3">
           💡 Consejos para una Subida Exitosa
         </h4>
@@ -224,7 +224,7 @@ export default function DocumentResubmission({
       </Card>
 
       {/* File Upload */}
-      <Card variant="outline" className="p-6">
+      <Card variant="outlined" className="p-6">
         <h4 className="font-medium text-gray-900 mb-4">
           Subir Nuevo Documento
         </h4>
@@ -239,9 +239,9 @@ export default function DocumentResubmission({
             maxSize: 5 * 1024 * 1024, // 5MB
             validationRules: []
           }}
-          onUpload={handleFileUpload}
+          onUpload={handleFileUpload as any}
           onRemove={() => {}}
-          isLoading={isUploading}
+          disabled={isUploading}
         />
 
         {error && (
@@ -252,7 +252,7 @@ export default function DocumentResubmission({
       </Card>
 
       {/* Additional Notes */}
-      <Card variant="outline" className="p-4">
+      <Card variant="outlined" className="p-4">
         <h4 className="font-medium text-gray-900 mb-3">
           Notas Adicionales (Opcional)
         </h4>

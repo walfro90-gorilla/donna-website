@@ -2,13 +2,15 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
 // Mock window.location
-delete (window as any).location;
-window.location = {
-  ...window.location,
-  origin: 'http://localhost:3000',
-  href: 'http://localhost:3000',
-  pathname: '/',
-};
+Object.defineProperty(window, 'location', {
+  value: {
+    ...window.location,
+    origin: 'http://localhost:3000',
+    href: 'http://localhost:3000',
+    pathname: '/',
+  },
+  writable: true,
+});
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
