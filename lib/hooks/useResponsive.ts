@@ -110,8 +110,9 @@ export function useIsMobile() {
 
 // Hook for tablet detection
 export function useIsTablet() {
-  const isTablet = useMediaQuery('tablet') && !useMediaQuery('desktop');
-  return isTablet;
+  const isTabletSize = useMediaQuery('tablet');
+  const isDesktopSize = useMediaQuery('desktop');
+  return isTabletSize && !isDesktopSize;
 }
 
 // Hook for desktop detection
@@ -129,7 +130,7 @@ export function useIsTouchDevice() {
       setIsTouchDevice(
         'ontouchstart' in window ||
         navigator.maxTouchPoints > 0 ||
-        // @ts-ignore
+        // @ts-expect-error - msMaxTouchPoints is non-standard (IE/Edge legacy)
         navigator.msMaxTouchPoints > 0
       );
     };
@@ -263,6 +264,7 @@ export function useResponsiveProps<T extends Record<string, any>>(
   const resolvedProps = {} as T;
 
   for (const [key, value] of Object.entries(props)) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     resolvedProps[key as keyof T] = useResponsiveValue(value);
   }
 

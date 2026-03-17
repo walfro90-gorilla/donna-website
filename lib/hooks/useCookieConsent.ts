@@ -185,8 +185,8 @@ export const marketing = {
         // Load Facebook Pixel
         void function(f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
           if (f.fbq) return;
-          n = f.fbq = function() {
-            n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+          n = f.fbq = function(...args: unknown[]) {
+            n.callMethod ? n.callMethod(...args) : n.queue.push(args);
           };
           if (!f._fbq) f._fbq = n;
           n.push = n;

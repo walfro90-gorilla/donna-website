@@ -3,7 +3,9 @@
     "allow": [
       "Bash(xargs cat:*)",
       "Bash(cut -d'\\(' -f1)",
-      "Bash(echo \"Exit code: $?\")"
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(npx next:*)",
+      "Read(//^/ {file=$0} /  Error:/**)"
     ]
   }
 }
