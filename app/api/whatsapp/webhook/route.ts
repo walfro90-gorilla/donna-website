@@ -20,9 +20,13 @@ interface WhatsAppWebhookPayload {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[webhook] incoming request');
+
   // ── 1. Verify webhook secret ──────────────────────────────
   const secret = req.headers.get('x-webhook-secret');
+  console.log('[webhook] secret present:', !!secret);
   if (!secret || secret !== process.env.WHATSAPP_WEBHOOK_SECRET) {
+    console.error('[webhook] UNAUTHORIZED — secret mismatch');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -30,11 +34,15 @@ export async function POST(req: NextRequest) {
   try {
     payload = await req.json();
   } catch {
+    console.error('[webhook] invalid JSON body');
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  console.log('[webhook] event:', payload.event, '| from:', payload.from, '| type:', payload.type);
+
   // Only handle incoming messages
   if (payload.event !== 'message') {
+    console.log('[webhook] ignoring non-message event:', payload.event);
     return NextResponse.json({ autoRespond: true });
   }
 
@@ -60,9 +68,10 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (contactError || !contact) {
-      console.error('Contact upsert error:', contactError);
+      console.error('[webhook] contact upsert error:', JSON.stringify(contactError));
       return NextResponse.json({ autoRespond: true }, { status: 500 });
     }
+    console.log('[webhook] contact id:', contact.id);
 
     // ── 3. Upsert conversation ────────────────────────────────
     const messagePreview = payload.hasMedia
@@ -106,11 +115,12 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (convError || !newConv) {
-        console.error('Conversation insert error:', convError);
+        console.error('[webhook] conversation insert error:', JSON.stringify(convError));
         return NextResponse.json({ autoRespond: true }, { status: 500 });
       }
       conversationId = newConv.id;
       botActive = newConv.bot_active;
+      console.log('[webhook] new conversation created:', conversationId);
     }
 
     // ── 4. Handle media upload ────────────────────────────────
@@ -149,7 +159,7 @@ export async function POST(req: NextRequest) {
         : 'unknown'
     );
 
-    await supabaseAdmin
+    const { error: msgError } = await supabaseAdmin
       .from('whatsapp_messages')
       .insert({
         conversation_id: conversationId,
@@ -162,13 +172,18 @@ export async function POST(req: NextRequest) {
         media_filename: payload.media?.filename || null,
         status: 'delivered',
         created_at: new Date(payload.timestamp * 1000).toISOString(),
-      })
-      .throwOnError();
+      });
+
+    if (msgError) {
+      console.error('[webhook] message insert error:', JSON.stringify(msgError));
+    } else {
+      console.log('[webhook] message saved OK, autoRespond:', botActive);
+    }
 
     // ── 6. Return bot control flag ────────────────────────────
     return NextResponse.json({ autoRespond: botActive });
   } catch (err) {
-    console.error('Webhook processing error:', err);
+    console.error('[webhook] UNHANDLED ERROR:', err);
     // On error, let the bot respond to avoid silent failures
     return NextResponse.json({ autoRespond: true }, { status: 500 });
   }
