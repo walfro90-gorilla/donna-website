@@ -40,17 +40,53 @@ export async function POST(req: NextRequest) {
 
   console.log('[webhook] event:', payload.event, '| from:', payload.from, '| type:', payload.type);
 
-  // Only handle incoming messages
-  if (payload.event !== 'message') {
-    console.log('[webhook] ignoring non-message event:', payload.event);
-    return NextResponse.json({ autoRespond: true });
-  }
-
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } }
   );
+
+  // ── Bot outbound message (Clawbot sent a reply) ──────────
+  if (payload.event === 'bot_message') {
+    try {
+      const { data: contact } = await supabaseAdmin
+        .from('whatsapp_contacts')
+        .select('id')
+        .eq('phone', payload.from)
+        .single();
+
+      if (contact) {
+        const { data: conv } = await supabaseAdmin
+          .from('whatsapp_conversations')
+          .select('id')
+          .eq('contact_id', contact.id)
+          .single();
+
+        if (conv) {
+          await supabaseAdmin.from('whatsapp_messages').insert({
+            conversation_id: conv.id,
+            wa_message_id: payload.messageId,
+            direction: 'outbound',
+            type: 'text',
+            body: payload.body || null,
+            status: 'sent',
+            sent_by: null, // null = bot
+            created_at: new Date(payload.timestamp * 1000).toISOString(),
+          });
+          console.log('[webhook] bot message saved for conv:', conv.id);
+        }
+      }
+    } catch (err) {
+      console.error('[webhook] bot_message save error:', err);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // Only handle incoming messages from this point
+  if (payload.event !== 'message') {
+    console.log('[webhook] ignoring non-message event:', payload.event);
+    return NextResponse.json({ autoRespond: true });
+  }
 
   try {
     // ── 2. Upsert contact ─────────────────────────────────────

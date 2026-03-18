@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, FileText, Play } from 'lucide-react';
+import { Download, FileText, Bot } from 'lucide-react';
 import type { WhatsAppMessage } from '@/lib/hooks/useWhatsappMessages';
 
 interface MessageBubbleProps {
@@ -12,22 +12,10 @@ function formatTime(iso: string) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(iso).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function AudioPlayer({ src, filename }: { src: string; filename: string | null }) {
-  return (
-    <div className="flex items-center gap-2 min-w-[180px]">
-      <Play className="w-4 h-4 flex-shrink-0" />
-      <audio controls className="h-8 w-full max-w-[220px]" preload="none">
-        <source src={src} />
-      </audio>
-      <span className="text-xs opacity-70 truncate max-w-[80px]">{filename || 'audio'}</span>
-    </div>
-  );
-}
-
-function DocumentAttachment({ url, filename, mimetype }: { url: string; filename: string | null; mimetype: string | null }) {
+function DocumentAttachment({ url, filename }: { url: string; filename: string | null }) {
   return (
     <a
       href={url}
@@ -44,67 +32,73 @@ function DocumentAttachment({ url, filename, mimetype }: { url: string; filename
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isOutbound = message.direction === 'outbound';
+  const isBot = isOutbound && !message.sent_by; // null sent_by = bot
+  const isHuman = isOutbound && !!message.sent_by; // has sent_by = human asesor
+
+  // Colors: inbound=white card, bot=blue, human=green
+  const bubbleClass = isBot
+    ? 'bg-blue-600 text-white rounded-br-sm'
+    : isHuman
+    ? 'bg-green-500 text-white rounded-br-sm'
+    : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-foreground rounded-bl-sm shadow-sm';
+
+  const timeClass = isOutbound ? 'text-white/70' : 'text-zinc-400';
 
   return (
-    <div className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[75%] rounded-2xl px-3.5 py-2 shadow-sm ${
-          isOutbound
-            ? 'bg-green-500 text-white rounded-br-sm'
-            : 'bg-card border border-border text-foreground rounded-bl-sm'
-        }`}
-      >
-        {/* Media content */}
+    <div className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} mb-1`}>
+      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 ${bubbleClass}`}>
+        {/* Bot indicator */}
+        {isBot && (
+          <div className="flex items-center gap-1 mb-1 opacity-80">
+            <Bot className="w-3 h-3" />
+            <span className="text-[10px] font-medium">Clawbot</span>
+          </div>
+        )}
+
+        {/* Media */}
         {message.type === 'image' && message.media_url && (
-          <a href={message.media_url} target="_blank" rel="noopener noreferrer" className="block mb-1">
+          <a href={message.media_url} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
             <img
               src={message.media_url}
               alt={message.media_filename || 'imagen'}
-              className="rounded-lg max-w-full max-h-60 object-cover"
+              className="rounded-xl max-w-full max-h-60 object-cover"
               loading="lazy"
             />
           </a>
         )}
 
         {message.type === 'video' && message.media_url && (
-          <div className="mb-1">
-            <video
-              src={message.media_url}
-              controls
-              className="rounded-lg max-w-full max-h-48"
-              preload="metadata"
-            />
+          <div className="mb-1.5">
+            <video src={message.media_url} controls className="rounded-xl max-w-full max-h-48" preload="metadata" />
           </div>
         )}
 
         {(message.type === 'audio' || message.type === 'ptt') && message.media_url && (
-          <div className="mb-1">
-            <AudioPlayer src={message.media_url} filename={message.media_filename} />
+          <div className="mb-1.5">
+            <audio controls className="h-8 w-full max-w-[220px]" preload="none">
+              <source src={message.media_url} />
+            </audio>
           </div>
         )}
 
         {message.type === 'document' && message.media_url && (
-          <div className="mb-1">
-            <DocumentAttachment
-              url={message.media_url}
-              filename={message.media_filename}
-              mimetype={message.media_mimetype}
-            />
+          <div className="mb-1.5">
+            <DocumentAttachment url={message.media_url} filename={message.media_filename} />
           </div>
         )}
 
-        {/* Text body */}
+        {/* Text */}
         {message.body && (
           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
             {message.body}
           </p>
         )}
 
-        {/* Timestamp */}
-        <p className={`text-[10px] mt-1 text-right ${isOutbound ? 'text-green-100' : 'text-muted-foreground'}`}>
+        {/* Time + status */}
+        <p className={`text-[10px] mt-1 text-right ${timeClass}`}>
           {formatTime(message.created_at)}
           {isOutbound && (
-            <span className="ml-1">
+            <span className="ml-1 opacity-80">
               {message.status === 'read' ? '✓✓' : message.status === 'delivered' ? '✓✓' : '✓'}
             </span>
           )}
@@ -114,13 +108,14 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   );
 }
 
-// Date separator between messages
 export function DateSeparator({ date }: { date: string }) {
   return (
-    <div className="flex items-center gap-3 py-2">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-xs text-muted-foreground px-2">{formatDate(date)}</span>
-      <div className="flex-1 h-px bg-border" />
+    <div className="flex items-center gap-3 py-3">
+      <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+      <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 px-2 capitalize">
+        {formatDate(date)}
+      </span>
+      <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
     </div>
   );
 }

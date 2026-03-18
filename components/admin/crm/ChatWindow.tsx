@@ -17,7 +17,6 @@ function isSameDay(a: string, b: string) {
 export default function ChatWindow({ messages, isLoading }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -25,21 +24,27 @@ export default function ChatWindow({ messages, isLoading }: ChatWindowProps) {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Cargando mensajes...</span>
+        </div>
       </div>
     );
   }
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Sin mensajes aún</p>
+      <div className="flex-1 flex flex-col items-center justify-center gap-2">
+        <div className="w-16 h-16 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center">
+          <span className="text-3xl">💬</span>
+        </div>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Sin mensajes aún</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-0.5">
       {messages.map((msg, i) => {
         const showDate = i === 0 || !isSameDay(messages[i - 1].created_at, msg.created_at);
         return (
@@ -49,7 +54,7 @@ export default function ChatWindow({ messages, isLoading }: ChatWindowProps) {
           </div>
         );
       })}
-      <div ref={bottomRef} />
+      <div ref={bottomRef} className="h-2" />
     </div>
   );
 }
