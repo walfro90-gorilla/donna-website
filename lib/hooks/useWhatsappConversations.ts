@@ -44,7 +44,11 @@ async function fetchConversations(filter: ConversationFilter): Promise<WhatsAppC
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error('[useWhatsappConversations] Supabase error:', error);
+    throw error;
+  }
+  console.log('[useWhatsappConversations] fetched', data?.length ?? 0, 'conversations');
   return (data ?? []) as WhatsAppConversation[];
 }
 

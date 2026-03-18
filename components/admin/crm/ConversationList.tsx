@@ -20,7 +20,11 @@ export default function ConversationList({ activeConversationId }: ConversationL
   const [filter, setFilter] = useState<ConversationFilter>('all');
   const [search, setSearch] = useState('');
 
-  const { data: conversations, isLoading, mutate } = useWhatsappConversations(filter);
+  const { data: conversations, isLoading, error, mutate } = useWhatsappConversations(filter);
+
+  if (error) {
+    console.error('[ConversationList] SWR error:', error);
+  }
 
   const filtered = (conversations ?? []).filter((c) => {
     if (!search.trim()) return true;
@@ -86,6 +90,14 @@ export default function ConversationList({ activeConversationId }: ConversationL
         {isLoading && filtered.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center px-4 space-y-2">
+            <p className="text-sm text-red-500 font-medium">Error al cargar conversaciones</p>
+            <p className="text-xs text-muted-foreground break-all">{String(error?.message ?? error)}</p>
+            <button onClick={() => mutate()} className="text-xs text-green-500 hover:underline mt-1">
+              Reintentar
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center px-4">
