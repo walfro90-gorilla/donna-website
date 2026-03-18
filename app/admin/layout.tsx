@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminSidebar />
             <div className="md:pl-64 flex flex-col flex-1">
                 <main className="flex-1 pb-8">
-                    <div className="mt-8">
+                    <div className="pt-14 md:pt-0 mt-8">
                         {children}
                     </div>
                 </main>

@@ -13,7 +13,12 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(grep -r \"conversation\\\\|messaging\\\\|chat\" /x/Codes/donna-website/lib/supabase/*.sql)",
       "Bash(xargs grep:*)",
-      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(''engines:'', p.engines\\); console.log\\(''next version:'', p.dependencies?.next || p.devDependencies?.next\\)\")"
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(''engines:'', p.engines\\); console.log\\(''next version:'', p.dependencies?.next || p.devDependencies?.next\\)\")",
+      "Bash(find /x/Codes/donna-website/components -name *Sidebar* -o -name *sidebar*)",
+      "Bash(find /x/Codes/donna-website -path */node_modules -prune -o -name *.tsx -type f -exec grep -l \"sidebar\\\\|Sidebar\" {})",
+      "Bash(2)",
+      "Bash(find /x/Codes/donna-website -maxdepth 2 -name *.css -o -name tailwind.config.* -o -name globals.css)",
+      "Bash(find /x/Codes/donna-website -maxdepth 2 -name tailwind.config.*)"
     ],
     "additionalDirectories": [
       "x:\\Codes\\donna-website\\app\\api\\whatsapp\\conversations\\[id]",
