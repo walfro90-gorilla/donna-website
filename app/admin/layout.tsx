@@ -37,8 +37,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
             <AdminSidebar />
             <div className="md:pl-64 flex flex-col flex-1">
-                <main className="flex-1 pb-8">
-                    <div className="pt-14 md:pt-0 mt-8">
+                <main className="flex-1 pb-20 md:pb-8">
+                    <div className="mt-8">
                         {children}
                     </div>
                 </main>
