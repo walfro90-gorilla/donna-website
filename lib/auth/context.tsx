@@ -17,8 +17,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Ref para mantener el estado actual accesible dentro de closures (event listeners)
+  // Refs para acceder al estado actual dentro de closures
   const stateRef = useRef(state);
+  const loadingUserRef = useRef(false);
+  // Previene que el evento SIGNED_IN re-fetche el perfil cuando el login manual ya lo obtuvo
+  const manualSignInRef = useRef(false);
 
   useEffect(() => {
     stateRef.current = state;
@@ -26,75 +29,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    let loadingUser = false;
 
-    console.log('🔐 AuthContext: Inicializando AuthProvider...');
-
-    // Función para manejar cambios de auth
     const handleAuthChange = async (event: string, session: any) => {
-      if (!mounted) {
-        console.log('🔐 AuthContext: Componente desmontado, ignorando evento:', event);
-        return;
-      }
+      if (!mounted) return;
 
-      console.log('🔐 AuthContext: Auth state changed:', event);
-
-      // Usar la referencia actual del estado para evitar closures obsoletos
       const currentUser = stateRef.current.user;
 
-      // Evitar cargas múltiples
-      if (loadingUser) {
-        console.log('🔐 AuthContext: Ya cargando usuario, ignorando evento');
-        return;
-      }
-
       if (event === 'INITIAL_SESSION') {
-        console.log('🔐 AuthContext: Procesando sesión inicial...');
         if (session?.user) {
-          console.log('🔐 AuthContext: Sesión inicial encontrada, cargando usuario...');
-          loadingUser = true;
-          await loadUser(session.user.id);
-          loadingUser = false;
+          if (!loadingUserRef.current) {
+            loadingUserRef.current = true;
+            await loadUser(session.user.id);
+            loadingUserRef.current = false;
+          }
         } else {
-          console.log('🔐 AuthContext: No hay sesión inicial');
-          setState({
-            user: null,
-            loading: false,
-            error: null,
-          });
+          setState({ user: null, loading: false, error: null });
         }
         setIsInitialized(true);
+
       } else if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🔐 AuthContext: Usuario se logueó, cargando datos...');
-        loadingUser = true;
+        // Si es un login manual, signIn() ya obtuvo el perfil — evitar doble fetch
+        if (manualSignInRef.current) return;
+        // Si ya tenemos este usuario cargado, no refetchar
+        if (currentUser?.id === session.user.id) return;
+        if (loadingUserRef.current) return;
+
+        loadingUserRef.current = true;
         await loadUser(session.user.id);
-        loadingUser = false;
+        loadingUserRef.current = false;
+
       } else if (event === 'SIGNED_OUT') {
-        console.log('🔐 AuthContext: Usuario se deslogueó, limpiando estado...');
-        setState({
-          user: null,
-          loading: false,
-          error: null,
-        });
+        setState({ user: null, loading: false, error: null });
+
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        console.log('🔐 AuthContext: Token renovado');
-        // Solo cargar usuario si no tenemos uno o si el ID cambió
-        if (!currentUser || currentUser.id !== session.user.id) {
-          console.log('🔐 AuthContext: Cargando usuario después de refresh token...');
-          loadingUser = true;
-          await loadUser(session.user.id);
-          loadingUser = false;
-        } else {
-          console.log('🔐 AuthContext: Usuario ya cargado, manteniendo estado');
-        }
+        // No refetchar perfil si ya tenemos el mismo usuario
+        if (currentUser?.id === session.user.id) return;
+        if (loadingUserRef.current) return;
+
+        loadingUserRef.current = true;
+        await loadUser(session.user.id);
+        loadingUserRef.current = false;
       }
     };
 
-    // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
 
     return () => {
-      console.log('🔐 AuthContext: Limpiando AuthProvider...');
       mounted = false;
       subscription.unsubscribe();
     };
@@ -163,7 +143,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (credentials: LoginCredentials): Promise<AuthResult> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
+    // Marcar que estamos en un login manual para que el evento SIGNED_IN no duplique el fetch
+    manualSignInRef.current = true;
+
     const result = await AuthService.signIn(credentials);
+
+    manualSignInRef.current = false;
 
     if (result.success && result.user) {
       setState({

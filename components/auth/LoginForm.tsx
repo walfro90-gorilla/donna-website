@@ -52,14 +52,17 @@ export default function LoginForm() {
         password: formState.password,
       });
 
-      if (!result.success) {
-        setFormState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: result.error || 'Error de autenticación',
-        }));
+      if (result.success && result.user) {
+        // Redirigir inmediatamente sin esperar el useEffect
+        router.push(AuthService.getRedirectPath(result.user.role));
+        return;
       }
-      // Si es exitoso, el useEffect se encargará de la redirección
+
+      setFormState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: result.error || 'Error de autenticación',
+      }));
     } catch (error) {
       console.error('🔐 LoginForm: Error inesperado:', error);
       setFormState(prev => ({

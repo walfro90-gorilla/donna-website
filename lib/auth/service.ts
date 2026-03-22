@@ -7,52 +7,29 @@ export class AuthService {
    */
   static async signIn(credentials: LoginCredentials): Promise<AuthResult> {
     try {
-      console.log('🔐 AuthService: Iniciando autenticación...');
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
       });
 
       if (error) {
-        console.error('🔐 AuthService: Error de autenticación:', error.message);
-        return {
-          success: false,
-          error: this.mapAuthError(error.message),
-        };
+        return { success: false, error: this.mapAuthError(error.message) };
       }
 
       if (!data.user) {
-        return {
-          success: false,
-          error: 'No se pudo obtener información del usuario',
-        };
+        return { success: false, error: 'No se pudo obtener información del usuario' };
       }
 
-      console.log('🔐 AuthService: Autenticación exitosa, obteniendo perfil...');
-
-      // Obtener perfil del usuario usando la función de la base de datos
       const user = await this.getUserProfile(data.user.id);
 
       if (!user) {
-        return {
-          success: false,
-          error: 'Usuario no encontrado en la base de datos',
-        };
+        return { success: false, error: 'Usuario no encontrado en la base de datos' };
       }
 
-      console.log('🔐 AuthService: Login completo, rol:', user.role);
-
-      return {
-        success: true,
-        user,
-      };
+      return { success: true, user };
     } catch (error) {
       console.error('🔐 AuthService: Error inesperado:', error);
-      return {
-        success: false,
-        error: 'Error de conexión. Intenta de nuevo.',
-      };
+      return { success: false, error: 'Error de conexión. Intenta de nuevo.' };
     }
   }
 
@@ -105,44 +82,15 @@ export class AuthService {
    */
   static async getCurrentUser(userId?: string): Promise<User | null> {
     try {
-      console.log('🔐 AuthService: Obteniendo usuario actual...', userId ? `(ID proporcionado: ${userId})` : '(Sin ID)');
-
       if (userId) {
-        console.log('🔐 AuthService: Usando ID proporcionado, saltando getSession...');
         return this.getUserProfile(userId);
       }
 
-      console.log('🔐 AuthService: Consultando sesión en Supabase...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-      console.log('🔐 AuthService: Session check:', {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userId: session?.user?.id,
-        sessionError: sessionError?.message
-      });
+      if (error || !session?.user) return null;
 
-      if (sessionError) {
-        console.error('🔐 AuthService: Error obteniendo sesión:', sessionError);
-        return null;
-      }
-
-      if (!session?.user) {
-        console.log('🔐 AuthService: No hay sesión activa');
-        return null;
-      }
-
-      console.log('🔐 AuthService: Sesión encontrada, obteniendo perfil...');
-      const profile = await this.getUserProfile(session.user.id);
-
-      console.log('🔐 AuthService: Perfil obtenido:', {
-        exists: !!profile,
-        id: profile?.id,
-        email: profile?.email,
-        role: profile?.role
-      });
-
-      return profile;
+      return this.getUserProfile(session.user.id);
     } catch (error) {
       console.error('❌ AuthService: Error obteniendo usuario actual:', error);
       return null;
@@ -199,64 +147,29 @@ export class AuthService {
   }
 
   /**
-   * Obtener perfil usando función de base de datos
+   * Obtener perfil del usuario desde la tabla users
    */
   private static async getUserProfile(userId: string): Promise<User | null> {
     try {
-      console.log('👤 AuthService: Obteniendo perfil para:', userId);
-
-      // Intentar primero con RPC (más seguro/rápido si está configurado)
-      const { data, error } = await supabase.rpc('get_user_profile', {
-        user_uuid: userId
-      });
-
-      if (!error && data && data.length > 0) {
-        const profile = data[0];
-        console.log('👤 AuthService: Perfil obtenido vía RPC:', profile.role);
-        return {
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          role: profile.role as UserRole,
-          phone: profile.phone,
-          email_confirm: profile.email_confirm,
-          created_at: profile.created_at,
-        };
-      }
-
-      if (error) {
-        console.warn('👤 AuthService: Error en RPC, intentando fallback directo:', error.message);
-      } else {
-        console.warn('👤 AuthService: RPC no devolvió datos, intentando fallback directo');
-      }
-
-      // Fallback: Consulta directa a la tabla users
-      const { data: directData, error: directError } = await supabase
+      const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role, phone, email_confirm, created_at')
         .eq('id', userId)
         .single();
 
-      if (directError) {
-        console.error('👤 AuthService: Error en fallback directo:', directError);
+      if (error || !data) {
+        console.error('👤 AuthService: Error obteniendo perfil:', error?.message);
         return null;
       }
-
-      if (!directData) {
-        console.error('👤 AuthService: Usuario no encontrado en tabla users');
-        return null;
-      }
-
-      console.log('👤 AuthService: Perfil obtenido vía fallback:', directData.role);
 
       return {
-        id: directData.id,
-        email: directData.email,
-        name: directData.name,
-        role: directData.role as UserRole,
-        phone: directData.phone,
-        email_confirm: directData.email_confirm,
-        created_at: directData.created_at,
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        role: data.role as UserRole,
+        phone: data.phone,
+        email_confirm: data.email_confirm,
+        created_at: data.created_at,
       };
     } catch (error) {
       console.error('👤 AuthService: Error obteniendo perfil:', error);
