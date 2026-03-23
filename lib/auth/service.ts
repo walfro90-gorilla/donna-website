@@ -199,7 +199,7 @@ export class AuthService {
   /**
    * Mapear errores de Supabase a mensajes en español
    */
-  private static mapAuthError(errorMessage: string): string {
+  static mapAuthError(errorMessage: string): string {
     const errorMap: Record<string, string> = {
       'Invalid login credentials': 'Email o contraseña incorrectos',
       'Email not confirmed': 'Por favor confirma tu email antes de iniciar sesión',

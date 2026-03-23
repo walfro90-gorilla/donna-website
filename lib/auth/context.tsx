@@ -20,7 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Refs para acceder al estado actual dentro de closures
   const stateRef = useRef(state);
   const loadingUserRef = useRef(false);
-  // Previene que el evento SIGNED_IN re-fetche el perfil cuando el login manual ya lo obtuvo
   const manualSignInRef = useRef(false);
 
   useEffect(() => {
@@ -48,9 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsInitialized(true);
 
       } else if (event === 'SIGNED_IN' && session?.user) {
-        // Si es un login manual, signIn() ya obtuvo el perfil — evitar doble fetch
+        // Evitar fetch duplicado: login manual ya cargó el perfil
         if (manualSignInRef.current) return;
-        // Si ya tenemos este usuario cargado, no refetchar
         if (currentUser?.id === session.user.id) return;
         if (loadingUserRef.current) return;
 
@@ -143,28 +141,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (credentials: LoginCredentials): Promise<AuthResult> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    // Marcar que estamos en un login manual para que el evento SIGNED_IN no duplique el fetch
+    const withTimeout = <T,>(promise: Promise<T>, ms = 10000): Promise<T> =>
+      Promise.race([
+        promise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), ms)
+        ),
+      ]);
+
     manualSignInRef.current = true;
 
-    const result = await AuthService.signIn(credentials);
+    try {
+      // Paso 1: Autenticar credenciales
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        })
+      );
 
-    manualSignInRef.current = false;
+      if (error) {
+        const errorMsg = AuthService.mapAuthError(error.message);
+        setState(prev => ({ ...prev, loading: false, error: errorMsg }));
+        return { success: false, error: errorMsg };
+      }
 
-    if (result.success && result.user) {
-      setState({
-        user: result.user,
-        loading: false,
-        error: null,
-      });
-    } else {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: result.error || 'Error de autenticación',
-      }));
+      if (!data.user) {
+        setState(prev => ({ ...prev, loading: false, error: 'No se pudo obtener la sesión' }));
+        return { success: false, error: 'No se pudo obtener la sesión' };
+      }
+
+      // Paso 2: Obtener perfil del usuario (con timeout propio)
+      const user = await withTimeout(AuthService.getCurrentUser(data.user.id));
+
+      if (!user) {
+        setState(prev => ({ ...prev, loading: false, error: 'Usuario no encontrado en la base de datos' }));
+        return { success: false, error: 'Usuario no encontrado en la base de datos' };
+      }
+
+      setState({ user, loading: false, error: null });
+      manualSignInRef.current = false;
+      return { success: true, user };
+
+    } catch (err: any) {
+      manualSignInRef.current = false;
+      const errorMsg = err?.message === 'TIMEOUT'
+        ? 'La conexión tardó demasiado. Verifica tu internet e intenta de nuevo.'
+        : 'Error de conexión. Intenta de nuevo.';
+      setState(prev => ({ ...prev, loading: false, error: errorMsg }));
+      return { success: false, error: errorMsg };
     }
-
-    return result;
   };
 
   const signInWithGoogle = async (): Promise<AuthResult> => {

@@ -52,8 +52,9 @@ export default function LoginForm() {
         password: formState.password,
       });
 
+      console.log('🔐 Login result:', result);
+
       if (result.success && result.user) {
-        // Redirigir inmediatamente sin esperar el useEffect
         router.push(AuthService.getRedirectPath(result.user.role));
         return;
       }
