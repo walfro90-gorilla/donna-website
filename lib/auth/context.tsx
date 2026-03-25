@@ -236,54 +236,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await loadUser();
   };
 
-  // Monitor de inactividad (5 minutos)
-  useEffect(() => {
-    if (!state.user) return;
-
-    console.log('⏱️ AuthContext: Iniciando monitor de inactividad (5 min)');
-
-    const TIMEOUT_DURATION = 5 * 60 * 1000; // 5 minutos
-    let timeoutId: NodeJS.Timeout;
-    let lastActivity = Date.now();
-
-    const doSignOut = () => {
-      console.log('💤 AuthContext: Usuario inactivo por 5 minutos, cerrando sesión...');
-      signOut();
-    };
-
-    const resetTimer = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(doSignOut, TIMEOUT_DURATION);
-    };
-
-    const onActivity = () => {
-      const now = Date.now();
-      // Solo reiniciar el timer si ha pasado más de 1 segundo desde la última actividad
-      // Esto evita sobrecarga por eventos frecuentes como mousemove
-      if (now - lastActivity > 1000) {
-        resetTimer();
-        lastActivity = now;
-      }
-    };
-
-    // Eventos a monitorear
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
-
-    // Iniciar timer
-    resetTimer();
-
-    // Agregar listeners
-    events.forEach(event => {
-      window.addEventListener(event, onActivity);
-    });
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      events.forEach(event => {
-        window.removeEventListener(event, onActivity);
-      });
-    };
-  }, [state.user, signOut]);
 
   const value: AuthContextType = {
     ...state,
