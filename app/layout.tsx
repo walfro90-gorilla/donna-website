@@ -3,7 +3,7 @@ import Script from 'next/script';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import ConditionalFooter from '@/components/ConditionalFooter';
 import CookieConsent from '@/components/CookieConsent';
 import { AuthProvider } from '@/lib/auth/context';
 import { AuthCodeRedirector } from '@/components/auth/AuthCodeRedirector';
@@ -86,7 +86,7 @@ export default function RootLayout({
               <main id="main-content" className="flex-grow" tabIndex={-1} role="main" aria-label="Contenido principal">
                 {children}
               </main>
-              <Footer />
+              <ConditionalFooter />
               <CookieConsent />
             </div>
           </AuthProvider>

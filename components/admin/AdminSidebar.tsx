@@ -16,7 +16,9 @@ import {
     MapPin,
     MessageCircle,
     MoreHorizontal,
-    X
+    X,
+    PanelLeft,
+    PanelRight,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import NotificationsPanel from './NotificationsPanel';
@@ -47,7 +49,12 @@ const moreItems = navigation.filter(
     (item) => !bottomTabs.some((tab) => tab.href === item.href)
 );
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+    isCollapsed: boolean;
+    setIsCollapsed: (value: boolean) => void;
+}
+
+export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
     const pathname = usePathname();
     const { signOut } = useAuth();
     const [showMore, setShowMore] = useState(false);
@@ -71,47 +78,88 @@ export default function AdminSidebar() {
             <aside
                 role="navigation"
                 aria-label="Navegación principal"
-                className="hidden md:flex md:w-64 md:flex-col md:fixed md:top-16 lg:top-[72px] md:bottom-0 bg-sidebar dark:bg-gray-950 border-r border-sidebar-border dark:border-gray-800"
+                className={`hidden md:flex md:flex-col md:fixed md:top-16 lg:top-[72px] md:bottom-0
+                    bg-sidebar dark:bg-gray-900 border-r border-sidebar-border dark:border-gray-700
+                    transition-all duration-300 ease-in-out overflow-hidden
+                    ${isCollapsed ? 'md:w-16' : 'md:w-64'}`}
             >
-                <div className="flex items-center justify-between h-16 flex-shrink-0 px-4 border-b border-sidebar-border dark:border-gray-800">
-                    <span className="text-sidebar-foreground dark:text-white font-bold text-xl">Donna Admin</span>
-                    <NotificationsPanel />
+                {/* Header */}
+                <div className={`flex items-center h-16 flex-shrink-0 px-3 border-b border-sidebar-border dark:border-gray-700 ${
+                    isCollapsed ? 'justify-center' : 'justify-between'
+                }`}>
+                    {!isCollapsed && (
+                        <span className="text-sidebar-foreground dark:text-white font-bold text-xl truncate">
+                            Donna Admin
+                        </span>
+                    )}
+                    <div className={`flex items-center ${isCollapsed ? '' : 'gap-1'}`}>
+                        {!isCollapsed && <NotificationsPanel />}
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
+                            aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+                            title={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+                        >
+                            {isCollapsed
+                                ? <PanelRight className="h-5 w-5" aria-hidden="true" />
+                                : <PanelLeft className="h-5 w-5" aria-hidden="true" />
+                            }
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
-                    <nav className="px-2 py-4 space-y-0.5">
+                {/* Nav */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                    <nav className={`${isCollapsed ? 'px-1' : 'px-2'} py-4 space-y-0.5`}>
                         {navigation.map((item) => {
                             const isActive = pathname === item.href;
                             return (
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                                        isActive
-                                            ? 'bg-pink-50 dark:bg-pink-950/30 text-[#e4007c]'
-                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                                    }`}
+                                    title={isCollapsed ? item.name : undefined}
+                                    aria-label={isCollapsed ? item.name : undefined}
+                                    aria-current={isActive ? 'page' : undefined}
+                                    className={`group flex items-center rounded-lg transition-colors text-sm font-medium
+                                        ${isCollapsed ? 'justify-center py-2.5 px-0' : 'gap-3 px-3 py-2.5'}
+                                        ${isActive
+                                            ? 'bg-pink-50 dark:bg-pink-950/50 text-[#e4007c]'
+                                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
                                 >
                                     <item.icon
                                         className={`flex-shrink-0 h-5 w-5 ${
-                                            isActive ? 'text-[#e4007c]' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300'
+                                            isActive
+                                                ? 'text-[#e4007c]'
+                                                : 'text-gray-400 dark:text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300'
                                         }`}
-                                        aria-hidden="true"
+                                        aria-hidden={!isCollapsed}
                                     />
-                                    {item.name}
+                                    {!isCollapsed && item.name}
                                 </Link>
                             );
                         })}
                     </nav>
                 </div>
 
-                <div className="flex-shrink-0 border-t border-sidebar-border dark:border-gray-800 p-4">
+                {/* Sign out */}
+                <div className={`flex-shrink-0 border-t border-sidebar-border dark:border-gray-700 ${isCollapsed ? 'p-2' : 'p-4'}`}>
                     <button
                         onClick={() => signOut()}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors group"
+                        title={isCollapsed ? 'Cerrar Sesión' : undefined}
+                        aria-label={isCollapsed ? 'Cerrar Sesión' : undefined}
+                        className={`w-full flex items-center rounded-lg text-sm font-medium
+                            text-gray-600 dark:text-gray-300
+                            hover:bg-gray-50 dark:hover:bg-gray-800
+                            hover:text-gray-900 dark:hover:text-white
+                            transition-colors group
+                            ${isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2.5'}`}
                     >
-                        <LogOut className="flex-shrink-0 h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-500" aria-hidden="true" />
-                        Cerrar Sesión
+                        <LogOut
+                            className="flex-shrink-0 h-5 w-5 text-gray-400 dark:text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300"
+                            aria-hidden={!isCollapsed}
+                        />
+                        {!isCollapsed && 'Cerrar Sesión'}
                     </button>
                 </div>
             </aside>
