@@ -22,6 +22,8 @@ export default function RegisterUserModal({
 }: RegisterUserModalProps) {
   const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState('');
+  // Phone is editable — WA ID (LID) may differ from the real cell number
+  const [realPhone, setRealPhone] = useState(phone);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -32,7 +34,7 @@ export default function RegisterUserModal({
     try {
       const { userId, error } = await registerCrmUser({
         name: name.trim(),
-        phone,
+        phone: realPhone.trim(),
         email: email.trim() || undefined,
         contactId,
       });
@@ -77,17 +79,22 @@ export default function RegisterUserModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Phone — readonly */}
+          {/* Phone — editable (WA LID may differ from real cell number) */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">
-              Teléfono WhatsApp
+              Número celular <span className="text-[#e4007c]">*</span>
             </label>
             <input
-              type="text"
-              value={phone}
-              readOnly
-              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-muted text-muted-foreground cursor-not-allowed"
+              type="tel"
+              value={realPhone}
+              onChange={(e) => setRealPhone(e.target.value)}
+              placeholder="Ej: 5216566452737"
+              required
+              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-[#e4007c] focus:border-transparent outline-none transition"
             />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Verifica que sea el número real. El ID de WhatsApp puede ser diferente al celular.
+            </p>
           </div>
 
           {/* Name */}

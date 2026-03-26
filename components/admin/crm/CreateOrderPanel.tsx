@@ -142,6 +142,10 @@ export default function CreateOrderPanel({
   const [submitting, setSubmitting] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
+  // Manual phone search (for when WA phone is a LID and doesn't match the real number)
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualSearching, setManualSearching] = useState(false);
+
   // ── Step 1: Auto-search user by phone or user_id ──
   useEffect(() => {
     if (userSearchDone) return;
@@ -388,40 +392,73 @@ export default function CreateOrderPanel({
                 <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <UserX className="w-4 h-4" />
-                    <p className="text-sm">Este contacto no tiene cuenta registrada</p>
+                    <p className="text-sm">No se encontró cuenta automáticamente</p>
                   </div>
+
+                  {/* Manual phone search — needed when WA uses LID instead of real phone */}
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                      Buscar por número celular real
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={manualPhone}
+                        onChange={(e) => setManualPhone(e.target.value)}
+                        placeholder="Ej: 5216566452737"
+                        className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-[#e4007c] focus:border-transparent outline-none transition"
+                        onKeyDown={(e) => e.key === 'Enter' && manualPhone.trim() && !manualSearching && (async () => {
+                          setManualSearching(true);
+                          const { user } = await searchUserByPhone(manualPhone.trim());
+                          if (user) {
+                            setLinkedUser(user);
+                            if (contact?.id) await linkContactToUser(contact.id, user.id);
+                            toast.success(`Usuario encontrado: ${user.name || user.email}`);
+                          } else {
+                            toast.error('No se encontró ningún usuario con ese número');
+                          }
+                          setManualSearching(false);
+                        })()}
+                      />
+                      <button
+                        disabled={!manualPhone.trim() || manualSearching}
+                        onClick={async () => {
+                          setManualSearching(true);
+                          const { user } = await searchUserByPhone(manualPhone.trim());
+                          if (user) {
+                            setLinkedUser(user);
+                            if (contact?.id) await linkContactToUser(contact.id, user.id);
+                            toast.success(`Usuario encontrado: ${user.name || user.email}`);
+                          } else {
+                            toast.error('No se encontró ningún usuario con ese número');
+                          }
+                          setManualSearching(false);
+                        }}
+                        className="px-3 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        {manualSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      El ID de WA puede no coincidir con el celular registrado. Ingresa el número real del cliente.
+                    </p>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="px-2 bg-muted/30 text-muted-foreground">o</span>
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => setShowRegisterModal(true)}
                     className="w-full py-2 px-4 bg-[#e4007c] text-white rounded-lg text-sm font-medium hover:bg-[#c8006e] transition-colors flex items-center justify-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
                     Registrar nuevo cliente
-                  </button>
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="px-2 bg-background text-muted-foreground">o buscar por teléfono</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      setUserSearchDone(false);
-                      const { user } = await searchUserByPhone(contactPhone);
-                      if (user) {
-                        setLinkedUser(user);
-                        if (contact?.id) await linkContactToUser(contact.id, user.id);
-                        toast.success('Usuario encontrado y vinculado');
-                      } else {
-                        toast.error('No se encontró ningún usuario con este número');
-                      }
-                      setUserSearchDone(true);
-                    }}
-                    className="w-full py-2 px-4 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Buscar cuenta existente
                   </button>
                 </div>
               )}

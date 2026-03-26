@@ -20,20 +20,49 @@ export interface OrderItem {
 }
 
 // ── 1. Search user by normalized phone ──────────────────────────────────────
+// Tries multiple formats: raw digits, +prefix, and suffix match (last 10 digits)
+// because WA stores "521XXXXXXXXXX" but users may have registered as "+521XXXXXXXXXX"
 
 export async function searchUserByPhone(
   phone: string,
 ): Promise<{ user: CrmUser | null; error: string | null }> {
   try {
     const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, name, email, phone')
-      .eq('phone', phone)
-      .maybeSingle();
 
-    if (error) return { user: null, error: error.message };
-    return { user: data as CrmUser | null, error: null };
+    // Strip everything except digits for comparison
+    const digits = phone.replace(/\D/g, '');
+
+    // Build all candidate formats to search
+    const candidates = Array.from(new Set([
+      digits,           // e.g. "521XXXXXXXXXX"
+      `+${digits}`,     // e.g. "+521XXXXXXXXXX"
+      phone,            // original normalized (in case it already has +)
+    ]));
+
+    for (const candidate of candidates) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, phone')
+        .eq('phone', candidate)
+        .maybeSingle();
+
+      if (!error && data) return { user: data as CrmUser, error: null };
+    }
+
+    // Last resort: match by last 10 digits (handles country code variations)
+    if (digits.length >= 10) {
+      const suffix = digits.slice(-10);
+      const { data } = await supabase
+        .from('users')
+        .select('id, name, email, phone')
+        .ilike('phone', `%${suffix}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) return { user: data as CrmUser, error: null };
+    }
+
+    return { user: null, error: null };
   } catch {
     return { user: null, error: 'Error al buscar usuario' };
   }
