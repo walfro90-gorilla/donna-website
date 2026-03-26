@@ -18,7 +18,12 @@
       "Bash(find /x/Codes/donna-website -path */node_modules -prune -o -name *.tsx -type f -exec grep -l \"sidebar\\\\|Sidebar\" {})",
       "Bash(2)",
       "Bash(find /x/Codes/donna-website -maxdepth 2 -name *.css -o -name tailwind.config.* -o -name globals.css)",
-      "Bash(find /x/Codes/donna-website -maxdepth 2 -name tailwind.config.*)"
+      "Bash(find /x/Codes/donna-website -maxdepth 2 -name tailwind.config.*)",
+      "Bash(find /x/Codes/donna-website/app/admin/crm -type f -name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js)",
+      "Read(//c/Users/walfr/.claude/projects/x--Codes-donna-website/memory//**)",
+      "Bash(find /x/Codes/donna-website -type f -name *.sql -o -name *migration*)",
+      "Bash(find /x/Codes/donna-website -name .env* -o -name *.env.example)",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(item[''''text'''']\\) for item in data if item.get\\(''''type''''\\)==''''text'''']\")"
     ],
     "additionalDirectories": [
       "x:\\Codes\\donna-website\\app\\api\\whatsapp\\conversations\\[id]",

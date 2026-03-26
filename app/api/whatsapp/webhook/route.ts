@@ -6,25 +6,43 @@ export const dynamic = 'force-dynamic';
 interface WhatsAppWebhookPayload {
   event: string;
   messageId: string;
-  from: string;         // "521XXXXXXXXXX@c.us"
+  from: string;       // "521XXXXXXXXXX@c.us" — contact phone for inbound, bot phone for outbound
+  to?: string;        // recipient phone for outbound messages
   body: string;
-  type: string;         // chat | image | video | document | audio | ptt | sticker
+  type: string;       // chat | image | video | document | audio | ptt | sticker
   timestamp: number;
   hasMedia: boolean;
+  fromMe?: boolean;   // true when the message was sent BY the bot/phone
   media?: {
-    data: string;       // base64
+    data: string;     // base64
     mimetype: string;
     filename?: string;
   };
   contactName?: string;
 }
 
+/**
+ * Strip WhatsApp suffixes so the same person is always one contact.
+ * "521XXXXXXXXXX@c.us" → "521XXXXXXXXXX"
+ * "521XXXXXXXXXX@s.whatsapp.net" → "521XXXXXXXXXX"
+ */
+function normalizePhone(raw: string): string {
+  return raw.split('@')[0].trim();
+}
+
+/** Events that represent a message sent FROM the admin to a contact */
+const OUTBOUND_EVENTS = new Set([
+  'bot_message',
+  'manual_message',
+  'outbound_message',
+  'message_sent',
+]);
+
 export async function POST(req: NextRequest) {
   console.log('[webhook] incoming request');
 
   // ── 1. Verify webhook secret ──────────────────────────────
   const secret = req.headers.get('x-webhook-secret');
-  console.log('[webhook] secret present:', !!secret);
   if (!secret || secret !== process.env.WHATSAPP_WEBHOOK_SECRET) {
     console.error('[webhook] UNAUTHORIZED — secret mismatch');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,11 +52,10 @@ export async function POST(req: NextRequest) {
   try {
     payload = await req.json();
   } catch {
-    console.error('[webhook] invalid JSON body');
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  console.log('[webhook] event:', payload.event, '| from:', payload.from, '| type:', payload.type);
+  console.log('[webhook] event:', payload.event, '| from:', payload.from, '| fromMe:', payload.fromMe);
 
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,55 +63,89 @@ export async function POST(req: NextRequest) {
     { auth: { persistSession: false } }
   );
 
-  // ── Bot outbound message (Clawbot sent a reply) ──────────
-  if (payload.event === 'bot_message') {
+  // ── 2. Handle OUTBOUND messages (bot reply OR manual from phone) ──
+  const isOutbound = OUTBOUND_EVENTS.has(payload.event) ||
+    (payload.fromMe === true && payload.event !== 'message');
+
+  if (isOutbound) {
     try {
+      // For outbound, the CONTACT's phone is in payload.to (preferred) or payload.from
+      const contactPhone = normalizePhone(payload.to || payload.from);
+
       const { data: contact } = await supabaseAdmin
         .from('whatsapp_contacts')
         .select('id')
-        .eq('phone', payload.from)
-        .single();
+        .eq('phone', contactPhone)
+        .maybeSingle();
 
-      if (contact) {
-        const { data: conv } = await supabaseAdmin
-          .from('whatsapp_conversations')
+      if (!contact) {
+        console.log('[webhook] outbound: contact not found for', contactPhone);
+        return NextResponse.json({ ok: true });
+      }
+
+      const { data: conv } = await supabaseAdmin
+        .from('whatsapp_conversations')
+        .select('id')
+        .eq('contact_id', contact.id)
+        .maybeSingle();
+
+      if (!conv) {
+        console.log('[webhook] outbound: no conversation for contact', contact.id);
+        return NextResponse.json({ ok: true });
+      }
+
+      // Deduplicate: skip if this wa_message_id was already saved
+      if (payload.messageId) {
+        const { data: existing } = await supabaseAdmin
+          .from('whatsapp_messages')
           .select('id')
-          .eq('contact_id', contact.id)
-          .single();
-
-        if (conv) {
-          await supabaseAdmin.from('whatsapp_messages').insert({
-            conversation_id: conv.id,
-            wa_message_id: payload.messageId,
-            direction: 'outbound',
-            type: 'text',
-            body: payload.body || null,
-            status: 'sent',
-            sent_by: null, // null = bot
-            created_at: new Date(payload.timestamp * 1000).toISOString(),
-          });
-          console.log('[webhook] bot message saved for conv:', conv.id);
+          .eq('wa_message_id', payload.messageId)
+          .maybeSingle();
+        if (existing) {
+          console.log('[webhook] outbound: duplicate messageId, skipping');
+          return NextResponse.json({ ok: true });
         }
       }
+
+      await supabaseAdmin.from('whatsapp_messages').insert({
+        conversation_id: conv.id,
+        wa_message_id: payload.messageId || null,
+        direction: 'outbound',
+        type: payload.type === 'chat' ? 'text' : (payload.type || 'text'),
+        body: payload.body || null,
+        status: 'sent',
+        sent_by: null,
+        created_at: new Date(payload.timestamp * 1000).toISOString(),
+      });
+
+      // Update conversation preview
+      await supabaseAdmin.from('whatsapp_conversations').update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: (payload.body || '[Media]').slice(0, 100),
+      }).eq('id', conv.id);
+
+      console.log('[webhook] outbound message saved for conv:', conv.id);
     } catch (err) {
-      console.error('[webhook] bot_message save error:', err);
+      console.error('[webhook] outbound save error:', err);
     }
     return NextResponse.json({ ok: true });
   }
 
-  // Only handle incoming messages from this point
+  // ── 3. Only handle inbound messages from here ─────────────
   if (payload.event !== 'message') {
-    console.log('[webhook] ignoring non-message event:', payload.event);
+    console.log('[webhook] ignoring event:', payload.event);
     return NextResponse.json({ autoRespond: true });
   }
 
   try {
-    // ── 2. Upsert contact ─────────────────────────────────────
+    // ── 4. Normalize phone & upsert contact ───────────────────
+    const normalizedPhone = normalizePhone(payload.from);
+
     const { data: contact, error: contactError } = await supabaseAdmin
       .from('whatsapp_contacts')
       .upsert(
         {
-          phone: payload.from,
+          phone: normalizedPhone,
           name: payload.contactName || null,
           last_seen_at: new Date().toISOString(),
         },
@@ -107,9 +158,9 @@ export async function POST(req: NextRequest) {
       console.error('[webhook] contact upsert error:', JSON.stringify(contactError));
       return NextResponse.json({ autoRespond: true }, { status: 500 });
     }
-    console.log('[webhook] contact id:', contact.id);
+    console.log('[webhook] contact id:', contact.id, '| phone:', normalizedPhone);
 
-    // ── 3. Upsert conversation ────────────────────────────────
+    // ── 5. Upsert conversation ────────────────────────────────
     const messagePreview = payload.hasMedia
       ? `[${payload.type === 'ptt' ? 'Audio' : payload.type.charAt(0).toUpperCase() + payload.type.slice(1)}]${payload.body ? ` ${payload.body}` : ''}`
       : (payload.body || '');
@@ -118,7 +169,7 @@ export async function POST(req: NextRequest) {
       .from('whatsapp_conversations')
       .select('id, bot_active, unread_count')
       .eq('contact_id', contact.id)
-      .single();
+      .maybeSingle();
 
     let conversationId: string;
     let botActive = true;
@@ -126,7 +177,6 @@ export async function POST(req: NextRequest) {
     if (existingConv) {
       conversationId = existingConv.id;
       botActive = existingConv.bot_active;
-      // Update conversation metadata
       await supabaseAdmin
         .from('whatsapp_conversations')
         .update({
@@ -156,10 +206,9 @@ export async function POST(req: NextRequest) {
       }
       conversationId = newConv.id;
       botActive = newConv.bot_active;
-      console.log('[webhook] new conversation created:', conversationId);
     }
 
-    // ── 4. Handle media upload ────────────────────────────────
+    // ── 6. Media upload ───────────────────────────────────────
     let mediaUrl: string | null = null;
 
     if (payload.hasMedia && payload.media?.data) {
@@ -171,28 +220,23 @@ export async function POST(req: NextRequest) {
 
         const { error: uploadError } = await supabaseAdmin.storage
           .from('whatsapp-media')
-          .upload(storagePath, buffer, {
-            contentType: payload.media.mimetype,
-            upsert: false,
-          });
+          .upload(storagePath, buffer, { contentType: payload.media.mimetype, upsert: false });
 
         if (!uploadError) {
           const { data: urlData } = await supabaseAdmin.storage
             .from('whatsapp-media')
-            .createSignedUrl(storagePath, 60 * 60 * 24 * 7); // 7 days
+            .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
           mediaUrl = urlData?.signedUrl || null;
         }
       } catch (mediaErr) {
-        console.error('Media upload error:', mediaErr);
-        // Non-fatal — message still saved without media
+        console.error('[webhook] media upload error:', mediaErr);
       }
     }
 
-    // ── 5. Insert message ─────────────────────────────────────
+    // ── 7. Insert message ─────────────────────────────────────
     const msgType = payload.type === 'chat' ? 'text' : (
       ['image', 'video', 'document', 'audio', 'ptt', 'sticker'].includes(payload.type)
-        ? payload.type
-        : 'unknown'
+        ? payload.type : 'unknown'
     );
 
     const { error: msgError } = await supabaseAdmin
@@ -212,15 +256,11 @@ export async function POST(req: NextRequest) {
 
     if (msgError) {
       console.error('[webhook] message insert error:', JSON.stringify(msgError));
-    } else {
-      console.log('[webhook] message saved OK, autoRespond:', botActive);
     }
 
-    // ── 6. Return bot control flag ────────────────────────────
     return NextResponse.json({ autoRespond: botActive });
   } catch (err) {
     console.error('[webhook] UNHANDLED ERROR:', err);
-    // On error, let the bot respond to avoid silent failures
     return NextResponse.json({ autoRespond: true }, { status: 500 });
   }
 }
