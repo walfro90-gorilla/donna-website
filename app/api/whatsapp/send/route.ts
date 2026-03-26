@@ -101,7 +101,6 @@ export async function POST(req: NextRequest) {
         'x-bot-secret': botSecret,
       },
       body: JSON.stringify(clawbotPayload),
-      // @ts-expect-error -- Node 18 fetch supports signal
       signal: AbortSignal.timeout(10_000),
     });
   } catch (fetchErr) {
