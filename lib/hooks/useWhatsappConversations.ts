@@ -9,6 +9,7 @@ export interface WhatsAppContact {
   name: string | null;
   profile_photo_url: string | null;
   last_seen_at: string | null;
+  user_id: string | null;
 }
 
 export interface WhatsAppConversation {
@@ -111,7 +112,7 @@ async function fetchConversations(filter: ConversationFilter): Promise<WhatsAppC
     .select(`
       *,
       whatsapp_contacts (
-        id, phone, name, profile_photo_url, last_seen_at
+        id, phone, name, profile_photo_url, last_seen_at, user_id
       )
     `)
     .order('last_message_at', { ascending: false, nullsFirst: false })

@@ -1,25 +1,53 @@
 'use client';
 
-import { Phone, Clock, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Phone, Clock, User, CheckCircle, UserX, ShoppingBag } from 'lucide-react';
 import type { WhatsAppConversation } from '@/lib/hooks/useWhatsappConversations';
+import { supabase } from '@/lib/supabase/client';
 
 interface ContactCardProps {
   conversation: WhatsAppConversation;
+  onCreateOrder?: () => void;
+}
+
+interface LinkedUser {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
 }
 
 function formatPhone(phone: string) {
-  // Remove @c.us suffix
   return phone.replace('@c.us', '').replace('@s.whatsapp.net', '');
 }
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('es-MX', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
 }
 
-export default function ContactCard({ conversation }: ContactCardProps) {
+export default function ContactCard({ conversation, onCreateOrder }: ContactCardProps) {
   const contact = conversation.whatsapp_contacts;
+  const [linkedUser, setLinkedUser] = useState<LinkedUser | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
+
+  // Fetch linked user if user_id is set on the WA contact
+  useEffect(() => {
+    if (!contact?.user_id) { setUserLoaded(true); return; }
+    supabase
+      .from('users')
+      .select('id, name, email, phone')
+      .eq('id', contact.user_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setLinkedUser(data as LinkedUser | null);
+        setUserLoaded(true);
+      });
+  }, [contact?.user_id]);
 
   return (
     <div className="p-4 border border-border rounded-xl bg-card space-y-3">
@@ -76,6 +104,44 @@ export default function ContactCard({ conversation }: ContactCardProps) {
           </div>
         )}
       </div>
+
+      {/* Divider */}
+      <div className="border-t border-border" />
+
+      {/* Platform user section */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          Cliente en plataforma
+        </h4>
+
+        {!userLoaded ? (
+          <p className="text-xs text-muted-foreground">Verificando...</p>
+        ) : linkedUser ? (
+          <div className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{linkedUser.name || '—'}</p>
+              <p className="text-xs text-muted-foreground truncate">{linkedUser.email}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <UserX className="w-4 h-4 flex-shrink-0" />
+            <p className="text-xs">Sin cuenta registrada</p>
+          </div>
+        )}
+      </div>
+
+      {/* Create order CTA */}
+      {onCreateOrder && (
+        <button
+          onClick={onCreateOrder}
+          className="w-full py-2 px-3 bg-[#e4007c] text-white rounded-lg text-sm font-medium hover:bg-[#c8006e] transition-colors flex items-center justify-center gap-2"
+        >
+          <ShoppingBag className="w-4 h-4" />
+          Nueva Orden
+        </button>
+      )}
     </div>
   );
 }
