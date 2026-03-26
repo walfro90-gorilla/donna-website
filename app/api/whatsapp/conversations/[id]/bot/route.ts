@@ -67,11 +67,40 @@ export async function PATCH(
     .from('whatsapp_conversations')
     .update(updatePayload)
     .eq('id', conversationId)
-    .select()
+    .select('*, whatsapp_contacts(phone)')
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // ── 4. Notify Clawbot to sync its in-memory autoRespond state ────
+  const botUrl = process.env.WHATSAPP_BOT_URL;
+  const botSecret = process.env.WHATSAPP_BOT_SECRET;
+
+  if (botUrl && botSecret) {
+    try {
+      const contactPhone = (updated as { whatsapp_contacts?: { phone?: string } })
+        ?.whatsapp_contacts?.phone;
+
+      if (contactPhone) {
+        await fetch(`${botUrl}/toggle-bot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-bot-secret': botSecret,
+          },
+          body: JSON.stringify({
+            phone: contactPhone,
+            autoRespond: body.bot_active,
+          }),
+          signal: AbortSignal.timeout(5_000),
+        });
+      }
+    } catch (clawErr) {
+      // Non-fatal — DB is already updated; Clawbot will re-check on next message
+      console.error('[bot-toggle] Failed to notify Clawbot:', clawErr);
+    }
   }
 
   return NextResponse.json({ conversation: updated });
