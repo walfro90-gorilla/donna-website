@@ -23,7 +23,8 @@
       "Read(//c/Users/walfr/.claude/projects/x--Codes-donna-website/memory//**)",
       "Bash(find /x/Codes/donna-website -type f -name *.sql -o -name *migration*)",
       "Bash(find /x/Codes/donna-website -name .env* -o -name *.env.example)",
-      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(item[''''text'''']\\) for item in data if item.get\\(''''type''''\\)==''''text'''']\")"
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(item[''''text'''']\\) for item in data if item.get\\(''''type''''\\)==''''text'''']\")",
+      "Bash(find /x/Codes/donna-website/app/api -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))"
     ],
     "additionalDirectories": [
       "x:\\Codes\\donna-website\\app\\api\\whatsapp\\conversations\\[id]",
