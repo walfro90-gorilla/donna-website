@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
   const botSecret = process.env.WHATSAPP_BOT_SECRET;
 
   if (!botUrl || !botSecret) {
+    console.error('[send] Missing env vars — WHATSAPP_BOT_URL:', !!botUrl, 'WHATSAPP_BOT_SECRET:', !!botSecret);
     return NextResponse.json({ error: 'Bot URL not configured' }, { status: 500 });
   }
 
@@ -91,19 +92,35 @@ export async function POST(req: NextRequest) {
     if (clawbotPayload[k] === undefined) delete clawbotPayload[k];
   });
 
-  const botResponse = await fetch(`${botUrl}/send`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-bot-secret': botSecret,
-    },
-    body: JSON.stringify(clawbotPayload),
-  });
+  let botResponse: Response;
+  try {
+    botResponse = await fetch(`${botUrl}/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-bot-secret': botSecret,
+      },
+      body: JSON.stringify(clawbotPayload),
+      // @ts-expect-error -- Node 18 fetch supports signal
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (fetchErr) {
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    console.error('[send] Network error reaching Clawbot:', msg);
+    return NextResponse.json(
+      { error: `No se pudo conectar al bot (${msg}). Verifica que el servidor UpCloud esté activo y el puerto 3000 sea accesible.` },
+      { status: 503 }
+    );
+  }
 
   if (!botResponse.ok) {
-    const errText = await botResponse.text();
-    console.error('Clawbot send error:', errText);
-    return NextResponse.json({ error: 'Failed to send via bot' }, { status: 502 });
+    const errText = await botResponse.text().catch(() => '(no body)');
+    console.error('[send] Clawbot responded with', botResponse.status, ':', errText);
+    const hint =
+      botResponse.status === 401
+        ? 'El secreto DONNA_BOT_SECRET en UpCloud no coincide con WHATSAPP_BOT_SECRET en Vercel.'
+        : `Clawbot devolvió ${botResponse.status}: ${errText}`;
+    return NextResponse.json({ error: hint }, { status: 502 });
   }
 
   // ── 5. Save outbound message to DB ────────────────────────
