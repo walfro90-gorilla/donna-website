@@ -26,7 +26,11 @@
       "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(item[''''text'''']\\) for item in data if item.get\\(''''type''''\\)==''''text'''']\")",
       "Bash(find /x/Codes/donna-website/app/api -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
       "Bash(find /x/Codes/donna-website -name *.md -path */memory/* -o -name *schema* -type f)",
-      "Bash(grep -r \"whatsapp\\\\|crm\\\\|conversation\" /x/Codes/donna-website/app/admin/orders --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"whatsapp\\\\|crm\\\\|conversation\" /x/Codes/donna-website/app/admin/orders --include=*.ts --include=*.tsx)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration"
     ],
     "additionalDirectories": [
       "x:\\Codes\\donna-website\\app\\api\\whatsapp\\conversations\\[id]",

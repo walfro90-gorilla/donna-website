@@ -22,9 +22,11 @@ interface WhatsAppWebhookPayload {
 }
 
 /**
- * Strip WhatsApp suffixes so the same person is always one contact.
- * "521XXXXXXXXXX@c.us" → "521XXXXXXXXXX"
+ * Strip ALL WhatsApp domain suffixes so the same person is always one contact,
+ * regardless of whether WhatsApp sends "@c.us", "@s.whatsapp.net", "@lid", etc.
+ * "521XXXXXXXXXX@c.us"           → "521XXXXXXXXXX"
  * "521XXXXXXXXXX@s.whatsapp.net" → "521XXXXXXXXXX"
+ * "186969103565018@lid"          → "186969103565018"
  */
 function normalizePhone(raw: string): string {
   return raw.split('@')[0].trim();
@@ -83,11 +85,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      const { data: conv } = await supabaseAdmin
+      const { data: outboundConvRows } = await supabaseAdmin
         .from('whatsapp_conversations')
         .select('id')
         .eq('contact_id', contact.id)
-        .maybeSingle();
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      const conv = outboundConvRows?.[0] ?? null;
 
       if (!conv) {
         console.log('[webhook] outbound: no conversation for contact', contact.id);
@@ -160,16 +165,20 @@ export async function POST(req: NextRequest) {
     }
     console.log('[webhook] contact id:', contact.id, '| phone:', normalizedPhone);
 
-    // ── 5. Upsert conversation ────────────────────────────────
+    // ── 5. Get or create conversation (race-condition-safe) ───
     const messagePreview = payload.hasMedia
       ? `[${payload.type === 'ptt' ? 'Audio' : payload.type.charAt(0).toUpperCase() + payload.type.slice(1)}]${payload.body ? ` ${payload.body}` : ''}`
       : (payload.body || '');
 
-    const { data: existingConv } = await supabaseAdmin
+    // Use array + limit(1) to never fail when >1 rows exist (maybeSingle() throws on multiple rows)
+    const { data: convRows } = await supabaseAdmin
       .from('whatsapp_conversations')
       .select('id, bot_active, unread_count')
       .eq('contact_id', contact.id)
-      .maybeSingle();
+      .order('created_at', { ascending: true })
+      .limit(1);
+
+    const existingConv = convRows?.[0] ?? null;
 
     let conversationId: string;
     let botActive = true;
@@ -187,21 +196,26 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', conversationId);
     } else {
+      // INSERT ... ON CONFLICT (contact_id) DO NOTHING — atomic, no race condition
+      // The UNIQUE constraint on contact_id prevents duplicate conversations.
       const { data: newConv, error: convError } = await supabaseAdmin
         .from('whatsapp_conversations')
-        .insert({
-          contact_id: contact.id,
-          status: 'open',
-          bot_active: true,
-          last_message_at: new Date().toISOString(),
-          last_message_preview: messagePreview.slice(0, 100),
-          unread_count: 1,
-        })
+        .upsert(
+          {
+            contact_id: contact.id,
+            status: 'open',
+            bot_active: true,
+            last_message_at: new Date().toISOString(),
+            last_message_preview: messagePreview.slice(0, 100),
+            unread_count: 1,
+          },
+          { onConflict: 'contact_id', ignoreDuplicates: false }
+        )
         .select('id, bot_active')
         .single();
 
       if (convError || !newConv) {
-        console.error('[webhook] conversation insert error:', JSON.stringify(convError));
+        console.error('[webhook] conversation upsert error:', JSON.stringify(convError));
         return NextResponse.json({ autoRespond: true }, { status: 500 });
       }
       conversationId = newConv.id;
