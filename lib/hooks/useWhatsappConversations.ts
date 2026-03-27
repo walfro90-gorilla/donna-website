@@ -62,10 +62,10 @@ function playNotificationBeep() {
 }
 
 function revalidateConversations() {
+  // Pass only the filter — SWR revalidates in background keeping stale data visible.
+  // Passing `undefined` as data would clear the cache first, causing a flash to empty state.
   globalMutate(
-    (key: unknown) => Array.isArray(key) && key[0] === 'whatsapp-conversations',
-    undefined,
-    { revalidate: true }
+    (key: unknown) => Array.isArray(key) && key[0] === 'whatsapp-conversations'
   );
 }
 

@@ -195,7 +195,6 @@ export async function createManualOrder(params: {
         payment_method: params.paymentMethod,
         payment_status: 'pending',
         delivery_address: params.deliveryAddress,
-        subtotal,
         delivery_fee: deliveryFee,
         total_amount: totalAmount,
         order_notes: params.notes || null,

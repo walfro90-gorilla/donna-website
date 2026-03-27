@@ -196,7 +196,6 @@ export default function CRMConversationPage({
           <SendMessageForm
             conversationId={conversationId}
             disabled={botActive}
-            onMessageSent={() => mutateConversations()}
           />
         </div>
 
