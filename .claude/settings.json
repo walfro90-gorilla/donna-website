@@ -32,7 +32,8 @@
       "mcp__supabase__execute_sql",
       "mcp__supabase__apply_migration",
       "Bash(find /x/Codes/donna-website -type f \\\\\\(-name *crm* -o -name *whatsapp* \\\\\\))",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(\"x:/Codes/donna-website/app/globals.css\")"
     ],
     "additionalDirectories": [
       "x:\\Codes\\donna-website\\app\\api\\whatsapp\\conversations\\[id]",

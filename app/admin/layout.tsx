@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth/context';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { LoadingSpinner } from '@/components/ui';
 import { Toaster } from 'react-hot-toast';
+import OrderBellNotifier from '@/components/admin/OrderBellNotifier';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -45,6 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
             <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+            <OrderBellNotifier />
             <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
             <div className={`flex flex-col flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'md:pl-16' : 'md:pl-64'}`}>
                 <main className="flex-1 pb-20 md:pb-0">
