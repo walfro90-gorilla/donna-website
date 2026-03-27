@@ -22,10 +22,15 @@ import {
     WifiOff,
     Percent,
     Loader2,
-    Zap
+    Zap,
+    ToggleLeft,
+    ToggleRight,
+    Package,
+    ChevronDown,
+    ChevronUp,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -48,6 +53,9 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [editingCommission, setEditingCommission] = useState(false);
     const [commissionBps, setCommissionBps] = useState(0);
     const [savingCommission, setSavingCommission] = useState(false);
+    const [products, setProducts] = useState<any[]>([]);
+    const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
+    const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         fetchRestaurantDetails();
@@ -104,8 +112,16 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
 
             if (recentOrdersError) console.error("Error fetching recent orders", recentOrdersError);
 
+            const { data: productsData } = await supabase
+                .from('products')
+                .select('id, name, description, price, image_url, is_available, type, modifier_groups(id, name, selection_type, modifiers(id, name, price_delta))')
+                .eq('restaurant_id', id)
+                .order('type')
+                .order('name');
+
             setRestaurant(restaurantData);
             setProductsCount(prodCount || 0);
+            setProducts(productsData || []);
             setOrdersCount(ordCount || 0);
             setAccountBalance(accountData?.balance || 0);
             setRecentOrders(ordersData || []);
@@ -140,6 +156,26 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
         setRestaurant({ ...restaurant, commission_bps: commissionBps });
         setEditingCommission(false);
     };
+
+    const handleToggleProduct = async (productId: string, currentAvailable: boolean) => {
+        setTogglingProductId(productId);
+        const { error } = await toggleProductAvailability(productId, !currentAvailable);
+        setTogglingProductId(null);
+        if (!error) {
+            setProducts(prev => prev.map(p => p.id === productId ? { ...p, is_available: !currentAvailable } : p));
+        }
+    };
+
+    const toggleExpanded = (productId: string) => {
+        setExpandedProducts(prev => {
+            const next = new Set(prev);
+            next.has(productId) ? next.delete(productId) : next.add(productId);
+            return next;
+        });
+    };
+
+    const commissionRate = (restaurant?.commission_bps ?? 1500) / 10000;
+    const fmtMXN = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
 
     if (loading) {
         return (
@@ -391,6 +427,134 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                 </div>
                             </dl>
                         </div>
+                    </div>
+
+                    {/* ── Menú / Productos ── */}
+                    <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                        <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-[#e4007c]/10 via-[#e4007c]/5 to-transparent">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Utensils className="h-5 w-5 text-[#e4007c]" />
+                                    Menú del Restaurante
+                                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">({products.length} productos)</span>
+                                </h3>
+                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg">
+                                    <Percent className="h-3 w-3 text-[#e4007c]" />
+                                    Comisión: <span className="font-bold text-[#e4007c] ml-0.5">{((restaurant?.commission_bps ?? 1500) / 100).toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            {/* Column headers */}
+                            <div className="mt-3 grid grid-cols-[1fr_100px_120px_52px] gap-2 px-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                                <span>Producto</span>
+                                <span className="text-right">Precio cocina</span>
+                                <span className="text-right text-[#e4007c]">Precio plataforma</span>
+                                <span className="text-center">Activo</span>
+                            </div>
+                        </div>
+
+                        {products.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
+                                <Package className="h-10 w-10 mb-3 opacity-40" />
+                                <p className="text-sm">Sin productos registrados</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {products.map((product: any) => {
+                                    const platformPrice = Number(product.price) * (1 + commissionRate);
+                                    const isToggling = togglingProductId === product.id;
+                                    const isExpanded = expandedProducts.has(product.id);
+                                    const hasModifiers = product.modifier_groups?.length > 0;
+
+                                    return (
+                                        <div key={product.id} className={`transition-colors ${product.is_available ? '' : 'opacity-50 bg-gray-50 dark:bg-gray-900/20'}`}>
+                                            <div className="grid grid-cols-[1fr_100px_120px_52px] gap-2 items-center px-4 sm:px-6 py-3">
+                                                {/* Name + image */}
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    {product.image_url ? (
+                                                        <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-200 dark:border-gray-600" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                                            <Utensils className="w-4 h-4 text-gray-400" />
+                                                        </div>
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="text-xs text-gray-400 capitalize">{product.type}</span>
+                                                            {hasModifiers && (
+                                                                <button
+                                                                    onClick={() => toggleExpanded(product.id)}
+                                                                    className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                                                                >
+                                                                    {product.modifier_groups.length} extras
+                                                                    {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Cocina price */}
+                                                <div className="text-right">
+                                                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{fmtMXN(Number(product.price))}</p>
+                                                    <p className="text-xs text-gray-400">cocina</p>
+                                                </div>
+
+                                                {/* Platform price */}
+                                                <div className="text-right">
+                                                    <p className="text-sm font-bold text-[#e4007c]">{fmtMXN(platformPrice)}</p>
+                                                    <p className="text-xs text-gray-400">plataforma</p>
+                                                </div>
+
+                                                {/* Toggle */}
+                                                <div className="flex justify-center">
+                                                    <button
+                                                        onClick={() => handleToggleProduct(product.id, product.is_available)}
+                                                        disabled={isToggling}
+                                                        title={product.is_available ? 'Desactivar producto' : 'Activar producto'}
+                                                        className="transition-transform hover:scale-110 disabled:opacity-50"
+                                                    >
+                                                        {isToggling ? (
+                                                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                                                        ) : product.is_available ? (
+                                                            <ToggleRight className="w-7 h-7 text-green-500" />
+                                                        ) : (
+                                                            <ToggleLeft className="w-7 h-7 text-gray-400" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Modifier groups expandable */}
+                                            {hasModifiers && isExpanded && (
+                                                <div className="px-4 sm:px-6 pb-3 ml-14 space-y-2">
+                                                    {product.modifier_groups.map((group: any) => (
+                                                        <div key={group.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{group.name}</span>
+                                                                <span className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full capitalize">
+                                                                    {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-1.5">
+                                                                {group.modifiers?.map((mod: any) => (
+                                                                    <div key={mod.id} className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded-lg px-2.5 py-1.5 border border-gray-100 dark:border-gray-700">
+                                                                        <span className="text-gray-700 dark:text-gray-300 truncate">{mod.name}</span>
+                                                                        <span className={`font-semibold ml-2 flex-shrink-0 ${mod.price_delta > 0 ? 'text-[#e4007c]' : 'text-gray-400'}`}>
+                                                                            {mod.price_delta > 0 ? `+${fmtMXN(mod.price_delta)}` : 'Incluido'}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {/* Business Hours Editor */}
