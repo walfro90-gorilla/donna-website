@@ -30,7 +30,7 @@ import {
     ChevronUp,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateModifierPrice } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateModifier, deleteModifier } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -40,85 +40,151 @@ interface RestaurantDetailProps {
     }>;
 }
 
-// ─── Sub-component: modifier price card with its own local edit state ─────────
-function ModifierPriceCard({ mod, productId, groupId, onSaved }: {
+// ─── Sub-component: modifier card — edit name, price, delete ─────────────────
+function ModifierPriceCard({ mod, productId, groupId, onSaved, onDeleted }: {
     mod: { id: string; name: string; price_delta: number };
     productId: string;
     groupId: string;
-    onSaved: (modId: string, groupId: string, productId: string, newDelta: number) => void;
+    onSaved: (modId: string, groupId: string, productId: string, newName: string, newDelta: number) => void;
+    onDeleted: (modId: string, groupId: string, productId: string) => void;
 }) {
     const [editing, setEditing] = useState(false);
-    const [value, setValue] = useState('');
+    const [nameVal, setNameVal] = useState('');
+    const [priceVal, setPriceVal] = useState('');
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const fmtMXN = (n: number) =>
         new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
 
     const open = () => {
-        setValue(String(Number(mod.price_delta)));
+        setNameVal(mod.name);
+        setPriceVal(String(Number(mod.price_delta)));
         setEditing(true);
+        setConfirmDelete(false);
     };
 
     const save = async () => {
-        const newDelta = parseFloat(value);
-        if (isNaN(newDelta) || newDelta < 0) return;
+        const newDelta = parseFloat(priceVal);
+        if (isNaN(newDelta) || newDelta < 0 || !nameVal.trim()) return;
         setSaving(true);
-        const { error } = await updateModifierPrice(mod.id, newDelta);
+        const { error } = await updateModifier(mod.id, { name: nameVal.trim(), price_delta: newDelta });
         setSaving(false);
         if (!error) {
-            onSaved(mod.id, groupId, productId, newDelta);
+            onSaved(mod.id, groupId, productId, nameVal.trim(), newDelta);
             setEditing(false);
         }
     };
 
-    return (
-        <div className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 gap-2 min-h-[34px]">
-            <span className="text-gray-700 dark:text-gray-300 truncate flex-shrink min-w-0">{mod.name}</span>
+    const handleDelete = async () => {
+        if (!confirmDelete) { setConfirmDelete(true); return; }
+        setDeleting(true);
+        const { error } = await deleteModifier(mod.id);
+        setDeleting(false);
+        if (!error) onDeleted(mod.id, groupId, productId);
+    };
 
-            {editing ? (
-                <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-gray-400 text-xs">$</span>
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.50"
-                        value={value}
-                        onChange={e => setValue(e.target.value)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') save();
-                            if (e.key === 'Escape') setEditing(false);
-                        }}
-                        autoFocus
-                        className="w-16 text-right text-xs font-semibold border border-[#e4007c] rounded-md px-1.5 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#e4007c]/50"
-                    />
+    if (editing) {
+        return (
+            <div className="col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-[#e4007c]/40 p-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Editar opción</p>
+                <div className="flex gap-2">
+                    <div className="flex-1">
+                        <label className="text-xs text-gray-400 mb-0.5 block">Nombre</label>
+                        <input
+                            type="text"
+                            value={nameVal}
+                            onChange={e => setNameVal(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Escape') setEditing(false); }}
+                            autoFocus
+                            placeholder="Nombre del extra"
+                            className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                        />
+                    </div>
+                    <div className="w-28">
+                        <label className="text-xs text-gray-400 mb-0.5 block">Precio extra ($)</label>
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.50"
+                            value={priceVal}
+                            onChange={e => setPriceVal(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
+                            placeholder="0.00"
+                            className="w-full text-sm text-right border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                        />
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
                     <button
                         onClick={save}
-                        disabled={saving}
-                        className="text-white bg-[#e4007c] rounded px-1.5 py-0.5 hover:bg-[#c8006e] disabled:opacity-50 text-xs font-bold"
+                        disabled={saving || !nameVal.trim()}
+                        className="flex-1 py-1.5 bg-[#e4007c] text-white text-xs font-bold rounded-lg hover:bg-[#c8006e] disabled:opacity-50 transition-colors"
                     >
-                        {saving ? '…' : '✓'}
+                        {saving ? 'Guardando…' : '✓ Guardar'}
                     </button>
                     <button
                         onClick={() => setEditing(false)}
-                        className="text-gray-500 bg-gray-200 dark:bg-gray-600 rounded px-1.5 py-0.5 hover:bg-gray-300 text-xs"
+                        className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
-                        ✕
+                        Cancelar
                     </button>
                 </div>
-            ) : (
+            </div>
+        );
+    }
+
+    return (
+        <div className="group flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 gap-1.5 min-h-[34px]">
+            {/* Name */}
+            <span className="text-gray-700 dark:text-gray-300 truncate flex-shrink min-w-0">{mod.name}</span>
+
+            <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Price */}
                 <button
                     onClick={open}
-                    title="Clic para editar precio"
-                    className={`flex items-center gap-1 font-semibold flex-shrink-0 transition-colors hover:opacity-80 ${
+                    title="Editar nombre y precio"
+                    className={`font-semibold transition-colors hover:opacity-80 flex items-center gap-0.5 ${
                         mod.price_delta > 0 ? 'text-[#e4007c]' : 'text-gray-400 dark:text-gray-500'
                     }`}
                 >
-                    <span>{mod.price_delta > 0 ? `+${fmtMXN(mod.price_delta)}` : 'Incluido'}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {mod.price_delta > 0 ? `+${fmtMXN(mod.price_delta)}` : 'Incluido'}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 opacity-40 group-hover:opacity-80 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                 </button>
-            )}
+
+                {/* Delete */}
+                {confirmDelete ? (
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-red-500 font-medium">¿Eliminar?</span>
+                        <button
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="text-xs px-1.5 py-0.5 bg-red-500 text-white rounded font-bold hover:bg-red-600 disabled:opacity-50"
+                        >
+                            {deleting ? '…' : 'Sí'}
+                        </button>
+                        <button
+                            onClick={() => setConfirmDelete(false)}
+                            className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300"
+                        >
+                            No
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => setConfirmDelete(true)}
+                        title="Eliminar opción"
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-red-400 hover:text-red-600 p-0.5 rounded"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
@@ -282,7 +348,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
         }
     };
 
-    const handleModifierPriceSaved = (modId: string, groupId: string, productId: string, newDelta: number) => {
+    const handleModifierSaved = (modId: string, groupId: string, productId: string, newName: string, newDelta: number) => {
         setProducts(prev => prev.map(p => {
             if (p.id !== productId) return p;
             return {
@@ -292,8 +358,24 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                     return {
                         ...g,
                         modifiers: g.modifiers.map((m: any) =>
-                            m.id === modId ? { ...m, price_delta: newDelta } : m
+                            m.id === modId ? { ...m, name: newName, price_delta: newDelta } : m
                         ),
+                    };
+                }),
+            };
+        }));
+    };
+
+    const handleModifierDeleted = (modId: string, groupId: string, productId: string) => {
+        setProducts(prev => prev.map(p => {
+            if (p.id !== productId) return p;
+            return {
+                ...p,
+                modifier_groups: p.modifier_groups.map((g: any) => {
+                    if (g.id !== groupId) return g;
+                    return {
+                        ...g,
+                        modifiers: g.modifiers.filter((m: any) => m.id !== modId),
                     };
                 }),
             };
@@ -715,7 +797,8 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                                         mod={mod}
                                                                         productId={product.id}
                                                                         groupId={group.id}
-                                                                        onSaved={handleModifierPriceSaved}
+                                                                        onSaved={handleModifierSaved}
+                                                                        onDeleted={handleModifierDeleted}
                                                                     />
                                                                 ))}
                                                             </div>

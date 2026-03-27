@@ -82,22 +82,49 @@ export async function updateRestaurantSchedule(
   }
 }
 
-export async function updateModifierPrice(
+export async function updateModifier(
   modifierId: string,
-  priceDelta: number,
+  data: { name?: string; price_delta?: number },
 ): Promise<{ error: string | null }> {
-  if (priceDelta < 0) return { error: 'El precio extra no puede ser negativo' };
+  if (data.price_delta !== undefined && data.price_delta < 0)
+    return { error: 'El precio no puede ser negativo' };
+  if (data.name !== undefined && !data.name.trim())
+    return { error: 'El nombre no puede estar vacío' };
   try {
     const supabase = createAdminClient();
     const { error } = await supabase
       .from('modifiers')
-      .update({ price_delta: priceDelta, updated_at: new Date().toISOString() })
+      .update({ ...data, updated_at: new Date().toISOString() })
       .eq('id', modifierId);
     if (error) return { error: error.message };
     return { error: null };
   } catch {
-    return { error: 'Error al actualizar precio del extra' };
+    return { error: 'Error al actualizar extra' };
   }
+}
+
+export async function deleteModifier(
+  modifierId: string,
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('modifiers')
+      .delete()
+      .eq('id', modifierId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al eliminar extra' };
+  }
+}
+
+/** @deprecated use updateModifier */
+export async function updateModifierPrice(
+  modifierId: string,
+  priceDelta: number,
+): Promise<{ error: string | null }> {
+  return updateModifier(modifierId, { price_delta: priceDelta });
 }
 
 export async function updateProductPrice(
