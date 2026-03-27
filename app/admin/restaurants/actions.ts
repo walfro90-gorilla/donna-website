@@ -82,6 +82,24 @@ export async function updateRestaurantSchedule(
   }
 }
 
+export async function updateModifierPrice(
+  modifierId: string,
+  priceDelta: number,
+): Promise<{ error: string | null }> {
+  if (priceDelta < 0) return { error: 'El precio extra no puede ser negativo' };
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('modifiers')
+      .update({ price_delta: priceDelta, updated_at: new Date().toISOString() })
+      .eq('id', modifierId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al actualizar precio del extra' };
+  }
+}
+
 export async function updateProductPrice(
   productId: string,
   price: number,
