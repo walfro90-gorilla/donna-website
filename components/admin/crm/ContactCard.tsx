@@ -5,8 +5,9 @@ import {
   Phone, Clock, User, CheckCircle, UserX, ShoppingBag,
   Store, Truck, Star, MapPin, ExternalLink, Instagram,
   Facebook, Bike, Car, AlertCircle, ChevronRight,
-  Package, DollarSign, CheckSquare, Wifi, WifiOff,
+  Package, DollarSign, CheckSquare, Wifi, WifiOff, Zap,
 } from 'lucide-react';
+import RestaurantGodPanel from './RestaurantGodPanel';
 import type { WhatsAppConversation } from '@/lib/hooks/useWhatsappConversations';
 import { supabase } from '@/lib/supabase/client';
 
@@ -28,6 +29,7 @@ interface LinkedUser {
 }
 
 interface RestaurantProfile {
+  id: string;
   name: string;
   logo_url: string | null;
   cover_image_url: string | null;
@@ -145,11 +147,12 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 function RestaurantPanel({ userId, linkedUser }: { userId: string; linkedUser: LinkedUser }) {
   const [data, setData] = useState<RestaurantProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [godPanelOpen, setGodPanelOpen] = useState(false);
 
   useEffect(() => {
     supabase
       .from('restaurants')
-      .select(`name, logo_url, cover_image_url, status, online, cuisine_type,
+      .select(`id, name, logo_url, cover_image_url, status, online, cuisine_type,
                delivery_fee, estimated_delivery_time_minutes, average_rating, total_reviews,
                instagram_url, facebook_url, onboarding_completed,
                business_hours, business_hours_enabled, min_order_amount, address`)
@@ -285,15 +288,22 @@ function RestaurantPanel({ userId, linkedUser }: { userId: string; linkedUser: L
         </div>
       )}
 
-      {/* Admin CTA */}
-      <a
-        href={`/admin/restaurants`}
-        className="w-full py-2 px-3 border border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-400 rounded-lg text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center justify-center gap-2"
+      {/* God Mode CTA */}
+      <button
+        onClick={() => setGodPanelOpen(true)}
+        className="w-full py-2 px-3 bg-gradient-to-r from-[#e4007c] to-purple-600 text-white rounded-lg text-sm font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#e4007c]/20"
       >
-        <Store className="w-4 h-4" />
-        Ver restaurante
-        <ChevronRight className="w-3.5 h-3.5" />
-      </a>
+        <Zap className="w-4 h-4" />
+        God Mode — Control total
+      </button>
+
+      {/* God Panel slide-over */}
+      {godPanelOpen && data?.id && (
+        <RestaurantGodPanel
+          restaurantId={data.id}
+          onClose={() => setGodPanelOpen(false)}
+        />
+      )}
     </div>
   );
 }

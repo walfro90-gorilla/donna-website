@@ -82,6 +82,23 @@ export async function updateRestaurantSchedule(
   }
 }
 
+export async function toggleProductAvailability(
+  productId: string,
+  available: boolean,
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('products')
+      .update({ is_available: available, updated_at: new Date().toISOString() })
+      .eq('id', productId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al actualizar disponibilidad' };
+  }
+}
+
 export async function updateRestaurantInfo(
   restaurantId: string,
   data: {
