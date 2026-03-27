@@ -19,6 +19,7 @@ import {
     X,
     PanelLeft,
     PanelRight,
+    FlaskConical,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import NotificationsPanel from './NotificationsPanel';
@@ -34,6 +35,7 @@ const navigation = [
     { name: 'Zonas de Cobertura', href: '/admin/coverage-zones', icon: MapPin },
     { name: 'WhatsApp CRM', href: '/admin/crm', icon: MessageCircle },
     { name: 'Configuración', href: '/admin/settings', icon: Settings },
+    { name: 'Bulk Actions', href: '/admin/bulk-actions', icon: FlaskConical },
 ];
 
 // Los 4 tabs más usados en el bottom bar
