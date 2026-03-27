@@ -30,7 +30,7 @@ import {
     ChevronUp,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -56,6 +56,9 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [products, setProducts] = useState<any[]>([]);
     const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
     const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+    const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+    const [editingPriceValue, setEditingPriceValue] = useState<string>('');
+    const [savingPriceId, setSavingPriceId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchRestaurantDetails();
@@ -172,6 +175,28 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
             next.has(productId) ? next.delete(productId) : next.add(productId);
             return next;
         });
+    };
+
+    const startEditingPrice = (product: any) => {
+        setEditingPriceId(product.id);
+        setEditingPriceValue(String(Number(product.price)));
+    };
+
+    const cancelEditingPrice = () => {
+        setEditingPriceId(null);
+        setEditingPriceValue('');
+    };
+
+    const savePrice = async (productId: string) => {
+        const newPrice = parseFloat(editingPriceValue);
+        if (isNaN(newPrice) || newPrice < 0) return;
+        setSavingPriceId(productId);
+        const { error } = await updateProductPrice(productId, newPrice);
+        setSavingPriceId(null);
+        if (!error) {
+            setProducts(prev => prev.map(p => p.id === productId ? { ...p, price: newPrice } : p));
+            setEditingPriceId(null);
+        }
     };
 
     const commissionRate = (restaurant?.commission_bps ?? 1500) / 10000;
@@ -494,10 +519,56 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                     </div>
                                                 </div>
 
-                                                {/* Cocina price */}
+                                                {/* Cocina price — editable */}
                                                 <div className="text-right">
-                                                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{fmtMXN(Number(product.price))}</p>
-                                                    <p className="text-xs text-gray-400">cocina</p>
+                                                    {editingPriceId === product.id ? (
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-xs text-gray-400">$</span>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.50"
+                                                                    value={editingPriceValue}
+                                                                    onChange={e => setEditingPriceValue(e.target.value)}
+                                                                    onKeyDown={e => {
+                                                                        if (e.key === 'Enter') savePrice(product.id);
+                                                                        if (e.key === 'Escape') cancelEditingPrice();
+                                                                    }}
+                                                                    autoFocus
+                                                                    className="w-20 text-right text-sm font-semibold border border-[#e4007c] rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                                                                />
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => savePrice(product.id)}
+                                                                    disabled={savingPriceId === product.id}
+                                                                    className="text-xs px-2 py-0.5 bg-[#e4007c] text-white rounded-md hover:bg-[#c8006e] disabled:opacity-50"
+                                                                >
+                                                                    {savingPriceId === product.id ? '...' : '✓'}
+                                                                </button>
+                                                                <button
+                                                                    onClick={cancelEditingPrice}
+                                                                    className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-300"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => startEditingPrice(product)}
+                                                            className="group text-right"
+                                                            title="Clic para editar precio"
+                                                        >
+                                                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-[#e4007c] transition-colors">
+                                                                {fmtMXN(Number(product.price))}
+                                                            </p>
+                                                            <p className="text-xs text-gray-400 group-hover:text-[#e4007c]/60 transition-colors">
+                                                                cocina ✎
+                                                            </p>
+                                                        </button>
+                                                    )}
                                                 </div>
 
                                                 {/* Platform price */}

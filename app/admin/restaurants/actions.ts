@@ -82,6 +82,24 @@ export async function updateRestaurantSchedule(
   }
 }
 
+export async function updateProductPrice(
+  productId: string,
+  price: number,
+): Promise<{ error: string | null }> {
+  if (price < 0) return { error: 'El precio no puede ser negativo' };
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('products')
+      .update({ price, updated_at: new Date().toISOString() })
+      .eq('id', productId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al actualizar precio' };
+  }
+}
+
 export async function toggleProductAvailability(
   productId: string,
   available: boolean,
