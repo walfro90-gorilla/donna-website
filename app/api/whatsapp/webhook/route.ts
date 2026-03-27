@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
         },
         { onConflict: 'phone', ignoreDuplicates: false }
       )
-      .select('id')
+      .select('id, user_id')
       .single();
 
     if (contactError || !contact) {
@@ -164,6 +164,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ autoRespond: true }, { status: 500 });
     }
     console.log('[webhook] contact id:', contact.id, '| phone:', normalizedPhone);
+
+    // ── 4b. Auto-link to platform user if not yet linked ──────
+    // Only run if the contact doesn't already have a linked user
+    if (!contact.user_id) {
+      // Try exact phone match and +prefix variant (handles "+52..." stored phones)
+      const { data: linkedUserRows } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .or(`phone.eq.${normalizedPhone},phone.eq.+${normalizedPhone}`)
+        .order('role')   // 'admin' < 'client' < 'delivery_agent' < 'restaurant' alphabetically
+        .limit(1);
+
+      const linkedUserId = linkedUserRows?.[0]?.id ?? null;
+      if (linkedUserId) {
+        await supabaseAdmin
+          .from('whatsapp_contacts')
+          .update({ user_id: linkedUserId })
+          .eq('id', contact.id);
+        console.log('[webhook] auto-linked contact to user:', linkedUserId);
+      }
+    }
 
     // ── 5. Get or create conversation (race-condition-safe) ───
     const messagePreview = payload.hasMedia

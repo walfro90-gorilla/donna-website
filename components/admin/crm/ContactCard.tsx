@@ -35,19 +35,39 @@ export default function ContactCard({ conversation, onCreateOrder }: ContactCard
   const [linkedUser, setLinkedUser] = useState<LinkedUser | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
 
-  // Fetch linked user if user_id is set on the WA contact
+  // Fetch linked user: first by user_id (explicit link), then by phone (fallback)
   useEffect(() => {
-    if (!contact?.user_id) { setUserLoaded(true); return; }
-    supabase
-      .from('users')
-      .select('id, name, email, phone')
-      .eq('id', contact.user_id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setLinkedUser(data as LinkedUser | null);
-        setUserLoaded(true);
-      });
-  }, [contact?.user_id]);
+    if (!contact) { setUserLoaded(true); return; }
+
+    if (contact.user_id) {
+      // Fast path: linked by user_id
+      supabase
+        .from('users')
+        .select('id, name, email, phone')
+        .eq('id', contact.user_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          setLinkedUser(data as LinkedUser | null);
+          setUserLoaded(true);
+        });
+    } else if (contact.phone) {
+      // Fallback: try to find user by normalized phone (handles "+52..." prefix)
+      const phone = contact.phone;
+      supabase
+        .from('users')
+        .select('id, name, email, phone')
+        .or(`phone.eq.${phone},phone.eq.+${phone}`)
+        .order('role')  // admin < client < delivery_agent < restaurant
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          setLinkedUser(data as LinkedUser | null);
+          setUserLoaded(true);
+        });
+    } else {
+      setUserLoaded(true);
+    }
+  }, [contact?.user_id, contact?.phone]);
 
   return (
     <div className="p-4 border border-border rounded-xl bg-card space-y-3">
