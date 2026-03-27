@@ -264,7 +264,11 @@ export default function OrderDetailPage({ params }: OrderDetailProps) {
             <div className="px-5 pb-4 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700 pt-4">
               <CreditCard className="h-4 w-4 text-gray-400" />
               <span className="text-xs text-gray-500 dark:text-gray-400">Pago:</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{order.payment_method || '—'}</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {order.payment_method === 'cash' ? 'Efectivo'
+                  : order.payment_method === 'spei' ? 'SPEI / Transferencia'
+                  : order.payment_method || '—'}
+              </span>
               <span className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${order.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
                 {order.payment_status || 'pending'}
               </span>

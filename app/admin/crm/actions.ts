@@ -12,11 +12,20 @@ export interface CrmUser {
   phone: string | null;
 }
 
+export interface OrderItemModifier {
+  modifierId: string;
+  modifierGroupId: string;
+  name: string;
+  groupName: string;
+  priceDelta: number;
+}
+
 export interface OrderItem {
   productId: string;
   name: string;
   quantity: number;
-  unitPrice: number;
+  unitPrice: number; // base price + modifier deltas
+  modifiers?: OrderItemModifier[];
 }
 
 // ── 1. Search user by normalized phone ──────────────────────────────────────
@@ -151,7 +160,7 @@ export async function createManualOrder(params: {
   restaurantId: string;
   items: OrderItem[];
   deliveryAddress: string;
-  paymentMethod: 'cash' | 'card';
+  paymentMethod: 'cash' | 'spei';
   notes?: string;
   adminId: string;
 }): Promise<{ orderId: string | null; error: string | null }> {
@@ -200,18 +209,37 @@ export async function createManualOrder(params: {
 
     const orderId = order.id;
 
-    // 3. Insert order items
-    const orderItems = params.items.map((item) => ({
-      order_id: orderId,
-      product_id: item.productId,
-      quantity: item.quantity,
-      unit_price: item.unitPrice,
-      price_at_time_of_order: item.quantity * item.unitPrice,
-    }));
+    // 3. Insert order items + modifiers (one-by-one to capture IDs for modifier linking)
+    for (const item of params.items) {
+      const { data: orderItem, error: itemError } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: orderId,
+          product_id: item.productId,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          price_at_time_of_order: item.quantity * item.unitPrice,
+        })
+        .select('id')
+        .single();
 
-    const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-    if (itemsError) {
-      console.error('[createManualOrder] items error:', itemsError);
+      if (itemError) {
+        console.error('[createManualOrder] item error:', itemError);
+        continue;
+      }
+
+      if (orderItem && item.modifiers?.length) {
+        await supabase.from('order_item_modifiers').insert(
+          item.modifiers.map((m) => ({
+            order_item_id: orderItem.id,
+            modifier_id: m.modifierId,
+            modifier_group_id: m.modifierGroupId,
+            name: m.name,
+            group_name: m.groupName,
+            price_delta: m.priceDelta,
+          })),
+        );
+      }
     }
 
     // 4. Insert status audit record
