@@ -385,6 +385,7 @@ export default function CreateOrderPanel({
   // ── Payment & submission ──
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'spei'>('cash');
+  const [mapZoom, setMapZoom] = useState(16);
   const [submitting, setSubmitting] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
@@ -662,6 +663,19 @@ export default function CreateOrderPanel({
       }
       setCreatedOrderId(orderId);
       toast.success('Orden creada correctamente');
+
+      // Send WA confirmation directly via Clawbot — bypasses bot_active state
+      const confirmMsg =
+        `✅ *¡Tu orden ha sido registrada!*\n\n` +
+        `🏪 *${selectedRestaurant.name}*\n` +
+        `💰 *Total: ${formatCurrency(totalAmount)}*\n` +
+        `📍 *Entrega:* ${address.slice(0, 80)}${address.length > 80 ? '...' : ''}\n\n` +
+        `Te avisaremos cuando el restaurante confirme tu pedido. 🙌`;
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: conversation.id, message: confirmMsg }),
+      }).catch((e) => console.warn('[CreateOrderPanel] WA confirm failed:', e));
     } finally {
       setSubmitting(false);
     }
@@ -679,10 +693,10 @@ export default function CreateOrderPanel({
     r.name.toLowerCase().includes(restaurantSearch.toLowerCase()),
   );
 
-  // Static map URL
+  // Static map URL — regenerates when mapZoom changes
   const mapUrl =
     addressLat && addressLon
-      ? `https://maps.googleapis.com/maps/api/staticmap?center=${addressLat},${addressLon}&zoom=16&size=800x300&scale=2&markers=color:red%7C${addressLat},${addressLon}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      ? `https://maps.googleapis.com/maps/api/staticmap?center=${addressLat},${addressLon}&zoom=${mapZoom}&size=800x320&scale=2&markers=color:red%7C${addressLat},${addressLon}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
       : null;
 
   // ── SUCCESS screen ──────────────────────────────────────────────────────────
@@ -1143,14 +1157,34 @@ export default function CreateOrderPanel({
                 </div>
               )}
 
-              {/* Mini-map */}
+              {/* Mini-map with zoom controls */}
               {mapUrl && (
-                <div className="rounded-xl overflow-hidden border border-border">
+                <div className="rounded-xl overflow-hidden border border-border relative">
                   <img
                     src={mapUrl}
                     alt="Mapa de entrega"
-                    className="w-full h-36 object-cover"
+                    className="w-full h-40 object-cover"
                   />
+                  {/* Zoom +/- */}
+                  <div className="absolute bottom-2 right-2 flex flex-col gap-0.5">
+                    <button
+                      onClick={() => setMapZoom((z) => Math.min(z + 1, 20))}
+                      className="w-7 h-7 rounded bg-white/95 shadow text-gray-800 font-bold text-base flex items-center justify-center hover:bg-white transition-colors leading-none select-none"
+                    >+</button>
+                    <button
+                      onClick={() => setMapZoom((z) => Math.max(z - 1, 10))}
+                      className="w-7 h-7 rounded bg-white/95 shadow text-gray-800 font-bold text-base flex items-center justify-center hover:bg-white transition-colors leading-none select-none"
+                    >−</button>
+                  </div>
+                  {/* Open in Google Maps */}
+                  <a
+                    href={`https://maps.google.com/?q=${addressLat},${addressLon}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-2 left-2 text-xs bg-white/95 shadow rounded px-2 py-1 text-blue-600 hover:bg-white transition-colors font-medium"
+                  >
+                    Abrir ↗
+                  </a>
                 </div>
               )}
 
@@ -1188,6 +1222,11 @@ export default function CreateOrderPanel({
                   <p className="text-xs text-muted-foreground truncate">
                     {linkedUser?.phone || linkedUser?.email}
                   </p>
+                  {contactPhone && (
+                    <p className="text-xs text-green-600 dark:text-green-400 truncate mt-0.5">
+                      WA: +{contactPhone}
+                    </p>
+                  )}
                 </div>
                 <div className="bg-muted/40 rounded-xl p-3 border border-border">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Restaurante</p>
