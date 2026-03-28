@@ -35,7 +35,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage, createModifier, createModifierGroup, deleteModifierGroup, updateModifierGroup } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage, createModifier, createModifierGroup, deleteModifierGroup, updateModifierGroup, createProduct, deleteProduct } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -335,6 +335,131 @@ function AddGroupCard({ productId, onAdded, onCancel }: {
     );
 }
 
+const PRODUCT_TYPES = [
+    { value: 'principal', label: 'Principal' },
+    { value: 'bebida',    label: 'Bebida' },
+    { value: 'postre',    label: 'Postre' },
+    { value: 'entrada',   label: 'Entrada' },
+    { value: 'combo',     label: 'Combo' },
+] as const;
+
+// ─── Sub-component: create product form ───────────────────────────────────────
+function CreateProductForm({ restaurantId, commissionRate, onCreated, onCancel }: {
+    restaurantId: string;
+    commissionRate: number;
+    onCreated: (product: any) => void;
+    onCancel: () => void;
+}) {
+    const [name, setName] = useState('');
+    const [desc, setDesc] = useState('');
+    const [cocinaPrice, setCocinaPrice] = useState('');
+    const [type, setType] = useState<'principal' | 'bebida' | 'postre' | 'entrada' | 'combo'>('principal');
+    const [saving, setSaving] = useState(false);
+    const [err, setErr] = useState('');
+
+    const platformPreview = cocinaPrice && !isNaN(parseFloat(cocinaPrice))
+        ? Math.round(parseFloat(cocinaPrice) * (1 + commissionRate) * 100) / 100
+        : null;
+
+    const save = async () => {
+        if (!name.trim()) { setErr('El nombre es requerido'); return; }
+        const cocina = parseFloat(cocinaPrice);
+        if (isNaN(cocina) || cocina <= 0) { setErr('Precio inválido'); return; }
+        const platformPrice = Math.round(cocina * (1 + commissionRate) * 100) / 100;
+        setSaving(true);
+        const { error, id } = await createProduct(restaurantId, {
+            name: name.trim(),
+            description: desc.trim() || undefined,
+            price: platformPrice,
+            type,
+        });
+        setSaving(false);
+        if (error) { setErr(error); return; }
+        onCreated({
+            id,
+            name: name.trim(),
+            description: desc.trim() || null,
+            price: platformPrice,
+            type,
+            is_available: true,
+            image_url: null,
+            modifier_groups: [],
+        });
+    };
+
+    return (
+        <div className="mx-4 sm:mx-6 mb-3 rounded-xl border border-[#e4007c]/40 bg-[#e4007c]/5 p-4 space-y-3">
+            <p className="text-xs font-bold text-[#e4007c] uppercase tracking-wide">Nuevo producto</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Nombre *</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={e => { setName(e.target.value); setErr(''); }}
+                        autoFocus
+                        placeholder="ej. Hamburguesa Especial"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                    />
+                </div>
+                <div className="sm:col-span-2">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Descripción</label>
+                    <textarea
+                        value={desc}
+                        onChange={e => setDesc(e.target.value)}
+                        rows={2}
+                        placeholder="Ingredientes, presentación…"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#e4007c]/20 resize-none"
+                    />
+                </div>
+                <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Precio cocina ($) *</label>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.50"
+                        value={cocinaPrice}
+                        onChange={e => { setCocinaPrice(e.target.value); setErr(''); }}
+                        placeholder="0.00"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                    />
+                    {platformPreview !== null && (
+                        <p className="text-xs text-[#e4007c] mt-0.5">
+                            Plataforma: ${platformPreview.toFixed(2)}
+                        </p>
+                    )}
+                </div>
+                <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Tipo</label>
+                    <select
+                        value={type}
+                        onChange={e => setType(e.target.value as typeof type)}
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                    >
+                        {PRODUCT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                </div>
+            </div>
+            {err && <p className="text-xs text-red-500">{err}</p>}
+            <div className="flex gap-2 pt-1">
+                <button
+                    onClick={save}
+                    disabled={saving || !name.trim() || !cocinaPrice}
+                    className="flex-1 py-2 bg-[#e4007c] text-white text-sm font-bold rounded-xl hover:bg-[#c8006e] disabled:opacity-50 transition-colors"
+                >
+                    {saving ? 'Creando…' : '+ Crear producto'}
+                </button>
+                <button
+                    onClick={onCancel}
+                    className="px-4 py-2 text-sm text-gray-500 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function RestaurantDetailPage({ params }: RestaurantDetailProps) {
     const { id } = use(params);
     const router = useRouter();
@@ -359,6 +484,9 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [editingInfoDesc, setEditingInfoDesc] = useState('');
     const [savingInfoId, setSavingInfoId] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState<string | null>(null); // field name being uploaded
+    const [showCreateProduct, setShowCreateProduct] = useState(false);
+    const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+    const [confirmDeleteProductId, setConfirmDeleteProductId] = useState<string | null>(null);
     // key = groupId, value = product shown add-modifier form
     const [addingModifierToGroup, setAddingModifierToGroup] = useState<string | null>(null);
     // key = productId shown add-group form
@@ -652,6 +780,21 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                 }
             ));
             setEditingGroupId(null);
+        }
+    };
+
+    const handleProductCreated = (product: any) => {
+        setProducts(prev => [product, ...prev]);
+        setShowCreateProduct(false);
+    };
+
+    const handleProductDeleted = async (productId: string) => {
+        setDeletingProductId(productId);
+        const { error } = await deleteProduct(productId);
+        setDeletingProductId(null);
+        setConfirmDeleteProductId(null);
+        if (!error) {
+            setProducts(prev => prev.filter(p => p.id !== productId));
         }
     };
 
@@ -1138,6 +1281,13 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                         <Percent className="h-3 w-3 text-[#e4007c]" />
                                         Comisión: <span className="font-bold text-[#e4007c] ml-0.5">{((restaurant?.commission_bps ?? 1500) / 100).toFixed(1)}%</span>
                                     </div>
+                                    <button
+                                        onClick={() => setShowCreateProduct(v => !v)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all shadow-sm ${showCreateProduct ? 'bg-[#e4007c] border-[#e4007c] text-white' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-[#e4007c] hover:text-[#e4007c]'}`}
+                                    >
+                                        <Plus className="h-3.5 w-3.5" />
+                                        Nuevo producto
+                                    </button>
                                     {products.length > 0 && (
                                         <button
                                             onClick={exportMenuForPartner}
@@ -1148,21 +1298,39 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                             Exportar para socio
                                         </button>
                                     )}
+
                                 </div>
                             </div>
                             {/* Column headers */}
-                            <div className="mt-3 grid grid-cols-[1fr_100px_120px_52px] gap-2 px-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                            <div className="mt-3 grid grid-cols-[1fr_100px_120px_52px_32px] gap-2 px-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                                 <span>Producto</span>
                                 <span className="text-right">Precio cocina</span>
                                 <span className="text-right text-[#e4007c]">Precio plataforma</span>
                                 <span className="text-center">Activo</span>
+                                <span />
                             </div>
                         </div>
 
-                        {products.length === 0 ? (
+                        {showCreateProduct && (
+                            <CreateProductForm
+                                restaurantId={id}
+                                commissionRate={commissionRate}
+                                onCreated={handleProductCreated}
+                                onCancel={() => setShowCreateProduct(false)}
+                            />
+                        )}
+
+                        {products.length === 0 && !showCreateProduct ? (
                             <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
                                 <Package className="h-10 w-10 mb-3 opacity-40" />
                                 <p className="text-sm">Sin productos registrados</p>
+                                <button
+                                    onClick={() => setShowCreateProduct(true)}
+                                    className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-[#e4007c] text-white text-sm font-semibold rounded-xl hover:bg-[#c8006e] transition-colors"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Agregar primer producto
+                                </button>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -1176,7 +1344,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
 
                                     return (
                                         <div key={product.id} className={`transition-colors ${product.is_available ? '' : 'opacity-50 bg-gray-50 dark:bg-gray-900/20'}`}>
-                                            <div className="grid grid-cols-[1fr_100px_120px_52px] gap-2 items-center px-4 sm:px-6 py-3">
+                                            <div className="grid grid-cols-[1fr_100px_120px_52px_32px] gap-2 items-center px-4 sm:px-6 py-3">
                                                 {/* Name + image */}
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     {product.image_url ? (
@@ -1339,6 +1507,35 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                             <ToggleLeft className="w-7 h-7 text-gray-400" />
                                                         )}
                                                     </button>
+                                                </div>
+
+                                                {/* Delete product */}
+                                                <div className="flex items-center justify-center">
+                                                    {confirmDeleteProductId === product.id ? (
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <button
+                                                                onClick={() => handleProductDeleted(product.id)}
+                                                                disabled={deletingProductId === product.id}
+                                                                className="text-xs px-1.5 py-0.5 bg-red-500 text-white rounded font-bold hover:bg-red-600 disabled:opacity-50"
+                                                            >
+                                                                {deletingProductId === product.id ? '…' : 'Sí'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setConfirmDeleteProductId(null)}
+                                                                className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300"
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setConfirmDeleteProductId(product.id)}
+                                                            title="Eliminar producto"
+                                                            className="opacity-30 hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 p-1 rounded"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
 

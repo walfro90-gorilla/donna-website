@@ -181,6 +181,54 @@ export async function toggleProductAvailability(
   }
 }
 
+export async function createProduct(
+  restaurantId: string,
+  data: {
+    name: string;
+    description?: string;
+    price: number; // platform price
+    type: 'principal' | 'bebida' | 'postre' | 'entrada' | 'combo';
+  },
+): Promise<{ error: string | null; id?: string }> {
+  if (!data.name.trim()) return { error: 'El nombre es requerido' };
+  if (data.price <= 0) return { error: 'El precio debe ser mayor a 0' };
+  try {
+    const supabase = createAdminClient();
+    const { error, data: row } = await supabase
+      .from('products')
+      .insert({
+        restaurant_id: restaurantId,
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        price: data.price,
+        type: data.type,
+        is_available: true,
+      })
+      .select('id')
+      .single();
+    if (error) return { error: error.message };
+    return { error: null, id: row.id };
+  } catch {
+    return { error: 'Error al crear producto' };
+  }
+}
+
+export async function deleteProduct(
+  productId: string,
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al eliminar producto' };
+  }
+}
+
 export async function createModifier(
   groupId: string,
   data: { name: string; price_delta: number },
