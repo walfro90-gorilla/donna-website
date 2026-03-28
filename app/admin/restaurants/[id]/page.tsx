@@ -272,7 +272,7 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
     productId: string;
     restaurantGroups: any[];
     currentGroupIds: Set<string>;
-    onAdded: (productId: string, group: { id: string; name: string; selection_type: string; modifiers: any[] }) => void;
+    onAdded: (productId: string, group: { id: string; name: string; selection_type: string; min_selections: number; max_selections: number; modifiers: any[] }) => void;
     onAssigned: (productId: string, group: any) => void;
     onCancel: () => void;
 }) {
@@ -862,7 +862,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
         setAddingModifierToGroup(null);
     };
 
-    const handleGroupAdded = (productId: string, group: { id: string; name: string; selection_type: string; modifiers: any[] }) => {
+    const handleGroupAdded = (productId: string, group: { id: string; name: string; selection_type: string; min_selections: number; max_selections: number; modifiers: any[] }) => {
         setProducts(prev => prev.map(p =>
             p.id !== productId ? p : { ...p, modifier_groups: [...p.modifier_groups, group] }
         ));
