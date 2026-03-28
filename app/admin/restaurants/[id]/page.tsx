@@ -379,7 +379,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                 .getPublicUrl(data.path);
             const { error } = await updateRestaurantImage(restaurant.id, field, publicUrl);
             if (error) throw new Error(error);
-            setRestaurant(prev => prev ? { ...prev, [field]: publicUrl } : prev);
+            setRestaurant((prev: any) => prev ? { ...prev, [field]: publicUrl } : prev);
         } catch (e) {
             console.error(e);
             alert('Error al subir imagen');
