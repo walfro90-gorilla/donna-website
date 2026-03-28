@@ -279,6 +279,8 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
     const [tab, setTab] = useState<'new' | 'library'>('new');
     const [name, setName] = useState('');
     const [type, setType] = useState<'single' | 'multiple'>('multiple');
+    const [minSel, setMinSel] = useState(0);
+    const [maxSel, setMaxSel] = useState(1);
     const [saving, setSaving] = useState(false);
     const [assigningId, setAssigningId] = useState<string | null>(null);
     const [err, setErr] = useState('');
@@ -287,11 +289,22 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
 
     const saveNew = async () => {
         if (!name.trim()) { setErr('Escribe un nombre para el grupo'); return; }
+        if (type === 'multiple' && maxSel < 1) { setErr('Máximo debe ser al menos 1'); return; }
         setSaving(true);
-        const { error, id } = await createModifierGroup(productId, { name: name.trim(), selection_type: type });
+        const { error, id } = await createModifierGroup(productId, {
+            name: name.trim(),
+            selection_type: type,
+            min_selections: type === 'multiple' ? minSel : 0,
+            max_selections: type === 'multiple' ? maxSel : 1,
+        });
         setSaving(false);
         if (error) { setErr(error); return; }
-        onAdded(productId, { id: id!, name: name.trim(), selection_type: type, modifiers: [] });
+        onAdded(productId, {
+            id: id!, name: name.trim(), selection_type: type,
+            min_selections: type === 'multiple' ? minSel : 0,
+            max_selections: type === 'multiple' ? maxSel : 1,
+            modifiers: [],
+        });
     };
 
     const assign = async (group: any) => {
@@ -339,7 +352,11 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
                             <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
                             <select
                                 value={type}
-                                onChange={e => setType(e.target.value as 'single' | 'multiple')}
+                                onChange={e => {
+                                    const v = e.target.value as 'single' | 'multiple';
+                                    setType(v);
+                                    if (v === 'single') { setMinSel(0); setMaxSel(1); }
+                                }}
                                 className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
                             >
                                 <option value="multiple">Múltiple</option>
@@ -347,6 +364,26 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
                             </select>
                         </div>
                     </div>
+                    {type === 'multiple' && (
+                        <div className="flex gap-2">
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-400 mb-0.5 block">Mínimo a elegir</label>
+                                <input
+                                    type="number" min="0" value={minSel}
+                                    onChange={e => setMinSel(Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-400 mb-0.5 block">Máximo a elegir</label>
+                                <input
+                                    type="number" min="1" value={maxSel}
+                                    onChange={e => setMaxSel(Math.max(1, parseInt(e.target.value) || 1))}
+                                    className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                                />
+                            </div>
+                        </div>
+                    )}
                     {err && <p className="text-xs text-red-500">{err}</p>}
                     <div className="flex gap-2">
                         <button onClick={saveNew} disabled={saving || !name.trim()}
@@ -563,6 +600,8 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
     const [editingGroupName, setEditingGroupName] = useState('');
     const [editingGroupType, setEditingGroupType] = useState<'single' | 'multiple'>('multiple');
+    const [editingGroupMin, setEditingGroupMin] = useState(0);
+    const [editingGroupMax, setEditingGroupMax] = useState(1);
     const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
@@ -630,7 +669,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                     product_modifier_groups(
                         sort_order,
                         modifier_group_id,
-                        modifier_groups(id, name, selection_type, modifiers(id, name, price_delta))
+                        modifier_groups(id, name, selection_type, min_selections, max_selections, modifiers(id, name, price_delta))
                     )
                 `)
                 .eq('restaurant_id', id)
@@ -649,7 +688,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
             // Fetch all modifier groups for this restaurant (library)
             const { data: groupsData } = await supabase
                 .from('modifier_groups')
-                .select('id, name, selection_type, modifiers(id, name, price_delta)')
+                .select('id, name, selection_type, min_selections, max_selections, modifiers(id, name, price_delta)')
                 .eq('restaurant_id', id)
                 .order('name');
 
@@ -872,10 +911,16 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const handleGroupSaved = async (groupId: string, productId: string) => {
         if (!editingGroupName.trim()) return;
         setSavingGroupId(groupId);
-        const { error } = await updateModifierGroup(groupId, { name: editingGroupName.trim(), selection_type: editingGroupType });
+        const updatedData = {
+            name: editingGroupName.trim(),
+            selection_type: editingGroupType,
+            min_selections: editingGroupType === 'multiple' ? editingGroupMin : 0,
+            max_selections: editingGroupType === 'multiple' ? editingGroupMax : 1,
+        };
+        const { error } = await updateModifierGroup(groupId, updatedData);
         setSavingGroupId(null);
         if (!error) {
-            const updatedGroup = { name: editingGroupName.trim(), selection_type: editingGroupType };
+            const updatedGroup = updatedData;
             setProducts(prev => prev.map(p =>
                 p.id !== productId ? p : {
                     ...p,
@@ -1654,48 +1699,78 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                         <div key={group.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
                                                             {/* Group header */}
                                                             {editingGroupId === group.id ? (
-                                                                <div className="flex gap-2 mb-2">
-                                                                    <input
-                                                                        type="text"
-                                                                        value={editingGroupName}
-                                                                        onChange={e => setEditingGroupName(e.target.value)}
-                                                                        onKeyDown={e => { if (e.key === 'Escape') setEditingGroupId(null); }}
-                                                                        autoFocus
-                                                                        className="flex-1 text-xs font-bold border border-[#e4007c]/50 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
-                                                                    />
-                                                                    <select
-                                                                        value={editingGroupType}
-                                                                        onChange={e => setEditingGroupType(e.target.value as 'single' | 'multiple')}
-                                                                        className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-1.5 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none"
-                                                                    >
-                                                                        <option value="multiple">Múltiple</option>
-                                                                        <option value="single">Elige 1</option>
-                                                                    </select>
-                                                                    <button
-                                                                        onClick={() => handleGroupSaved(group.id, product.id)}
-                                                                        disabled={savingGroupId === group.id}
-                                                                        className="text-xs px-2 py-1 bg-[#e4007c] text-white rounded-lg hover:bg-[#c8006e] disabled:opacity-50"
-                                                                    >
-                                                                        {savingGroupId === group.id ? '…' : '✓'}
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => setEditingGroupId(null)}
-                                                                        className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-300"
-                                                                    >
-                                                                        ✕
-                                                                    </button>
+                                                                <div className="space-y-1.5 mb-2">
+                                                                    <div className="flex gap-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={editingGroupName}
+                                                                            onChange={e => setEditingGroupName(e.target.value)}
+                                                                            onKeyDown={e => { if (e.key === 'Escape') setEditingGroupId(null); }}
+                                                                            autoFocus
+                                                                            className="flex-1 text-xs font-bold border border-[#e4007c]/50 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
+                                                                        />
+                                                                        <select
+                                                                            value={editingGroupType}
+                                                                            onChange={e => {
+                                                                                const v = e.target.value as 'single' | 'multiple';
+                                                                                setEditingGroupType(v);
+                                                                                if (v === 'single') { setEditingGroupMin(0); setEditingGroupMax(1); }
+                                                                            }}
+                                                                            className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-1.5 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none"
+                                                                        >
+                                                                            <option value="multiple">Múltiple</option>
+                                                                            <option value="single">Elige 1</option>
+                                                                        </select>
+                                                                        <button
+                                                                            onClick={() => handleGroupSaved(group.id, product.id)}
+                                                                            disabled={savingGroupId === group.id}
+                                                                            className="text-xs px-2 py-1 bg-[#e4007c] text-white rounded-lg hover:bg-[#c8006e] disabled:opacity-50"
+                                                                        >
+                                                                            {savingGroupId === group.id ? '…' : '✓'}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setEditingGroupId(null)}
+                                                                            className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-300"
+                                                                        >
+                                                                            ✕
+                                                                        </button>
+                                                                    </div>
+                                                                    {editingGroupType === 'multiple' && (
+                                                                        <div className="flex gap-2">
+                                                                            <div className="flex-1">
+                                                                                <label className="text-xs text-gray-400 mb-0.5 block">Mín. opciones</label>
+                                                                                <input
+                                                                                    type="number" min="0" value={editingGroupMin}
+                                                                                    onChange={e => setEditingGroupMin(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                                    className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="flex-1">
+                                                                                <label className="text-xs text-gray-400 mb-0.5 block">Máx. opciones</label>
+                                                                                <input
+                                                                                    type="number" min="1" value={editingGroupMax}
+                                                                                    onChange={e => setEditingGroupMax(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                                    className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             ) : (
                                                                 <div className="flex items-center gap-2 mb-2 group/grp">
                                                                     <button
-                                                                        onClick={() => { setEditingGroupId(group.id); setEditingGroupName(group.name); setEditingGroupType(group.selection_type); }}
+                                                                        onClick={() => { setEditingGroupId(group.id); setEditingGroupName(group.name); setEditingGroupType(group.selection_type); setEditingGroupMin(group.min_selections ?? 0); setEditingGroupMax(group.max_selections ?? 1); }}
                                                                         className="flex items-center gap-1.5 hover:opacity-80"
                                                                     >
                                                                         <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{group.name}</span>
                                                                         <Pencil className="w-2.5 h-2.5 text-gray-400 opacity-0 group-hover/grp:opacity-60 transition-opacity" />
                                                                     </button>
                                                                     <span className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full">
-                                                                        {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'}
+                                                                        {group.selection_type === 'single'
+                                                                            ? 'Elige 1'
+                                                                            : group.max_selections >= 999 || !group.max_selections
+                                                                                ? `Múltiple${group.min_selections > 0 ? ` (mín. ${group.min_selections})` : ''}`
+                                                                                : `${group.min_selections ?? 0}–${group.max_selections} opciones`}
                                                                     </span>
                                                                     <div className="flex-1" />
                                                                     {/* Detach group from product */}

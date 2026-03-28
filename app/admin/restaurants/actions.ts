@@ -255,7 +255,7 @@ export async function createModifier(
  */
 export async function createModifierGroup(
   productId: string,
-  data: { name: string; selection_type: 'single' | 'multiple' },
+  data: { name: string; selection_type: 'single' | 'multiple'; min_selections?: number; max_selections?: number },
 ): Promise<{ error: string | null; id?: string }> {
   if (!data.name.trim()) return { error: 'El nombre no puede estar vacío' };
   try {
@@ -275,6 +275,8 @@ export async function createModifierGroup(
         restaurant_id: product.restaurant_id,
         name: data.name.trim(),
         selection_type: data.selection_type,
+        min_selections: data.min_selections ?? 0,
+        max_selections: data.max_selections ?? (data.selection_type === 'single' ? 1 : 999),
       })
       .select('id')
       .single();
@@ -353,7 +355,7 @@ export async function deleteModifierGroup(
 
 export async function updateModifierGroup(
   groupId: string,
-  data: { name?: string; selection_type?: 'single' | 'multiple' },
+  data: { name?: string; selection_type?: 'single' | 'multiple'; min_selections?: number; max_selections?: number },
 ): Promise<{ error: string | null }> {
   try {
     const supabase = createAdminClient();
