@@ -389,6 +389,220 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const commissionRate = (restaurant?.commission_bps ?? 1500) / 10000;
     const fmtMXN = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
 
+    const exportMenuForPartner = () => {
+        const rate = commissionRate;
+        const commissionPct = (rate * 100).toFixed(1);
+        const dateStr = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+        const fmt = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
+
+        const productRows = products.map((p: any) => {
+            const cocina = Number(p.price) / (1 + rate);
+            const plataforma = Number(p.price);
+            const available = p.is_available;
+
+            const modifierBlocks = p.modifier_groups?.map((g: any) => {
+                const modRows = g.modifiers?.map((m: any) => `
+                    <tr class="mod-row">
+                        <td class="mod-name">${m.name}</td>
+                        <td class="mod-price">${Number(m.price_delta) > 0 ? '+' + fmt(Number(m.price_delta)) : '<span class="included">Incluido</span>'}</td>
+                    </tr>`).join('') ?? '';
+                return `
+                <div class="modifier-group">
+                    <div class="group-label">${g.name} <span class="group-type">${g.selection_type === 'single' ? 'Elige 1' : 'Selección múltiple'}</span></div>
+                    <table class="mod-table"><tbody>${modRows}</tbody></table>
+                </div>`;
+            }).join('') ?? '';
+
+            return `
+            <div class="product-card ${available ? '' : 'unavailable'}">
+                <div class="product-header">
+                    <div class="product-info">
+                        <span class="product-name">${p.name}</span>
+                        <span class="product-type">${p.type}</span>
+                        ${available ? '' : '<span class="badge-unavailable">No disponible</span>'}
+                    </div>
+                    <div class="product-prices">
+                        <div class="price-block">
+                            <span class="price-label">Tu precio (cocina)</span>
+                            <span class="price-cocina">${fmt(cocina)}</span>
+                        </div>
+                        <div class="price-divider">→</div>
+                        <div class="price-block">
+                            <span class="price-label">Precio plataforma (cliente paga)</span>
+                            <span class="price-platform">${fmt(plataforma)}</span>
+                        </div>
+                    </div>
+                </div>
+                ${modifierBlocks ? `<div class="modifiers">${modifierBlocks}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        const availableCount = products.filter((p: any) => p.is_available).length;
+        const unavailableCount = products.length - availableCount;
+
+        const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revisión de menú — ${restaurant.name}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f9fa; color: #1a1a2e; }
+
+  .page { max-width: 860px; margin: 0 auto; background: white; min-height: 100vh; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #e4007c 0%, #8b00ff 100%); color: white; padding: 32px 40px; }
+  .header-top { display: flex; align-items: center; gap: 20px; margin-bottom: 16px; }
+  .logo { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; border: 3px solid rgba(255,255,255,0.3); }
+  .logo-placeholder { width: 64px; height: 64px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .header-title { flex: 1; }
+  .header-title h1 { font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+  .header-title p { font-size: 14px; opacity: 0.85; }
+  .header-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+  .meta-item { background: rgba(255,255,255,0.15); border-radius: 8px; padding: 8px 14px; text-align: center; }
+  .meta-item .val { font-size: 20px; font-weight: 800; display: block; }
+  .meta-item .lbl { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Notice */
+  .notice { background: #fff8e1; border-left: 4px solid #f59e0b; padding: 16px 24px; margin: 0; }
+  .notice p { font-size: 13px; color: #92400e; line-height: 1.6; }
+  .notice strong { color: #78350f; }
+
+  /* Products */
+  .products { padding: 24px 32px; }
+  .section-title { font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+
+  .product-card { border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; overflow: hidden; transition: all 0.2s; }
+  .product-card.unavailable { opacity: 0.55; border-style: dashed; }
+
+  .product-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; gap: 16px; background: #fafafa; }
+  .product-info { flex: 1; min-width: 0; }
+  .product-name { font-size: 15px; font-weight: 700; color: #111827; display: block; margin-bottom: 3px; }
+  .product-type { font-size: 11px; color: #9ca3af; text-transform: capitalize; background: #f3f4f6; padding: 2px 8px; border-radius: 20px; }
+  .badge-unavailable { font-size: 11px; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 2px 8px; border-radius: 20px; margin-left: 6px; font-weight: 600; }
+
+  .product-prices { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .price-block { text-align: center; }
+  .price-label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.3px; display: block; margin-bottom: 2px; }
+  .price-cocina { font-size: 18px; font-weight: 800; color: #111827; display: block; }
+  .price-platform { font-size: 18px; font-weight: 800; color: #e4007c; display: block; }
+  .price-divider { color: #d1d5db; font-size: 18px; font-weight: 300; }
+
+  /* Modifiers */
+  .modifiers { padding: 0 18px 14px; background: white; }
+  .modifier-group { margin-top: 10px; }
+  .group-label { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; display: flex; align-items: center; gap-6px; }
+  .group-type { font-size: 10px; font-weight: 500; color: white; background: #7c3aed; padding: 2px 7px; border-radius: 20px; margin-left: 8px; }
+  .mod-table { width: 100%; border-collapse: collapse; }
+  .mod-row td { padding: 5px 10px; font-size: 12px; border-bottom: 1px solid #f9fafb; }
+  .mod-name { color: #4b5563; }
+  .mod-price { text-align: right; font-weight: 600; color: #e4007c; width: 100px; }
+  .included { color: #9ca3af; font-weight: 500; }
+
+  /* Price legend */
+  .legend { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 20px; margin: 0 32px 24px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b7280; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-cocina { background: #111827; }
+  .dot-platform { background: #e4007c; }
+
+  /* Confirmation */
+  .confirmation { margin: 0 32px 40px; border: 2px dashed #d1d5db; border-radius: 12px; padding: 24px; background: #f9fafb; }
+  .confirmation h3 { font-size: 15px; font-weight: 700; color: #374151; margin-bottom: 12px; }
+  .confirmation p { font-size: 13px; color: #6b7280; margin-bottom: 16px; line-height: 1.6; }
+  .signature-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 20px; }
+  .sig-block { border-top: 1.5px solid #374151; padding-top: 8px; }
+  .sig-block p { font-size: 11px; color: #9ca3af; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 20px; border-top: 1px solid #f0f0f0; font-size: 11px; color: #9ca3af; }
+
+  @media print {
+    body { background: white; }
+    .page { box-shadow: none; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      ${restaurant.logo_url
+        ? `<img src="${restaurant.logo_url}" alt="logo" class="logo">`
+        : `<div class="logo-placeholder">🍽</div>`}
+      <div class="header-title">
+        <h1>${restaurant.name}</h1>
+        <p>Revisión de precios y menú · ${dateStr}</p>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item"><span class="val">${products.length}</span><span class="lbl">Productos</span></div>
+      <div class="meta-item"><span class="val">${availableCount}</span><span class="lbl">Disponibles</span></div>
+      ${unavailableCount > 0 ? `<div class="meta-item"><span class="val">${unavailableCount}</span><span class="lbl">No disponibles</span></div>` : ''}
+      <div class="meta-item"><span class="val">${commissionPct}%</span><span class="lbl">Comisión plataforma</span></div>
+    </div>
+  </div>
+
+  <!-- Notice -->
+  <div class="notice">
+    <p>🔎 <strong>Instrucciones para el socio:</strong> Por favor revisa cuidadosamente cada producto y sus precios.
+    La columna <strong>"Tu precio (cocina)"</strong> es el monto que recibirás por cada venta.
+    La columna <strong>"Precio plataforma"</strong> es lo que verá y pagará el cliente en la app.
+    Si algún precio es incorrecto, indícalo antes de confirmar.</p>
+  </div>
+
+  <!-- Legend -->
+  <div style="padding: 0 32px; margin-top: 20px;">
+    <div class="legend">
+      <div class="legend-item"><div class="dot dot-cocina"></div> <strong>Tu precio (cocina):</strong> lo que recibes tú</div>
+      <div class="legend-item"><div class="dot dot-platform"></div> <strong>Precio plataforma:</strong> precio cocina + ${commissionPct}% comisión = lo que paga el cliente</div>
+    </div>
+  </div>
+
+  <!-- Products -->
+  <div class="products">
+    <div class="section-title">📋 Lista de productos y extras</div>
+    ${productRows}
+  </div>
+
+  <!-- Confirmation -->
+  <div class="confirmation">
+    <h3>✅ Confirmación del socio</h3>
+    <p>
+      He revisado todos los productos, precios y extras listados en este documento y confirmo que la información es correcta.
+      Entiendo que el precio plataforma es el que verán los clientes en la aplicación Doña Repartos.
+    </p>
+    <div class="signature-row">
+      <div class="sig-block"><p>Firma del socio</p></div>
+      <div class="sig-block"><p>Nombre y puesto</p></div>
+      <div class="sig-block"><p>Fecha de confirmación</p></div>
+    </div>
+  </div>
+
+  <div class="footer">Generado por Doña Repartos · Sistema Administrativo · ${dateStr}</div>
+</div>
+
+<script>
+  // Auto-open print dialog
+  window.onload = function() {
+    setTimeout(function() { window.print(); }, 400);
+  };
+</script>
+</body>
+</html>`;
+
+        const win = window.open('', '_blank');
+        if (win) {
+            win.document.write(html);
+            win.document.close();
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -644,15 +858,27 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                     {/* ── Menú / Productos ── */}
                     <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
                         <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-[#e4007c]/10 via-[#e4007c]/5 to-transparent">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
                                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                     <Utensils className="h-5 w-5 text-[#e4007c]" />
                                     Menú del Restaurante
                                     <span className="text-xs font-normal text-gray-500 dark:text-gray-400">({products.length} productos)</span>
                                 </h3>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg">
-                                    <Percent className="h-3 w-3 text-[#e4007c]" />
-                                    Comisión: <span className="font-bold text-[#e4007c] ml-0.5">{((restaurant?.commission_bps ?? 1500) / 100).toFixed(1)}%</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg">
+                                        <Percent className="h-3 w-3 text-[#e4007c]" />
+                                        Comisión: <span className="font-bold text-[#e4007c] ml-0.5">{((restaurant?.commission_bps ?? 1500) / 100).toFixed(1)}%</span>
+                                    </div>
+                                    {products.length > 0 && (
+                                        <button
+                                            onClick={exportMenuForPartner}
+                                            title="Exportar menú para revisión del socio"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-[#e4007c] hover:text-[#e4007c] transition-all shadow-sm"
+                                        >
+                                            <FileText className="h-3.5 w-3.5" />
+                                            Exportar para socio
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             {/* Column headers */}
