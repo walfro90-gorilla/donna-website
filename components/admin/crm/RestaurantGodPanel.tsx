@@ -64,7 +64,7 @@ interface Product {
   image_url: string | null;
   is_available: boolean;
   type: string;
-  modifier_groups: { id: string }[];
+  product_modifier_groups: { modifier_group_id: string }[];
 }
 
 interface FinancialData {
@@ -446,7 +446,7 @@ function MenuTab({ restaurantId, commissionBps }: { restaurantId: string; commis
   useEffect(() => {
     supabase
       .from('products')
-      .select('id, name, description, price, image_url, is_available, type, modifier_groups(id)')
+      .select('id, name, description, price, image_url, is_available, type, product_modifier_groups(modifier_group_id)')
       .eq('restaurant_id', restaurantId)
       .order('type')
       .then(({ data }) => {
@@ -521,9 +521,9 @@ function MenuTab({ restaurantId, commissionBps }: { restaurantId: string; commis
                 <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground capitalize">{p.type}</span>
-                  {p.modifier_groups.length > 0 && (
+                  {p.product_modifier_groups.length > 0 && (
                     <span className="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full">
-                      +{p.modifier_groups.length} extras
+                      +{p.product_modifier_groups.length} extras
                     </span>
                   )}
                 </div>

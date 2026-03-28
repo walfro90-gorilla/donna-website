@@ -483,10 +483,9 @@ export default function CreateOrderPanel({
       if (prods.length > 0) {
         const ids = prods.map((p) => p.id);
         const { data: mgData } = await supabase
-          .from('modifier_groups')
+          .from('product_modifier_groups')
           .select('product_id')
-          .in('product_id', ids)
-          .eq('is_active', true);
+          .in('product_id', ids);
         const flags: Record<string, boolean> = {};
         for (const id of ids) flags[id] = false;
         for (const row of mgData ?? []) flags[(row as { product_id: string }).product_id] = true;
@@ -599,13 +598,14 @@ export default function CreateOrderPanel({
   async function handleOpenModifierModal(product: Product) {
     setLoadingModifiersFor(product.id);
     const { data } = await supabase
-      .from('modifier_groups')
-      .select('*, modifiers(*)')
+      .from('product_modifier_groups')
+      .select('modifier_groups!inner(*, modifiers(*))')
       .eq('product_id', product.id)
-      .eq('is_active', true)
+      .eq('modifier_groups.is_active', true)
       .order('sort_order');
+    const flatData = (data ?? []).map((row: any) => row.modifier_groups).filter(Boolean);
 
-    const groups: ModifierGroup[] = (data ?? []).map((g: unknown) => {
+    const groups: ModifierGroup[] = flatData.map((g: unknown) => {
       const group = g as {
         id: string; name: string; selection_type: 'single' | 'multiple';
         min_selections: number; max_selections: number; is_required: boolean;
