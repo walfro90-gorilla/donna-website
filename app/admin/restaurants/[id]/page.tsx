@@ -28,9 +28,11 @@ import {
     Package,
     ChevronDown,
     ChevronUp,
+    Pencil,
+    Check,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateModifier, deleteModifier } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -208,6 +210,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
     const [editingPriceValue, setEditingPriceValue] = useState<string>('');
     const [savingPriceId, setSavingPriceId] = useState<string | null>(null);
+    const [editingInfoId, setEditingInfoId] = useState<string | null>(null);
+    const [editingInfoName, setEditingInfoName] = useState('');
+    const [editingInfoDesc, setEditingInfoDesc] = useState('');
+    const [savingInfoId, setSavingInfoId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchRestaurantDetails();
@@ -324,6 +330,30 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
             next.has(productId) ? next.delete(productId) : next.add(productId);
             return next;
         });
+    };
+
+    const startEditingInfo = (product: any) => {
+        setEditingInfoId(product.id);
+        setEditingInfoName(product.name);
+        setEditingInfoDesc(product.description ?? '');
+    };
+
+    const saveInfo = async (productId: string) => {
+        if (!editingInfoName.trim()) return;
+        setSavingInfoId(productId);
+        const { error } = await updateProductInfo(productId, {
+            name: editingInfoName.trim(),
+            description: editingInfoDesc.trim() || undefined,
+        });
+        setSavingInfoId(null);
+        if (!error) {
+            setProducts(prev => prev.map(p =>
+                p.id === productId
+                    ? { ...p, name: editingInfoName.trim(), description: editingInfoDesc.trim() }
+                    : p
+            ));
+            setEditingInfoId(null);
+        }
     };
 
     const startEditingPrice = (product: any) => {
@@ -917,20 +947,73 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                             <Utensils className="w-4 h-4 text-gray-400" />
                                                         </div>
                                                     )}
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
-                                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                                            <span className="text-xs text-gray-400 capitalize">{product.type}</span>
-                                                            {hasModifiers && (
-                                                                <button
-                                                                    onClick={() => toggleExpanded(product.id)}
-                                                                    className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                                                                >
-                                                                    {product.modifier_groups.length} extras
-                                                                    {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
-                                                                </button>
-                                                            )}
-                                                        </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        {editingInfoId === product.id ? (
+                                                            <div className="flex flex-col gap-1.5">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingInfoName}
+                                                                    onChange={e => setEditingInfoName(e.target.value)}
+                                                                    onKeyDown={e => {
+                                                                        if (e.key === 'Enter') saveInfo(product.id);
+                                                                        if (e.key === 'Escape') setEditingInfoId(null);
+                                                                    }}
+                                                                    autoFocus
+                                                                    placeholder="Nombre del producto"
+                                                                    className="w-full text-sm font-semibold border border-[#e4007c] rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                                                                />
+                                                                <textarea
+                                                                    value={editingInfoDesc}
+                                                                    onChange={e => setEditingInfoDesc(e.target.value)}
+                                                                    placeholder="Descripción (opcional)"
+                                                                    rows={2}
+                                                                    className="w-full text-xs border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#e4007c]/20 resize-none"
+                                                                />
+                                                                <div className="flex gap-1.5">
+                                                                    <button
+                                                                        onClick={() => saveInfo(product.id)}
+                                                                        disabled={savingInfoId === product.id || !editingInfoName.trim()}
+                                                                        className="flex items-center gap-1 text-xs px-2.5 py-1 bg-[#e4007c] text-white rounded-lg hover:bg-[#c20069] disabled:opacity-50 transition-colors"
+                                                                    >
+                                                                        {savingInfoId === product.id ? <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" /> : <Check className="w-3 h-3" />}
+                                                                        Guardar
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setEditingInfoId(null)}
+                                                                        className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                                    >
+                                                                        Cancelar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="group/info">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
+                                                                    <button
+                                                                        onClick={() => startEditingInfo(product)}
+                                                                        className="opacity-0 group-hover/info:opacity-100 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                                                                    >
+                                                                        <Pencil className="w-3 h-3 text-gray-400" />
+                                                                    </button>
+                                                                </div>
+                                                                {product.description && (
+                                                                    <p className="text-xs text-gray-400 truncate mt-0.5">{product.description}</p>
+                                                                )}
+                                                                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                                    <span className="text-xs text-gray-400 capitalize">{product.type}</span>
+                                                                    {hasModifiers && (
+                                                                        <button
+                                                                            onClick={() => toggleExpanded(product.id)}
+                                                                            className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                                                                        >
+                                                                            {product.modifier_groups.length} extras
+                                                                            {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 

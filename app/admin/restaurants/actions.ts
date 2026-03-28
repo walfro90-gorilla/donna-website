@@ -127,6 +127,25 @@ export async function updateModifierPrice(
   return updateModifier(modifierId, { price_delta: priceDelta });
 }
 
+export async function updateProductInfo(
+  productId: string,
+  data: { name?: string; description?: string },
+): Promise<{ error: string | null }> {
+  if (data.name !== undefined && !data.name.trim())
+    return { error: 'El nombre no puede estar vacío' };
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('products')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', productId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al actualizar producto' };
+  }
+}
+
 export async function updateProductPrice(
   productId: string,
   price: number,
