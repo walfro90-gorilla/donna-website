@@ -31,9 +31,11 @@ import {
     Pencil,
     Check,
     Camera,
+    Plus,
+    Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage, createModifier, createModifierGroup, deleteModifierGroup, updateModifierGroup } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -192,6 +194,147 @@ function ModifierPriceCard({ mod, productId, groupId, onSaved, onDeleted }: {
     );
 }
 
+// ─── Sub-component: add modifier option inline form ───────────────────────────
+function AddModifierCard({ groupId, productId, onAdded, onCancel }: {
+    groupId: string;
+    productId: string;
+    onAdded: (groupId: string, productId: string, mod: { id: string; name: string; price_delta: number }) => void;
+    onCancel: () => void;
+}) {
+    const [name, setName] = useState('');
+    const [price, setPrice] = useState('0');
+    const [saving, setSaving] = useState(false);
+    const [err, setErr] = useState('');
+
+    const save = async () => {
+        const delta = parseFloat(price);
+        if (!name.trim()) { setErr('Escribe un nombre'); return; }
+        if (isNaN(delta) || delta < 0) { setErr('Precio inválido'); return; }
+        setSaving(true);
+        const { error, id } = await createModifier(groupId, { name: name.trim(), price_delta: delta });
+        setSaving(false);
+        if (error) { setErr(error); return; }
+        onAdded(groupId, productId, { id: id!, name: name.trim(), price_delta: delta });
+    };
+
+    return (
+        <div className="col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-[#e4007c]/40 p-3 space-y-2">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nueva opción</p>
+            <div className="flex gap-2">
+                <div className="flex-1">
+                    <label className="text-xs text-gray-400 mb-0.5 block">Nombre</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={e => { setName(e.target.value); setErr(''); }}
+                        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') onCancel(); }}
+                        autoFocus
+                        placeholder="ej. Extra queso"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                    />
+                </div>
+                <div className="w-28">
+                    <label className="text-xs text-gray-400 mb-0.5 block">Precio extra ($)</label>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.50"
+                        value={price}
+                        onChange={e => { setPrice(e.target.value); setErr(''); }}
+                        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') onCancel(); }}
+                        placeholder="0.00"
+                        className="w-full text-sm text-right border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                    />
+                </div>
+            </div>
+            {err && <p className="text-xs text-red-500">{err}</p>}
+            <div className="flex gap-2">
+                <button
+                    onClick={save}
+                    disabled={saving || !name.trim()}
+                    className="flex-1 py-1.5 bg-[#e4007c] text-white text-xs font-bold rounded-lg hover:bg-[#c8006e] disabled:opacity-50 transition-colors"
+                >
+                    {saving ? 'Guardando…' : '✓ Agregar'}
+                </button>
+                <button
+                    onClick={onCancel}
+                    className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Sub-component: add modifier group inline form ────────────────────────────
+function AddGroupCard({ productId, onAdded, onCancel }: {
+    productId: string;
+    onAdded: (productId: string, group: { id: string; name: string; selection_type: string; modifiers: any[] }) => void;
+    onCancel: () => void;
+}) {
+    const [name, setName] = useState('');
+    const [type, setType] = useState<'single' | 'multiple'>('multiple');
+    const [saving, setSaving] = useState(false);
+    const [err, setErr] = useState('');
+
+    const save = async () => {
+        if (!name.trim()) { setErr('Escribe un nombre para el grupo'); return; }
+        setSaving(true);
+        const { error, id } = await createModifierGroup(productId, { name: name.trim(), selection_type: type });
+        setSaving(false);
+        if (error) { setErr(error); return; }
+        onAdded(productId, { id: id!, name: name.trim(), selection_type: type, modifiers: [] });
+    };
+
+    return (
+        <div className="rounded-xl border border-[#e4007c]/40 bg-[#e4007c]/5 p-3 space-y-2">
+            <p className="text-xs font-semibold text-[#e4007c] uppercase tracking-wide">Nuevo grupo de extras</p>
+            <div className="flex gap-2">
+                <div className="flex-1">
+                    <label className="text-xs text-gray-400 mb-0.5 block">Nombre del grupo</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={e => { setName(e.target.value); setErr(''); }}
+                        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') onCancel(); }}
+                        autoFocus
+                        placeholder="ej. Extras, Término, Bebidas"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                    />
+                </div>
+                <div className="w-32">
+                    <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
+                    <select
+                        value={type}
+                        onChange={e => setType(e.target.value as 'single' | 'multiple')}
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                    >
+                        <option value="multiple">Múltiple</option>
+                        <option value="single">Elige 1</option>
+                    </select>
+                </div>
+            </div>
+            {err && <p className="text-xs text-red-500">{err}</p>}
+            <div className="flex gap-2">
+                <button
+                    onClick={save}
+                    disabled={saving || !name.trim()}
+                    className="flex-1 py-1.5 bg-[#e4007c] text-white text-xs font-bold rounded-lg hover:bg-[#c8006e] disabled:opacity-50 transition-colors"
+                >
+                    {saving ? 'Creando…' : '✓ Crear grupo'}
+                </button>
+                <button
+                    onClick={onCancel}
+                    className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function RestaurantDetailPage({ params }: RestaurantDetailProps) {
     const { id } = use(params);
     const router = useRouter();
@@ -216,6 +359,18 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [editingInfoDesc, setEditingInfoDesc] = useState('');
     const [savingInfoId, setSavingInfoId] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState<string | null>(null); // field name being uploaded
+    // key = groupId, value = product shown add-modifier form
+    const [addingModifierToGroup, setAddingModifierToGroup] = useState<string | null>(null);
+    // key = productId shown add-group form
+    const [addingGroupToProduct, setAddingGroupToProduct] = useState<string | null>(null);
+    // group being deleted: groupId
+    const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+    const [confirmDeleteGroupId, setConfirmDeleteGroupId] = useState<string | null>(null);
+    // group name edit: groupId
+    const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+    const [editingGroupName, setEditingGroupName] = useState('');
+    const [editingGroupType, setEditingGroupType] = useState<'single' | 'multiple'>('multiple');
+    const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
     const facadeInputRef = useRef<HTMLInputElement>(null);
@@ -446,6 +601,58 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                 }),
             };
         }));
+    };
+
+    const handleModifierAdded = (groupId: string, productId: string, mod: { id: string; name: string; price_delta: number }) => {
+        setProducts(prev => prev.map(p => {
+            if (p.id !== productId) return p;
+            return {
+                ...p,
+                modifier_groups: p.modifier_groups.map((g: any) =>
+                    g.id !== groupId ? g : { ...g, modifiers: [...g.modifiers, mod] }
+                ),
+            };
+        }));
+        setAddingModifierToGroup(null);
+    };
+
+    const handleGroupAdded = (productId: string, group: { id: string; name: string; selection_type: string; modifiers: any[] }) => {
+        setProducts(prev => prev.map(p =>
+            p.id !== productId ? p : { ...p, modifier_groups: [...p.modifier_groups, group] }
+        ));
+        setAddingGroupToProduct(null);
+        // Auto-expand product to show new group
+        setExpandedProducts(prev => new Set([...prev, productId]));
+    };
+
+    const handleGroupDeleted = async (groupId: string, productId: string) => {
+        setDeletingGroupId(groupId);
+        const { error } = await deleteModifierGroup(groupId);
+        setDeletingGroupId(null);
+        setConfirmDeleteGroupId(null);
+        if (!error) {
+            setProducts(prev => prev.map(p =>
+                p.id !== productId ? p : { ...p, modifier_groups: p.modifier_groups.filter((g: any) => g.id !== groupId) }
+            ));
+        }
+    };
+
+    const handleGroupSaved = async (groupId: string, productId: string) => {
+        if (!editingGroupName.trim()) return;
+        setSavingGroupId(groupId);
+        const { error } = await updateModifierGroup(groupId, { name: editingGroupName.trim(), selection_type: editingGroupType });
+        setSavingGroupId(null);
+        if (!error) {
+            setProducts(prev => prev.map(p =>
+                p.id !== productId ? p : {
+                    ...p,
+                    modifier_groups: p.modifier_groups.map((g: any) =>
+                        g.id !== groupId ? g : { ...g, name: editingGroupName.trim(), selection_type: editingGroupType }
+                    ),
+                }
+            ));
+            setEditingGroupId(null);
+        }
     };
 
     const commissionRate = (restaurant?.commission_bps ?? 1500) / 10000;
@@ -1034,15 +1241,13 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                                 )}
                                                                 <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                                                                     <span className="text-xs text-gray-400 capitalize">{product.type}</span>
-                                                                    {hasModifiers && (
-                                                                        <button
-                                                                            onClick={() => toggleExpanded(product.id)}
-                                                                            className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                                                                        >
-                                                                            {product.modifier_groups.length} extras
-                                                                            {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
-                                                                        </button>
-                                                                    )}
+                                                                    <button
+                                                                        onClick={() => toggleExpanded(product.id)}
+                                                                        className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full hover:opacity-80 transition-colors ${hasModifiers ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}
+                                                                    >
+                                                                        {hasModifiers ? `${product.modifier_groups.length} extras` : '+ extras'}
+                                                                        {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1138,16 +1343,87 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                             </div>
 
                                             {/* Modifier groups expandable */}
-                                            {hasModifiers && isExpanded && (
+                                            {isExpanded && (
                                                 <div className="px-4 sm:px-6 pb-3 ml-14 space-y-2">
                                                     {product.modifier_groups.map((group: any) => (
                                                         <div key={group.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{group.name}</span>
-                                                                <span className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full capitalize">
-                                                                    {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'}
-                                                                </span>
-                                                            </div>
+                                                            {/* Group header */}
+                                                            {editingGroupId === group.id ? (
+                                                                <div className="flex gap-2 mb-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editingGroupName}
+                                                                        onChange={e => setEditingGroupName(e.target.value)}
+                                                                        onKeyDown={e => { if (e.key === 'Escape') setEditingGroupId(null); }}
+                                                                        autoFocus
+                                                                        className="flex-1 text-xs font-bold border border-[#e4007c]/50 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
+                                                                    />
+                                                                    <select
+                                                                        value={editingGroupType}
+                                                                        onChange={e => setEditingGroupType(e.target.value as 'single' | 'multiple')}
+                                                                        className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-1.5 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none"
+                                                                    >
+                                                                        <option value="multiple">Múltiple</option>
+                                                                        <option value="single">Elige 1</option>
+                                                                    </select>
+                                                                    <button
+                                                                        onClick={() => handleGroupSaved(group.id, product.id)}
+                                                                        disabled={savingGroupId === group.id}
+                                                                        className="text-xs px-2 py-1 bg-[#e4007c] text-white rounded-lg hover:bg-[#c8006e] disabled:opacity-50"
+                                                                    >
+                                                                        {savingGroupId === group.id ? '…' : '✓'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setEditingGroupId(null)}
+                                                                        className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-300"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 mb-2 group/grp">
+                                                                    <button
+                                                                        onClick={() => { setEditingGroupId(group.id); setEditingGroupName(group.name); setEditingGroupType(group.selection_type); }}
+                                                                        className="flex items-center gap-1.5 hover:opacity-80"
+                                                                    >
+                                                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{group.name}</span>
+                                                                        <Pencil className="w-2.5 h-2.5 text-gray-400 opacity-0 group-hover/grp:opacity-60 transition-opacity" />
+                                                                    </button>
+                                                                    <span className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full">
+                                                                        {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'}
+                                                                    </span>
+                                                                    <div className="flex-1" />
+                                                                    {/* Delete group */}
+                                                                    {confirmDeleteGroupId === group.id ? (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-xs text-red-500">¿Eliminar grupo?</span>
+                                                                            <button
+                                                                                onClick={() => handleGroupDeleted(group.id, product.id)}
+                                                                                disabled={deletingGroupId === group.id}
+                                                                                className="text-xs px-1.5 py-0.5 bg-red-500 text-white rounded font-bold hover:bg-red-600 disabled:opacity-50"
+                                                                            >
+                                                                                {deletingGroupId === group.id ? '…' : 'Sí'}
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => setConfirmDeleteGroupId(null)}
+                                                                                className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300"
+                                                                            >
+                                                                                No
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => setConfirmDeleteGroupId(group.id)}
+                                                                            title="Eliminar grupo"
+                                                                            className="opacity-0 group-hover/grp:opacity-60 hover:!opacity-100 transition-opacity text-red-400 hover:text-red-600 p-0.5 rounded"
+                                                                        >
+                                                                            <Trash2 className="w-3 h-3" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Modifier options grid */}
                                                             <div className="grid grid-cols-2 gap-1.5">
                                                                 {group.modifiers?.map((mod: any) => (
                                                                     <ModifierPriceCard
@@ -1159,9 +1435,45 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                                         onDeleted={handleModifierDeleted}
                                                                     />
                                                                 ))}
+                                                                {addingModifierToGroup === group.id && (
+                                                                    <AddModifierCard
+                                                                        groupId={group.id}
+                                                                        productId={product.id}
+                                                                        onAdded={handleModifierAdded}
+                                                                        onCancel={() => setAddingModifierToGroup(null)}
+                                                                    />
+                                                                )}
                                                             </div>
+
+                                                            {/* + Add option button */}
+                                                            {addingModifierToGroup !== group.id && (
+                                                                <button
+                                                                    onClick={() => setAddingModifierToGroup(group.id)}
+                                                                    className="mt-2 w-full flex items-center justify-center gap-1 text-xs text-[#e4007c] hover:text-[#c8006e] border border-dashed border-[#e4007c]/40 hover:border-[#e4007c]/70 rounded-lg py-1.5 transition-colors"
+                                                                >
+                                                                    <Plus className="w-3 h-3" />
+                                                                    Agregar opción
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     ))}
+
+                                                    {/* Add group form or button */}
+                                                    {addingGroupToProduct === product.id ? (
+                                                        <AddGroupCard
+                                                            productId={product.id}
+                                                            onAdded={handleGroupAdded}
+                                                            onCancel={() => setAddingGroupToProduct(null)}
+                                                        />
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setAddingGroupToProduct(product.id)}
+                                                            className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-[#e4007c] dark:hover:text-[#e4007c] border border-dashed border-gray-300 dark:border-gray-600 hover:border-[#e4007c]/50 rounded-xl py-2 transition-colors"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                            Agregar grupo de extras
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

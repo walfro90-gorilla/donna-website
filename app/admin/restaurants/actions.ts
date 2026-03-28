@@ -181,6 +181,78 @@ export async function toggleProductAvailability(
   }
 }
 
+export async function createModifier(
+  groupId: string,
+  data: { name: string; price_delta: number },
+): Promise<{ error: string | null; id?: string }> {
+  if (!data.name.trim()) return { error: 'El nombre no puede estar vacío' };
+  if (data.price_delta < 0) return { error: 'El precio no puede ser negativo' };
+  try {
+    const supabase = createAdminClient();
+    const { error, data: row } = await supabase
+      .from('modifiers')
+      .insert({ group_id: groupId, name: data.name.trim(), price_delta: data.price_delta })
+      .select('id')
+      .single();
+    if (error) return { error: error.message };
+    return { error: null, id: row.id };
+  } catch {
+    return { error: 'Error al crear opción' };
+  }
+}
+
+export async function createModifierGroup(
+  productId: string,
+  data: { name: string; selection_type: 'single' | 'multiple' },
+): Promise<{ error: string | null; id?: string }> {
+  if (!data.name.trim()) return { error: 'El nombre no puede estar vacío' };
+  try {
+    const supabase = createAdminClient();
+    const { error, data: row } = await supabase
+      .from('modifier_groups')
+      .insert({ product_id: productId, name: data.name.trim(), selection_type: data.selection_type })
+      .select('id')
+      .single();
+    if (error) return { error: error.message };
+    return { error: null, id: row.id };
+  } catch {
+    return { error: 'Error al crear grupo' };
+  }
+}
+
+export async function deleteModifierGroup(
+  groupId: string,
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('modifier_groups')
+      .delete()
+      .eq('id', groupId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al eliminar grupo' };
+  }
+}
+
+export async function updateModifierGroup(
+  groupId: string,
+  data: { name?: string; selection_type?: 'single' | 'multiple' },
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('modifier_groups')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', groupId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al actualizar grupo' };
+  }
+}
+
 export async function updateRestaurantImage(
   restaurantId: string,
   field: 'cover_image_url' | 'logo_url' | 'facade_image_url',
