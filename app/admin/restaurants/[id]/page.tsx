@@ -327,8 +327,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     };
 
     const startEditingPrice = (product: any) => {
+        // product.price is the PLATFORM price; derive cocina price for editing
+        const cocinaPrice = Number(product.price) / (1 + commissionRate);
         setEditingPriceId(product.id);
-        setEditingPriceValue(String(Number(product.price)));
+        setEditingPriceValue(cocinaPrice.toFixed(2));
     };
 
     const cancelEditingPrice = () => {
@@ -337,13 +339,15 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     };
 
     const savePrice = async (productId: string) => {
-        const newPrice = parseFloat(editingPriceValue);
-        if (isNaN(newPrice) || newPrice < 0) return;
+        const cocinaInput = parseFloat(editingPriceValue);
+        if (isNaN(cocinaInput) || cocinaInput <= 0) return;
+        // Save platform price = cocina * (1 + commission)
+        const newPlatformPrice = Math.round(cocinaInput * (1 + commissionRate) * 100) / 100;
         setSavingPriceId(productId);
-        const { error } = await updateProductPrice(productId, newPrice);
+        const { error } = await updateProductPrice(productId, newPlatformPrice);
         setSavingPriceId(null);
         if (!error) {
-            setProducts(prev => prev.map(p => p.id === productId ? { ...p, price: newPrice } : p));
+            setProducts(prev => prev.map(p => p.id === productId ? { ...p, price: newPlatformPrice } : p));
             setEditingPriceId(null);
         }
     };
@@ -668,7 +672,9 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                         ) : (
                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {products.map((product: any) => {
-                                    const platformPrice = Number(product.price) * (1 + commissionRate);
+                                    // product.price IS the platform price stored in DB
+                                    const platformPrice = Number(product.price);
+                                    const cocinaPrice = platformPrice / (1 + commissionRate);
                                     const isToggling = togglingProductId === product.id;
                                     const isExpanded = expandedProducts.has(product.id);
                                     const hasModifiers = product.modifier_groups?.length > 0;
@@ -702,7 +708,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                     </div>
                                                 </div>
 
-                                                {/* Cocina price — editable */}
+                                                {/* Cocina price — editable (derived from platform price) */}
                                                 <div className="text-right">
                                                     {editingPriceId === product.id ? (
                                                         <div className="flex flex-col items-end gap-1">
@@ -722,6 +728,12 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                                     className="w-20 text-right text-sm font-semibold border border-[#e4007c] rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
                                                                 />
                                                             </div>
+                                                            {/* Live platform price preview */}
+                                                            {editingPriceValue && !isNaN(parseFloat(editingPriceValue)) && (
+                                                                <p className="text-xs text-[#e4007c]/80">
+                                                                    → {fmtMXN(parseFloat(editingPriceValue) * (1 + commissionRate))}
+                                                                </p>
+                                                            )}
                                                             <div className="flex gap-1">
                                                                 <button
                                                                     onClick={() => savePrice(product.id)}
@@ -742,10 +754,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                         <button
                                                             onClick={() => startEditingPrice(product)}
                                                             className="group text-right"
-                                                            title="Clic para editar precio"
+                                                            title="Editar precio cocina"
                                                         >
                                                             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-[#e4007c] transition-colors">
-                                                                {fmtMXN(Number(product.price))}
+                                                                {fmtMXN(cocinaPrice)}
                                                             </p>
                                                             <p className="text-xs text-gray-400 group-hover:text-[#e4007c]/60 transition-colors">
                                                                 cocina ✎
@@ -754,9 +766,14 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                     )}
                                                 </div>
 
-                                                {/* Platform price */}
+                                                {/* Platform price — stored directly in products.price */}
                                                 <div className="text-right">
-                                                    <p className="text-sm font-bold text-[#e4007c]">{fmtMXN(platformPrice)}</p>
+                                                    <p className="text-sm font-bold text-[#e4007c]">
+                                                        {editingPriceId === product.id && editingPriceValue && !isNaN(parseFloat(editingPriceValue))
+                                                            ? fmtMXN(parseFloat(editingPriceValue) * (1 + commissionRate))
+                                                            : fmtMXN(platformPrice)
+                                                        }
+                                                    </p>
                                                     <p className="text-xs text-gray-400">plataforma</p>
                                                 </div>
 
