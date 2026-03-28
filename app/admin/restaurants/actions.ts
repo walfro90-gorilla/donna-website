@@ -249,6 +249,10 @@ export async function createModifier(
   }
 }
 
+/**
+ * Crea un nuevo grupo de extras a nivel restaurante y lo asigna al producto.
+ * El grupo queda en la librería del restaurante para reutilizarse.
+ */
 export async function createModifierGroup(
   productId: string,
   data: { name: string; selection_type: 'single' | 'multiple' },
@@ -256,18 +260,81 @@ export async function createModifierGroup(
   if (!data.name.trim()) return { error: 'El nombre no puede estar vacío' };
   try {
     const supabase = createAdminClient();
-    const { error, data: row } = await supabase
+    // 1. Lookup restaurant_id from product
+    const { data: product, error: pErr } = await supabase
+      .from('products')
+      .select('restaurant_id')
+      .eq('id', productId)
+      .single();
+    if (pErr || !product) return { error: 'Producto no encontrado' };
+
+    // 2. Create group at restaurant level
+    const { error: gErr, data: group } = await supabase
       .from('modifier_groups')
-      .insert({ product_id: productId, name: data.name.trim(), selection_type: data.selection_type })
+      .insert({
+        restaurant_id: product.restaurant_id,
+        name: data.name.trim(),
+        selection_type: data.selection_type,
+      })
       .select('id')
       .single();
-    if (error) return { error: error.message };
-    return { error: null, id: row.id };
+    if (gErr) return { error: gErr.message };
+
+    // 3. Link to product via join table
+    const { error: lErr } = await supabase
+      .from('product_modifier_groups')
+      .insert({ product_id: productId, modifier_group_id: group.id });
+    if (lErr) return { error: lErr.message };
+
+    return { error: null, id: group.id };
   } catch {
     return { error: 'Error al crear grupo' };
   }
 }
 
+/**
+ * Asigna un grupo de la librería del restaurante a un producto específico.
+ */
+export async function assignModifierGroup(
+  productId: string,
+  groupId: string,
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('product_modifier_groups')
+      .insert({ product_id: productId, modifier_group_id: groupId });
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al asignar grupo' };
+  }
+}
+
+/**
+ * Desvincula un grupo de un producto sin eliminarlo de la librería.
+ */
+export async function detachModifierGroup(
+  productId: string,
+  groupId: string,
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('product_modifier_groups')
+      .delete()
+      .eq('product_id', productId)
+      .eq('modifier_group_id', groupId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al desvincular grupo' };
+  }
+}
+
+/**
+ * Elimina un grupo completamente de la librería (y de todos los productos).
+ */
 export async function deleteModifierGroup(
   groupId: string,
 ): Promise<{ error: string | null }> {

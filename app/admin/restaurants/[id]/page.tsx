@@ -35,7 +35,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage, createModifier, createModifierGroup, deleteModifierGroup, updateModifierGroup, createProduct, deleteProduct } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage, createModifier, createModifierGroup, deleteModifierGroup, updateModifierGroup, createProduct, deleteProduct, assignModifierGroup, detachModifierGroup } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -267,18 +267,25 @@ function AddModifierCard({ groupId, productId, onAdded, onCancel }: {
     );
 }
 
-// ─── Sub-component: add modifier group inline form ────────────────────────────
-function AddGroupCard({ productId, onAdded, onCancel }: {
+// ─── Sub-component: add modifier group — create new or assign from library ─────
+function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, onAssigned, onCancel }: {
     productId: string;
+    restaurantGroups: any[];
+    currentGroupIds: Set<string>;
     onAdded: (productId: string, group: { id: string; name: string; selection_type: string; modifiers: any[] }) => void;
+    onAssigned: (productId: string, group: any) => void;
     onCancel: () => void;
 }) {
+    const [tab, setTab] = useState<'new' | 'library'>('new');
     const [name, setName] = useState('');
     const [type, setType] = useState<'single' | 'multiple'>('multiple');
     const [saving, setSaving] = useState(false);
+    const [assigningId, setAssigningId] = useState<string | null>(null);
     const [err, setErr] = useState('');
 
-    const save = async () => {
+    const available = restaurantGroups.filter(g => !currentGroupIds.has(g.id));
+
+    const saveNew = async () => {
         if (!name.trim()) { setErr('Escribe un nombre para el grupo'); return; }
         setSaving(true);
         const { error, id } = await createModifierGroup(productId, { name: name.trim(), selection_type: type });
@@ -287,50 +294,107 @@ function AddGroupCard({ productId, onAdded, onCancel }: {
         onAdded(productId, { id: id!, name: name.trim(), selection_type: type, modifiers: [] });
     };
 
+    const assign = async (group: any) => {
+        setAssigningId(group.id);
+        const { error } = await assignModifierGroup(productId, group.id);
+        setAssigningId(null);
+        if (error) { setErr(error); return; }
+        onAssigned(productId, group);
+    };
+
     return (
-        <div className="rounded-xl border border-[#e4007c]/40 bg-[#e4007c]/5 p-3 space-y-2">
-            <p className="text-xs font-semibold text-[#e4007c] uppercase tracking-wide">Nuevo grupo de extras</p>
-            <div className="flex gap-2">
-                <div className="flex-1">
-                    <label className="text-xs text-gray-400 mb-0.5 block">Nombre del grupo</label>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={e => { setName(e.target.value); setErr(''); }}
-                        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') onCancel(); }}
-                        autoFocus
-                        placeholder="ej. Extras, Término, Bebidas"
-                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
-                    />
-                </div>
-                <div className="w-32">
-                    <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
-                    <select
-                        value={type}
-                        onChange={e => setType(e.target.value as 'single' | 'multiple')}
-                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+        <div className="rounded-xl border border-[#e4007c]/40 bg-[#e4007c]/5 p-3 space-y-2.5">
+            {/* Tabs */}
+            <div className="flex gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-lg">
+                {[
+                    { key: 'new', label: '+ Nuevo grupo' },
+                    { key: 'library', label: `Librería (${available.length})` },
+                ].map(t => (
+                    <button
+                        key={t.key}
+                        onClick={() => { setTab(t.key as 'new' | 'library'); setErr(''); }}
+                        className={`flex-1 text-xs font-semibold py-1 px-2 rounded-md transition-colors ${tab === t.key ? 'bg-[#e4007c] text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                     >
-                        <option value="multiple">Múltiple</option>
-                        <option value="single">Elige 1</option>
-                    </select>
-                </div>
+                        {t.label}
+                    </button>
+                ))}
             </div>
-            {err && <p className="text-xs text-red-500">{err}</p>}
-            <div className="flex gap-2">
-                <button
-                    onClick={save}
-                    disabled={saving || !name.trim()}
-                    className="flex-1 py-1.5 bg-[#e4007c] text-white text-xs font-bold rounded-lg hover:bg-[#c8006e] disabled:opacity-50 transition-colors"
-                >
-                    {saving ? 'Creando…' : '✓ Crear grupo'}
-                </button>
-                <button
-                    onClick={onCancel}
-                    className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                    Cancelar
-                </button>
-            </div>
+
+            {tab === 'new' ? (
+                <>
+                    <div className="flex gap-2">
+                        <div className="flex-1">
+                            <label className="text-xs text-gray-400 mb-0.5 block">Nombre del grupo</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={e => { setName(e.target.value); setErr(''); }}
+                                onKeyDown={e => { if (e.key === 'Enter') saveNew(); if (e.key === 'Escape') onCancel(); }}
+                                autoFocus
+                                placeholder="ej. Extras, Término, Bebidas"
+                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                            />
+                        </div>
+                        <div className="w-32">
+                            <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
+                            <select
+                                value={type}
+                                onChange={e => setType(e.target.value as 'single' | 'multiple')}
+                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                            >
+                                <option value="multiple">Múltiple</option>
+                                <option value="single">Elige 1</option>
+                            </select>
+                        </div>
+                    </div>
+                    {err && <p className="text-xs text-red-500">{err}</p>}
+                    <div className="flex gap-2">
+                        <button onClick={saveNew} disabled={saving || !name.trim()}
+                            className="flex-1 py-1.5 bg-[#e4007c] text-white text-xs font-bold rounded-lg hover:bg-[#c8006e] disabled:opacity-50 transition-colors">
+                            {saving ? 'Creando…' : '✓ Crear grupo'}
+                        </button>
+                        <button onClick={onCancel}
+                            className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            Cancelar
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {available.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-3">
+                            No hay grupos disponibles en la librería.<br />
+                            <button onClick={() => setTab('new')} className="text-[#e4007c] hover:underline">Crear uno nuevo</button>
+                        </p>
+                    ) : (
+                        <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                            {available.map(group => (
+                                <div key={group.id}
+                                    className="flex items-center justify-between gap-2 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-700">
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{group.name}</p>
+                                        <p className="text-xs text-gray-400">
+                                            {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'} · {group.modifiers?.length ?? 0} opciones
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => assign(group)}
+                                        disabled={assigningId === group.id}
+                                        className="flex-shrink-0 text-xs px-2.5 py-1 bg-[#e4007c]/10 text-[#e4007c] border border-[#e4007c]/30 rounded-lg hover:bg-[#e4007c] hover:text-white transition-colors disabled:opacity-50 font-semibold"
+                                    >
+                                        {assigningId === group.id ? '…' : '+ Asignar'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {err && <p className="text-xs text-red-500">{err}</p>}
+                    <button onClick={onCancel}
+                        className="w-full py-1.5 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                </>
+            )}
         </div>
     );
 }
@@ -484,6 +548,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [editingInfoDesc, setEditingInfoDesc] = useState('');
     const [savingInfoId, setSavingInfoId] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState<string | null>(null); // field name being uploaded
+    const [restaurantGroups, setRestaurantGroups] = useState<any[]>([]);
     const [showCreateProduct, setShowCreateProduct] = useState(false);
     const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
     const [confirmDeleteProductId, setConfirmDeleteProductId] = useState<string | null>(null);
@@ -560,14 +625,38 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
 
             const { data: productsData } = await supabase
                 .from('products')
-                .select('id, name, description, price, image_url, is_available, type, modifier_groups(id, name, selection_type, modifiers(id, name, price_delta))')
+                .select(`
+                    id, name, description, price, image_url, is_available, type,
+                    product_modifier_groups(
+                        sort_order,
+                        modifier_group_id,
+                        modifier_groups(id, name, selection_type, modifiers(id, name, price_delta))
+                    )
+                `)
                 .eq('restaurant_id', id)
                 .order('type')
                 .order('name');
 
+            // Normalize: flatten join table so product.modifier_groups keeps same shape
+            const normalizedProducts = (productsData || []).map((p: any) => ({
+                ...p,
+                modifier_groups: (p.product_modifier_groups || [])
+                    .sort((a: any, b: any) => a.sort_order - b.sort_order)
+                    .map((pmg: any) => pmg.modifier_groups)
+                    .filter(Boolean),
+            }));
+
+            // Fetch all modifier groups for this restaurant (library)
+            const { data: groupsData } = await supabase
+                .from('modifier_groups')
+                .select('id, name, selection_type, modifiers(id, name, price_delta)')
+                .eq('restaurant_id', id)
+                .order('name');
+
             setRestaurant(restaurantData);
             setProductsCount(prodCount || 0);
-            setProducts(productsData || []);
+            setProducts(normalizedProducts);
+            setRestaurantGroups(groupsData || []);
             setOrdersCount(ordCount || 0);
             setAccountBalance(accountData?.balance || 0);
             setRecentOrders(ordersData || []);
@@ -698,49 +787,39 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     };
 
     const handleModifierSaved = (modId: string, groupId: string, productId: string, newName: string, newDelta: number) => {
-        setProducts(prev => prev.map(p => {
-            if (p.id !== productId) return p;
-            return {
-                ...p,
-                modifier_groups: p.modifier_groups.map((g: any) => {
-                    if (g.id !== groupId) return g;
-                    return {
-                        ...g,
-                        modifiers: g.modifiers.map((m: any) =>
-                            m.id === modId ? { ...m, name: newName, price_delta: newDelta } : m
-                        ),
-                    };
-                }),
-            };
-        }));
+        const updateMod = (groups: any[]) => groups.map((g: any) =>
+            g.id !== groupId ? g : {
+                ...g,
+                modifiers: g.modifiers.map((m: any) =>
+                    m.id === modId ? { ...m, name: newName, price_delta: newDelta } : m
+                ),
+            }
+        );
+        setProducts(prev => prev.map(p =>
+            p.id !== productId ? p : { ...p, modifier_groups: updateMod(p.modifier_groups) }
+        ));
+        setRestaurantGroups(prev => updateMod(prev));
     };
 
     const handleModifierDeleted = (modId: string, groupId: string, productId: string) => {
-        setProducts(prev => prev.map(p => {
-            if (p.id !== productId) return p;
-            return {
-                ...p,
-                modifier_groups: p.modifier_groups.map((g: any) => {
-                    if (g.id !== groupId) return g;
-                    return {
-                        ...g,
-                        modifiers: g.modifiers.filter((m: any) => m.id !== modId),
-                    };
-                }),
-            };
-        }));
+        const filterMod = (groups: any[]) => groups.map((g: any) =>
+            g.id !== groupId ? g : { ...g, modifiers: g.modifiers.filter((m: any) => m.id !== modId) }
+        );
+        setProducts(prev => prev.map(p =>
+            p.id !== productId ? p : { ...p, modifier_groups: filterMod(p.modifier_groups) }
+        ));
+        setRestaurantGroups(prev => filterMod(prev));
     };
 
     const handleModifierAdded = (groupId: string, productId: string, mod: { id: string; name: string; price_delta: number }) => {
-        setProducts(prev => prev.map(p => {
-            if (p.id !== productId) return p;
-            return {
-                ...p,
-                modifier_groups: p.modifier_groups.map((g: any) =>
-                    g.id !== groupId ? g : { ...g, modifiers: [...g.modifiers, mod] }
-                ),
-            };
-        }));
+        const addMod = (groups: any[]) => groups.map((g: any) =>
+            g.id !== groupId ? g : { ...g, modifiers: [...(g.modifiers || []), mod] }
+        );
+        setProducts(prev => prev.map(p =>
+            p.id !== productId ? p : { ...p, modifier_groups: addMod(p.modifier_groups) }
+        ));
+        // Keep library in sync
+        setRestaurantGroups(prev => addMod(prev));
         setAddingModifierToGroup(null);
     };
 
@@ -748,9 +827,33 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
         setProducts(prev => prev.map(p =>
             p.id !== productId ? p : { ...p, modifier_groups: [...p.modifier_groups, group] }
         ));
+        // Add to restaurant library if not already there
+        setRestaurantGroups(prev =>
+            prev.find(g => g.id === group.id) ? prev : [...prev, group]
+        );
         setAddingGroupToProduct(null);
-        // Auto-expand product to show new group
         setExpandedProducts(prev => new Set([...prev, productId]));
+    };
+
+    const handleGroupAssigned = (productId: string, group: any) => {
+        setProducts(prev => prev.map(p =>
+            p.id !== productId ? p : { ...p, modifier_groups: [...p.modifier_groups, group] }
+        ));
+        setAddingGroupToProduct(null);
+        setExpandedProducts(prev => new Set([...prev, productId]));
+    };
+
+    // Detach from product (keeps group in library)
+    const handleGroupDetached = async (groupId: string, productId: string) => {
+        setDeletingGroupId(groupId);
+        const { error } = await detachModifierGroup(productId, groupId);
+        setDeletingGroupId(null);
+        setConfirmDeleteGroupId(null);
+        if (!error) {
+            setProducts(prev => prev.map(p =>
+                p.id !== productId ? p : { ...p, modifier_groups: p.modifier_groups.filter((g: any) => g.id !== groupId) }
+            ));
+        }
     };
 
     const handleGroupDeleted = async (groupId: string, productId: string) => {
@@ -762,6 +865,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
             setProducts(prev => prev.map(p =>
                 p.id !== productId ? p : { ...p, modifier_groups: p.modifier_groups.filter((g: any) => g.id !== groupId) }
             ));
+            setRestaurantGroups(prev => prev.filter(g => g.id !== groupId));
         }
     };
 
@@ -771,13 +875,17 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
         const { error } = await updateModifierGroup(groupId, { name: editingGroupName.trim(), selection_type: editingGroupType });
         setSavingGroupId(null);
         if (!error) {
+            const updatedGroup = { name: editingGroupName.trim(), selection_type: editingGroupType };
             setProducts(prev => prev.map(p =>
                 p.id !== productId ? p : {
                     ...p,
                     modifier_groups: p.modifier_groups.map((g: any) =>
-                        g.id !== groupId ? g : { ...g, name: editingGroupName.trim(), selection_type: editingGroupType }
+                        g.id !== groupId ? g : { ...g, ...updatedGroup }
                     ),
                 }
+            ));
+            setRestaurantGroups(prev => prev.map(g =>
+                g.id !== groupId ? g : { ...g, ...updatedGroup }
             ));
             setEditingGroupId(null);
         }
@@ -1590,12 +1698,12 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                                         {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'}
                                                                     </span>
                                                                     <div className="flex-1" />
-                                                                    {/* Delete group */}
+                                                                    {/* Detach group from product */}
                                                                     {confirmDeleteGroupId === group.id ? (
                                                                         <div className="flex items-center gap-1">
-                                                                            <span className="text-xs text-red-500">¿Eliminar grupo?</span>
+                                                                            <span className="text-xs text-red-500">¿Quitar de este producto?</span>
                                                                             <button
-                                                                                onClick={() => handleGroupDeleted(group.id, product.id)}
+                                                                                onClick={() => handleGroupDetached(group.id, product.id)}
                                                                                 disabled={deletingGroupId === group.id}
                                                                                 className="text-xs px-1.5 py-0.5 bg-red-500 text-white rounded font-bold hover:bg-red-600 disabled:opacity-50"
                                                                             >
@@ -1659,7 +1767,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                     {addingGroupToProduct === product.id ? (
                                                         <AddGroupCard
                                                             productId={product.id}
+                                                            restaurantGroups={restaurantGroups}
+                                                            currentGroupIds={new Set(product.modifier_groups.map((g: any) => g.id))}
                                                             onAdded={handleGroupAdded}
+                                                            onAssigned={handleGroupAssigned}
                                                             onCancel={() => setAddingGroupToProduct(null)}
                                                         />
                                                     ) : (
