@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
@@ -30,9 +30,10 @@ import {
     ChevronUp,
     Pencil,
     Check,
+    Camera,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier } from '../actions';
+import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage } from '../actions';
 import { BusinessHoursEditor } from '../components/BusinessHoursEditor';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
@@ -214,6 +215,10 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [editingInfoName, setEditingInfoName] = useState('');
     const [editingInfoDesc, setEditingInfoDesc] = useState('');
     const [savingInfoId, setSavingInfoId] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState<string | null>(null); // field name being uploaded
+    const coverInputRef = useRef<HTMLInputElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const facadeInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchRestaurantDetails();
@@ -353,6 +358,33 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                     : p
             ));
             setEditingInfoId(null);
+        }
+    };
+
+    const handleImageUpload = async (
+        field: 'cover_image_url' | 'logo_url' | 'facade_image_url',
+        file: File,
+    ) => {
+        if (!restaurant) return;
+        setUploadingImage(field);
+        try {
+            const ext = file.name.split('.').pop() ?? 'jpg';
+            const path = `restaurants/${restaurant.id}/${field.replace('_url', '')}_${Date.now()}.${ext}`;
+            const { error: uploadError, data } = await supabase.storage
+                .from('restaurant-images')
+                .upload(path, file, { cacheControl: '3600', upsert: true });
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabase.storage
+                .from('restaurant-images')
+                .getPublicUrl(data.path);
+            const { error } = await updateRestaurantImage(restaurant.id, field, publicUrl);
+            if (error) throw new Error(error);
+            setRestaurant(prev => prev ? { ...prev, [field]: publicUrl } : prev);
+        } catch (e) {
+            console.error(e);
+            alert('Error al subir imagen');
+        } finally {
+            setUploadingImage(null);
         }
     };
 
@@ -1372,32 +1404,102 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                 Imágenes
                             </h3>
                         </div>
+
+                        {/* Hidden file inputs */}
+                        <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload('cover_image_url', f); e.target.value = ''; }} />
+                        <input ref={logoInputRef} type="file" accept="image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload('logo_url', f); e.target.value = ''; }} />
+                        <input ref={facadeInputRef} type="file" accept="image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload('facade_image_url', f); e.target.value = ''; }} />
+
                         <div className="p-4 sm:p-5 grid grid-cols-2 gap-3">
+                            {/* Portada */}
                             <div className="col-span-2">
                                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1.5">Portada</p>
-                                {restaurant.cover_image_url ? (
-                                    <OptimizedImage src={restaurant.cover_image_url} alt="Cover" className="w-full h-36 object-cover rounded-xl border border-gray-200 dark:border-gray-700" priority />
-                                ) : (
-                                    <div className="w-full h-36 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400 text-sm border border-gray-200 dark:border-gray-600">
-                                        Sin imagen
+                                <button
+                                    onClick={() => coverInputRef.current?.click()}
+                                    disabled={!!uploadingImage}
+                                    className="group relative w-full h-36 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#e4007c]/40"
+                                >
+                                    {restaurant.cover_image_url ? (
+                                        <img src={restaurant.cover_image_url} alt="Cover" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center gap-1.5">
+                                            <Camera className="w-6 h-6 text-gray-400" />
+                                            <span className="text-xs text-gray-400">Sin imagen</span>
+                                        </div>
+                                    )}
+                                    {/* Hover overlay */}
+                                    <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/50 transition-opacity ${uploadingImage === 'cover_image_url' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                        {uploadingImage === 'cover_image_url' ? (
+                                            <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Camera className="w-5 h-5 text-white" />
+                                                <span className="text-xs font-semibold text-white">{restaurant.cover_image_url ? 'Reemplazar' : 'Subir'}</span>
+                                            </>
+                                        )}
                                     </div>
-                                )}
+                                </button>
                             </div>
+
+                            {/* Logo */}
                             <div>
                                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1.5">Logo</p>
-                                {restaurant.logo_url ? (
-                                    <OptimizedImage src={restaurant.logo_url} alt="Logo" className="w-full h-24 object-contain bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700" />
-                                ) : (
-                                    <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400 text-xs border border-gray-200 dark:border-gray-600">Sin logo</div>
-                                )}
+                                <button
+                                    onClick={() => logoInputRef.current?.click()}
+                                    disabled={!!uploadingImage}
+                                    className="group relative w-full h-24 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#e4007c]/40"
+                                >
+                                    {restaurant.logo_url ? (
+                                        <img src={restaurant.logo_url} alt="Logo" className="w-full h-full object-contain bg-gray-50 dark:bg-gray-700" />
+                                    ) : (
+                                        <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center gap-1">
+                                            <Camera className="w-5 h-5 text-gray-400" />
+                                            <span className="text-xs text-gray-400">Sin logo</span>
+                                        </div>
+                                    )}
+                                    <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/50 transition-opacity ${uploadingImage === 'logo_url' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                        {uploadingImage === 'logo_url' ? (
+                                            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Camera className="w-4 h-4 text-white" />
+                                                <span className="text-xs font-semibold text-white">{restaurant.logo_url ? 'Reemplazar' : 'Subir'}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
                             </div>
+
+                            {/* Fachada */}
                             <div>
                                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1.5">Fachada</p>
-                                {restaurant.facade_image_url ? (
-                                    <OptimizedImage src={restaurant.facade_image_url} alt="Fachada" className="w-full h-24 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
-                                ) : (
-                                    <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400 text-xs border border-gray-200 dark:border-gray-600">Sin fachada</div>
-                                )}
+                                <button
+                                    onClick={() => facadeInputRef.current?.click()}
+                                    disabled={!!uploadingImage}
+                                    className="group relative w-full h-24 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#e4007c]/40"
+                                >
+                                    {restaurant.facade_image_url ? (
+                                        <img src={restaurant.facade_image_url} alt="Fachada" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center gap-1">
+                                            <Camera className="w-5 h-5 text-gray-400" />
+                                            <span className="text-xs text-gray-400">Sin fachada</span>
+                                        </div>
+                                    )}
+                                    <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/50 transition-opacity ${uploadingImage === 'facade_image_url' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                        {uploadingImage === 'facade_image_url' ? (
+                                            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Camera className="w-4 h-4 text-white" />
+                                                <span className="text-xs font-semibold text-white">{restaurant.facade_image_url ? 'Reemplazar' : 'Subir'}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
                             </div>
                         </div>
                     </div>

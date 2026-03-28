@@ -181,6 +181,25 @@ export async function toggleProductAvailability(
   }
 }
 
+export async function updateRestaurantImage(
+  restaurantId: string,
+  field: 'cover_image_url' | 'logo_url' | 'facade_image_url',
+  url: string,
+): Promise<{ error: string | null }> {
+  if (!restaurantId) return { error: 'ID de restaurante requerido' };
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from('restaurants')
+      .update({ [field]: url, updated_at: new Date().toISOString() })
+      .eq('id', restaurantId);
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch {
+    return { error: 'Error al actualizar imagen' };
+  }
+}
+
 export async function updateRestaurantInfo(
   restaurantId: string,
   data: {
