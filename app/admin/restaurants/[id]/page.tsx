@@ -1699,62 +1699,71 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                         <div key={group.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
                                                             {/* Group header */}
                                                             {editingGroupId === group.id ? (
-                                                                <div className="space-y-1.5 mb-2">
-                                                                    <div className="flex gap-2">
+                                                                <div className="mb-3 p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-[#e4007c]/30 space-y-2">
+                                                                    {/* Row 1: name full width */}
+                                                                    <div>
+                                                                        <label className="text-xs text-gray-400 mb-0.5 block">Nombre del grupo</label>
                                                                         <input
                                                                             type="text"
                                                                             value={editingGroupName}
                                                                             onChange={e => setEditingGroupName(e.target.value)}
                                                                             onKeyDown={e => { if (e.key === 'Escape') setEditingGroupId(null); }}
                                                                             autoFocus
-                                                                            className="flex-1 text-xs font-bold border border-[#e4007c]/50 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
+                                                                            className="w-full text-sm font-semibold border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
                                                                         />
-                                                                        <select
-                                                                            value={editingGroupType}
-                                                                            onChange={e => {
-                                                                                const v = e.target.value as 'single' | 'multiple';
-                                                                                setEditingGroupType(v);
-                                                                                if (v === 'single') { setEditingGroupMin(0); setEditingGroupMax(1); }
-                                                                            }}
-                                                                            className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-1.5 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none"
-                                                                        >
-                                                                            <option value="multiple">Múltiple</option>
-                                                                            <option value="single">Elige 1</option>
-                                                                        </select>
+                                                                    </div>
+                                                                    {/* Row 2: type + optional min/max */}
+                                                                    <div className="flex gap-2">
+                                                                        <div className="w-36">
+                                                                            <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
+                                                                            <select
+                                                                                value={editingGroupType}
+                                                                                onChange={e => {
+                                                                                    const v = e.target.value as 'single' | 'multiple';
+                                                                                    setEditingGroupType(v);
+                                                                                    if (v === 'single') { setEditingGroupMin(0); setEditingGroupMax(1); }
+                                                                                }}
+                                                                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                                                                            >
+                                                                                <option value="multiple">Múltiple</option>
+                                                                                <option value="single">Elige 1</option>
+                                                                            </select>
+                                                                        </div>
+                                                                        {editingGroupType === 'multiple' && (
+                                                                            <>
+                                                                                <div className="flex-1">
+                                                                                    <label className="text-xs text-gray-400 mb-0.5 block">Mín.</label>
+                                                                                    <input type="number" min="0" value={editingGroupMin}
+                                                                                        onChange={e => setEditingGroupMin(Math.max(0, parseInt(e.target.value) || 0))}
+                                                                                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="flex-1">
+                                                                                    <label className="text-xs text-gray-400 mb-0.5 block">Máx.</label>
+                                                                                    <input type="number" min="1" value={editingGroupMax}
+                                                                                        onChange={e => setEditingGroupMax(Math.max(1, parseInt(e.target.value) || 1))}
+                                                                                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30"
+                                                                                    />
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                    {/* Row 3: actions */}
+                                                                    <div className="flex gap-2 pt-0.5">
                                                                         <button
                                                                             onClick={() => handleGroupSaved(group.id, product.id)}
-                                                                            disabled={savingGroupId === group.id}
-                                                                            className="text-xs px-2 py-1 bg-[#e4007c] text-white rounded-lg hover:bg-[#c8006e] disabled:opacity-50"
+                                                                            disabled={savingGroupId === group.id || !editingGroupName.trim()}
+                                                                            className="flex-1 py-1.5 text-xs font-bold bg-[#e4007c] text-white rounded-lg hover:bg-[#c8006e] disabled:opacity-50 transition-colors"
                                                                         >
-                                                                            {savingGroupId === group.id ? '…' : '✓'}
+                                                                            {savingGroupId === group.id ? 'Guardando…' : '✓ Guardar'}
                                                                         </button>
                                                                         <button
                                                                             onClick={() => setEditingGroupId(null)}
-                                                                            className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-300"
+                                                                            className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                                                                         >
-                                                                            ✕
+                                                                            Cancelar
                                                                         </button>
                                                                     </div>
-                                                                    {editingGroupType === 'multiple' && (
-                                                                        <div className="flex gap-2">
-                                                                            <div className="flex-1">
-                                                                                <label className="text-xs text-gray-400 mb-0.5 block">Mín. opciones</label>
-                                                                                <input
-                                                                                    type="number" min="0" value={editingGroupMin}
-                                                                                    onChange={e => setEditingGroupMin(Math.max(0, parseInt(e.target.value) || 0))}
-                                                                                    className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
-                                                                                />
-                                                                            </div>
-                                                                            <div className="flex-1">
-                                                                                <label className="text-xs text-gray-400 mb-0.5 block">Máx. opciones</label>
-                                                                                <input
-                                                                                    type="number" min="1" value={editingGroupMax}
-                                                                                    onChange={e => setEditingGroupMax(Math.max(1, parseInt(e.target.value) || 1))}
-                                                                                    className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
                                                                 </div>
                                                             ) : (
                                                                 <div className="flex items-center gap-2 mb-2 group/grp">
