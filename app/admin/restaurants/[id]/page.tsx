@@ -270,12 +270,13 @@ function AddModifierCard({ groupId, productId, onAdded, onCancel }: {
 }
 
 // ─── Sub-component: add modifier group — create new or assign from library ─────
-function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, onAssigned, onCancel }: {
+function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, onAssigned, onGroupDeleted, onCancel }: {
     productId: string;
     restaurantGroups: any[];
     currentGroupIds: Set<string>;
     onAdded: (productId: string, group: { id: string; name: string; selection_type: string; min_selections: number; max_selections: number; modifiers: any[] }) => void;
     onAssigned: (productId: string, group: any) => void;
+    onGroupDeleted: (groupId: string) => void;
     onCancel: () => void;
 }) {
     const [tab, setTab] = useState<'new' | 'library'>('new');
@@ -285,6 +286,8 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
     const [maxSel, setMaxSel] = useState(1);
     const [saving, setSaving] = useState(false);
     const [assigningId, setAssigningId] = useState<string | null>(null);
+    const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+    const [confirmDeleteGroupId, setConfirmDeleteGroupId] = useState<string | null>(null);
     const [err, setErr] = useState('');
 
     const available = restaurantGroups.filter(g => !currentGroupIds.has(g.id));
@@ -315,6 +318,16 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
         setAssigningId(null);
         if (error) { setErr(error); return; }
         onAssigned(productId, group);
+    };
+
+    const handleDeleteGroup = async (groupId: string) => {
+        if (confirmDeleteGroupId !== groupId) { setConfirmDeleteGroupId(groupId); return; }
+        setDeletingGroupId(groupId);
+        const { error } = await deleteModifierGroup(groupId);
+        setDeletingGroupId(null);
+        setConfirmDeleteGroupId(null);
+        if (error) { setErr(error); return; }
+        onGroupDeleted(groupId);
     };
 
     return (
@@ -407,24 +420,58 @@ function AddGroupCard({ productId, restaurantGroups, currentGroupIds, onAdded, o
                         </p>
                     ) : (
                         <div className="space-y-1.5 max-h-52 overflow-y-auto">
-                            {available.map(group => (
-                                <div key={group.id}
-                                    className="flex items-center justify-between gap-2 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-700">
-                                    <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{group.name}</p>
-                                        <p className="text-xs text-gray-400">
-                                            {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'} · {group.modifiers?.length ?? 0} opciones
-                                        </p>
+                            {available.map(group => {
+                                const isUnlinked = (group.product_modifier_groups?.length ?? 0) === 0;
+                                const isConfirmingDelete = confirmDeleteGroupId === group.id;
+                                const isDeletingThis = deletingGroupId === group.id;
+                                return (
+                                    <div key={group.id}
+                                        className="flex items-center justify-between gap-2 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-700">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{group.name}</p>
+                                            <p className="text-xs text-gray-400">
+                                                {group.selection_type === 'single' ? 'Elige 1' : 'Múltiple'} · {group.modifiers?.length ?? 0} opciones
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                            {isUnlinked && (
+                                                isConfirmingDelete ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => setConfirmDeleteGroupId(null)}
+                                                            className="text-xs px-2 py-1 text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                                        >
+                                                            No
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteGroup(group.id)}
+                                                            disabled={isDeletingThis}
+                                                            className="text-xs px-2 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 font-semibold"
+                                                        >
+                                                            {isDeletingThis ? '…' : '¿Eliminar?'}
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleDeleteGroup(group.id)}
+                                                        title="Eliminar grupo (sin productos vinculados)"
+                                                        className="p-1 text-gray-300 hover:text-red-500 transition-colors rounded"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                )
+                                            )}
+                                            <button
+                                                onClick={() => assign(group)}
+                                                disabled={assigningId === group.id}
+                                                className="text-xs px-2.5 py-1 bg-[#e4007c]/10 text-[#e4007c] border border-[#e4007c]/30 rounded-lg hover:bg-[#e4007c] hover:text-white transition-colors disabled:opacity-50 font-semibold"
+                                            >
+                                                {assigningId === group.id ? '…' : '+ Asignar'}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button
-                                        onClick={() => assign(group)}
-                                        disabled={assigningId === group.id}
-                                        className="flex-shrink-0 text-xs px-2.5 py-1 bg-[#e4007c]/10 text-[#e4007c] border border-[#e4007c]/30 rounded-lg hover:bg-[#e4007c] hover:text-white transition-colors disabled:opacity-50 font-semibold"
-                                    >
-                                        {assigningId === group.id ? '…' : '+ Asignar'}
-                                    </button>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                     {err && <p className="text-xs text-red-500">{err}</p>}
@@ -691,7 +738,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
             // Fetch all modifier groups for this restaurant (library)
             const { data: groupsData } = await supabase
                 .from('modifier_groups')
-                .select('id, name, selection_type, min_selections, max_selections, modifiers(id, name, price_delta)')
+                .select('id, name, selection_type, min_selections, max_selections, modifiers(id, name, price_delta), product_modifier_groups(product_id)')
                 .eq('restaurant_id', id)
                 .order('name');
 
@@ -1887,6 +1934,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                                             currentGroupIds={new Set(product.modifier_groups.map((g: any) => g.id))}
                                                             onAdded={handleGroupAdded}
                                                             onAssigned={handleGroupAssigned}
+                                                            onGroupDeleted={(groupId) => setRestaurantGroups(prev => prev.filter(g => g.id !== groupId))}
                                                             onCancel={() => setAddingGroupToProduct(null)}
                                                         />
                                                     ) : (
