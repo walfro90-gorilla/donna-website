@@ -33,6 +33,8 @@ import {
     Camera,
     Plus,
     Trash2,
+    Search,
+    X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { toggleRestaurantOnline, updateRestaurantCommission, updateRestaurantStatus, toggleProductAvailability, updateProductPrice, updateProductInfo, updateModifier, deleteModifier, updateRestaurantImage, createModifier, createModifierGroup, deleteModifierGroup, updateModifierGroup, createProduct, deleteProduct, assignModifierGroup, detachModifierGroup } from '../actions';
@@ -587,6 +589,7 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
     const [uploadingImage, setUploadingImage] = useState<string | null>(null); // field name being uploaded
     const [restaurantGroups, setRestaurantGroups] = useState<any[]>([]);
     const [showCreateProduct, setShowCreateProduct] = useState(false);
+    const [productSearch, setProductSearch] = useState('');
     const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
     const [confirmDeleteProductId, setConfirmDeleteProductId] = useState<string | null>(null);
     // key = groupId, value = product shown add-modifier form
@@ -1454,8 +1457,24 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
 
                                 </div>
                             </div>
+                            {/* Search */}
+                            <div className="mt-3 relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={productSearch}
+                                    onChange={e => setProductSearch(e.target.value)}
+                                    placeholder="Buscar producto…"
+                                    className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#e4007c]/30 focus:border-[#e4007c]/50 transition-colors"
+                                />
+                                {productSearch && (
+                                    <button onClick={() => setProductSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
                             {/* Column headers */}
-                            <div className="mt-3 grid grid-cols-[1fr_100px_120px_52px_32px] gap-2 px-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                            <div className="mt-2 grid grid-cols-[1fr_100px_120px_52px_32px] gap-2 px-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                                 <span>Producto</span>
                                 <span className="text-right">Precio cocina</span>
                                 <span className="text-right text-[#e4007c]">Precio plataforma</span>
@@ -1487,7 +1506,20 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {products.map((product: any) => {
+                                {(() => {
+                                    const filtered = products.filter((p: any) =>
+                                        !productSearch.trim() ||
+                                        p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+                                        (p.description ?? '').toLowerCase().includes(productSearch.toLowerCase())
+                                    );
+                                    if (filtered.length === 0 && productSearch.trim()) return (
+                                        <div className="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
+                                            <Search className="w-7 h-7 mb-2 opacity-40" />
+                                            <p className="text-sm">Sin resultados para <span className="font-semibold">"{productSearch}"</span></p>
+                                            <button onClick={() => setProductSearch('')} className="mt-2 text-xs text-[#e4007c] hover:underline">Limpiar búsqueda</button>
+                                        </div>
+                                    );
+                                    return filtered.map((product: any) => {
                                     // product.price IS the platform price stored in DB
                                     const platformPrice = Number(product.price);
                                     const cocinaPrice = platformPrice / (1 + commissionRate);
@@ -1870,7 +1902,8 @@ export default function RestaurantDetailPage({ params }: RestaurantDetailProps) 
                                             )}
                                         </div>
                                     );
-                                })}
+                                    });
+                                })()}
                             </div>
                         )}
                     </div>
